@@ -1,24 +1,23 @@
-// src/screens/LoginScreen.tsx
 import React, { useState } from "react";
+import { View, Text, TextInput, TouchableOpacity, Alert } from "react-native";
 import { useNavigation } from "@react-navigation/native";
-import { StackNavigationProp } from "@react-navigation/stack";
-import { View, Text, TextInput, TouchableOpacity } from "react-native";
-import { RootStackParamList } from "../navigation/types";
-
-type LoginScreenNavigationProp = StackNavigationProp<
-  RootStackParamList,
-  "Login"
->;
+import { login } from "../services/api";
+import { useAuth } from "../hooks/useAuth";
 
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const navigation = useNavigation<LoginScreenNavigationProp>();
+  const navigation = useNavigation();
+  const { login: authLogin } = useAuth();
 
-  const handleLogin = () => {
-    console.log("Login with", email, password);
-    // Redirect to home
-    navigation.navigate("Home");
+  const handleLogin = async () => {
+    try {
+      const token = await login(email, password);
+      await authLogin(token);
+      navigation.navigate("Home" as never);
+    } catch (error) {
+      Alert.alert("Erreur", "Échec de la connexion");
+    }
   };
 
   return (
@@ -28,10 +27,9 @@ export default function LoginScreen() {
       <TextInput
         className="w-full border border-gray-300 rounded-lg px-4 py-2 mb-4"
         placeholder="Email"
-        keyboardType="email-address"
-        autoCapitalize="none"
         onChangeText={setEmail}
         value={email}
+        autoCapitalize="none"
       />
       <TextInput
         className="w-full border border-gray-300 rounded-lg px-4 py-2 mb-6"
@@ -40,7 +38,6 @@ export default function LoginScreen() {
         onChangeText={setPassword}
         value={password}
       />
-
       <TouchableOpacity
         className="w-full bg-deepBlue py-3 rounded-lg"
         onPress={handleLogin}
