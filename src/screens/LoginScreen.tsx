@@ -50,6 +50,15 @@ export default function LoginScreen() {
       ) : (
         <Button title="Se connecter" onPress={handleLogin} />
       )}
+      <Text className="text-sm text-gray-500 mt-4">
+        Pas encore inscrit ?{" "}
+        <Text
+          className="text-blue-600 font-semibold"
+          onPress={() => navigation.navigate("Register" as never)}
+        >
+          Inscrivez-vous ici
+        </Text>
+      </Text>
     </View>
   );
 }
