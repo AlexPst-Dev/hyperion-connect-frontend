@@ -7,7 +7,7 @@ interface User {
   firstName: string;
   lastName: string;
   email: string;
-  role: string;
+  profileCategory: string;
 }
 
 interface AuthContextType {
@@ -42,8 +42,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const logout = async () => {
-    await removeToken();
-    setUser(null);
+    try {
+      setUser(null);
+      await removeToken();
+    } catch (error) {
+      console.error("Erreur lors de la déconnexion", error);
+    }
   };
 
   useEffect(() => {
