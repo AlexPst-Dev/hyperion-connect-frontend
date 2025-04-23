@@ -39,8 +39,6 @@ export default function Input({
 }: Props) {
   const InputType = types[type];
 
-  const IconComponent = <Icon name="chevron" width={24} height={24} />;
-
   switch (InputType) {
     case "email":
       return (
