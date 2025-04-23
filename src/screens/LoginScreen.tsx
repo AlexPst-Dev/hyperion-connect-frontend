@@ -1,24 +1,28 @@
-// src/screens/LoginScreen.tsx
 import React, { useState } from "react";
+import { View, Text, TextInput, ActivityIndicator, Button } from "react-native";
 import { useNavigation } from "@react-navigation/native";
-import { StackNavigationProp } from "@react-navigation/stack";
-import { View, Text, TextInput, TouchableOpacity } from "react-native";
-import { RootStackParamList } from "../navigation/types";
-
-type LoginScreenNavigationProp = StackNavigationProp<
-  RootStackParamList,
-  "Login"
->;
+import { login } from "../services/api";
+import { useAuth } from "../hooks/useAuth";
 
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const navigation = useNavigation<LoginScreenNavigationProp>();
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setIsLoading] = useState(false);
+  const navigation = useNavigation();
+  const { login: authLogin } = useAuth();
 
-  const handleLogin = () => {
-    console.log("Login with", email, password);
-    // Redirect to home
-    navigation.navigate("Home");
+  const handleLogin = async () => {
+    setError(null);
+    setIsLoading(true);
+    try {
+      const token = await login(email, password);
+      await authLogin(token);
+    } catch (error: any) {
+      setError(error.message);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -28,10 +32,9 @@ export default function LoginScreen() {
       <TextInput
         className="w-full border border-gray-300 rounded-lg px-4 py-2 mb-4"
         placeholder="Email"
-        keyboardType="email-address"
-        autoCapitalize="none"
         onChangeText={setEmail}
         value={email}
+        autoCapitalize="none"
       />
       <TextInput
         className="w-full border border-gray-300 rounded-lg px-4 py-2 mb-6"
@@ -40,15 +43,21 @@ export default function LoginScreen() {
         onChangeText={setPassword}
         value={password}
       />
-
-      <TouchableOpacity
-        className="w-full bg-deepBlue py-3 rounded-lg"
-        onPress={handleLogin}
-      >
-        <Text className="text-white text-center font-semibold">
-          Se connecter
+      {error && <Text className="text-red-500 mt-4 text-center">{error}</Text>}
+      {loading ? (
+        <ActivityIndicator size="large" color="#0A84FF" />
+      ) : (
+        <Button title="Se connecter" onPress={handleLogin} />
+      )}
+      <Text className="text-sm text-gray-500 mt-4">
+        Pas encore inscrit ?{" "}
+        <Text
+          className="text-blue-600 font-semibold"
+          onPress={() => navigation.navigate("Register" as never)}
+        >
+          Inscrivez-vous ici
         </Text>
-      </TouchableOpacity>
+      </Text>
     </View>
   );
 }
