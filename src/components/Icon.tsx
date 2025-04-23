@@ -1,9 +1,11 @@
 import React from "react";
 
 import User from "@assets/icons/user-icon.svg";
+import Chevron from "@assets/icons/chevron-down-icon.svg";
 
 const icons = {
   user: User,
+  chevron: Chevron,
 };
 
 type IconName = keyof typeof icons;
