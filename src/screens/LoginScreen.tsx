@@ -18,7 +18,6 @@ export default function LoginScreen() {
     try {
       const token = await login(email, password);
       await authLogin(token);
-      navigation.navigate("Home" as never);
     } catch (error: any) {
       setError(error.message);
     } finally {
