@@ -9,6 +9,7 @@ import {
 import { useAuth } from "../hooks/useAuth";
 import Icon from "../components/Icon";
 import Input from "../components/Input";
+import AppText from "../components/AppText";
 
 export default function HomeScreen() {
   const { user } = useAuth();
@@ -33,9 +34,9 @@ export default function HomeScreen() {
           </Text>
         </View>
 
-        <Text className="text-2xl font-bold text-deepBlue mb-2">
+        <AppText style={{ fontFamily: "Montserrat-Regular", fontSize: 24 }}>
           Test composant Input
-        </Text>
+        </AppText>
 
         <Input
           type="checkbox"

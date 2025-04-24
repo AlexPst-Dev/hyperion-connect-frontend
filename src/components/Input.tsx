@@ -1,9 +1,9 @@
 import React, { useState } from "react";
-import Icon from "./Icon";
 import { View, Text, TextInput, Pressable, Platform } from "react-native";
 import Checkbox from "expo-checkbox";
 import RNPickerSelect from "react-native-picker-select";
 import DateTimePicker from "@react-native-community/datetimepicker";
+import AppText from "./AppText";
 
 const types = {
   email: "email",
