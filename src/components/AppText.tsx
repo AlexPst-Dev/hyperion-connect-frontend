@@ -1,5 +1,6 @@
 import React from "react";
 import { Text, TextProps, TextStyle } from "react-native";
+import GlobalStyles from "../styles/styles";
 
 interface Props extends TextProps {
   children: React.ReactNode;
@@ -8,7 +9,7 @@ interface Props extends TextProps {
 
 export default function AppText({ children, style, ...props }: Props) {
   return (
-    <Text style={[{ fontFamily: "Roboto-Regular" }, style]} {...props}>
+    <Text style={[GlobalStyles.p, style]} {...props}>
       {children}
     </Text>
   );

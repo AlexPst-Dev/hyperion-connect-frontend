@@ -1,8 +1,10 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, ActivityIndicator, Button } from "react-native";
+import { View, ActivityIndicator, Button } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { login } from "../services/api";
 import { useAuth } from "../hooks/useAuth";
+import Input from "../components/Input";
+import AppText from "../components/AppText";
 
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
@@ -27,37 +29,40 @@ export default function LoginScreen() {
 
   return (
     <View className="flex-1 justify-center items-center bg-white px-6">
-      <Text className="text-2xl font-bold mb-6 text-deepBlue">Connexion</Text>
+      <AppText className="text-2xl font-bold mb-6 text-deepBlue">
+        Connexion
+      </AppText>
 
-      <TextInput
-        className="w-full border border-gray-300 rounded-lg px-4 py-2 mb-4"
+      <Input
         placeholder="Email"
         onChangeText={setEmail}
         value={email}
-        autoCapitalize="none"
+        type="email"
+        label="Email"
       />
-      <TextInput
-        className="w-full border border-gray-300 rounded-lg px-4 py-2 mb-6"
+      <Input
         placeholder="Mot de passe"
         secureTextEntry
         onChangeText={setPassword}
         value={password}
+        type="password"
+        label="Mot de passe"
       />
-      {error && <Text className="text-red-500 mt-4 text-center">{error}</Text>}
+      {error && <AppText style={{ color: "red" }}>{error}</AppText>}
       {loading ? (
         <ActivityIndicator size="large" color="#0A84FF" />
       ) : (
         <Button title="Se connecter" onPress={handleLogin} />
       )}
-      <Text className="text-sm text-gray-500 mt-4">
+      <AppText className="text-sm text-gray-500 mt-4">
         Pas encore inscrit ?{" "}
-        <Text
-          className="text-blue-600 font-semibold"
+        <AppText
+          style={{ textDecorationLine: "underline", color: "#2563EB" }}
           onPress={() => navigation.navigate("Register" as never)}
         >
           Inscrivez-vous ici
-        </Text>
-      </Text>
+        </AppText>
+      </AppText>
     </View>
   );
 }

@@ -1,14 +1,9 @@
 import React, { useState } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  Button,
-  Alert,
-  ActivityIndicator,
-} from "react-native";
+import { View, Button, Alert, ActivityIndicator } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { registerFreeAccount } from "../services/api";
+import AppText from "../components/AppText";
+import Input from "../components/Input";
 
 export default function RegisterScreen() {
   const navigation = useNavigation();
@@ -54,53 +49,54 @@ export default function RegisterScreen() {
 
   return (
     <View className="flex-1 justify-center bg-white px-6">
-      <Text className="text-2xl font-bold text-deepBlue text-center mb-6">
+      <AppText className="text-2xl font-bold text-deepBlue text-center mb-6">
         Inscription
-      </Text>
+      </AppText>
 
-      <TextInput
-        className="border px-4 py-2 rounded-xl mb-3"
+      <Input
         placeholder="Prénom"
         value={form.firstName}
+        label="Prénom"
+        type="text"
         onChangeText={(text) => handleChange("firstName", text)}
       />
-      <TextInput
-        className="border px-4 py-2 rounded-xl mb-3"
+      <Input
         placeholder="Nom"
         value={form.lastName}
+        label="Nom"
+        type="text"
         onChangeText={(text) => handleChange("lastName", text)}
       />
-      <TextInput
-        className="border px-4 py-2 rounded-xl mb-3"
+      <Input
         placeholder="Email"
         value={form.email}
         onChangeText={(text) => handleChange("email", text)}
-        keyboardType="email-address"
-        autoCapitalize="none"
+        label="Email"
+        type="email"
       />
-      <TextInput
-        className="border px-4 py-2 rounded-xl mb-3"
+      <Input
         placeholder="Téléphone (optionnel)"
         value={form.phone}
         onChangeText={(text) => handleChange("phone", text)}
-        keyboardType="phone-pad"
+        label="Téléphone"
+        type="phone"
       />
-      <TextInput
-        className="border px-4 py-2 rounded-xl mb-3"
+      <Input
         placeholder="Mot de passe"
         value={form.password}
         onChangeText={(text) => handleChange("password", text)}
-        secureTextEntry
+        label="Mot de passe"
+        type="password"
       />
-      <TextInput
-        className="border px-4 py-2 rounded-xl mb-3"
+      <Input
         placeholder="Confirmer mot de passe"
         value={form.confirmPassword}
         onChangeText={(text) => handleChange("confirmPassword", text)}
-        secureTextEntry
+        label="Confirmer mot de passe"
+        type="password"
       />
 
-      {error ? <Text className="text-red-500 mb-4">{error}</Text> : null}
+      {error ? <AppText style={{ color: "red" }}>{error}</AppText> : null}
 
       {loading ? (
         <ActivityIndicator size="large" color="#0A84FF" />

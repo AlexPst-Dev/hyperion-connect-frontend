@@ -10,6 +10,7 @@ import { useAuth } from "../hooks/useAuth";
 import Icon from "../components/Icon";
 import Input from "../components/Input";
 import AppText from "../components/AppText";
+import GlobalStyles from "../styles/styles";
 
 export default function HomeScreen() {
   const { user } = useAuth();
@@ -34,49 +35,53 @@ export default function HomeScreen() {
           </Text>
         </View>
 
-        <AppText style={{ fontFamily: "Montserrat-Regular", fontSize: 24 }}>
-          Test composant Input
-        </AppText>
+        <AppText style={GlobalStyles.h1}>Test composant Input</AppText>
 
-        <Input
-          type="checkbox"
-          label="Sélectionner"
-          value={isChecked}
-          onChange={(val) => setIsChecked(val)}
-        />
-        <Text>Valeur actuelle: {isChecked ? "✅" : "❌"}</Text>
+        <View style={{ display: "flex", flexDirection: "column" }}>
+          <Input
+            type="checkbox"
+            label="Sélectionner"
+            value={isChecked}
+            onChange={(val) => setIsChecked(val)}
+          />
+          <AppText>Valeur actuelle: {isChecked ? "✅" : "❌"}</AppText>
 
-        <Input type="email" label="Email" placeholder="Entrez votre email" />
-        <Input
-          type="password"
-          label="Mot de passe"
-          placeholder="Entrez votre mot de passe"
-          secureTextEntry={true}
-        />
-        <Input
-          type="textarea"
-          label="Description"
-          placeholder="Entrez votre description"
-        />
-        <Input
-          type="selector"
-          label="Choisissez une option"
-          value={selectedOption}
-          onChangeText={setSelectedOption}
-        />
-        <Input
-          type="date"
-          label="Date de naissance"
-          value={birthDate}
-          onChangeText={setBirthDate}
-          placeholder="JJ/MM/AAAA"
-        />
-        <Input type="number" label="Sélectionner un nombre" placeholder="XX" />
-        <Input
-          type="text"
-          label="Entrez du texte ici"
-          placeholder="Lorem ipsum dolor sit amet"
-        />
+          <Input type="email" label="Email" placeholder="Entrez votre email" />
+          <Input
+            type="password"
+            label="Mot de passe"
+            placeholder="Entrez votre mot de passe"
+            secureTextEntry={true}
+          />
+          <Input
+            type="textarea"
+            label="Description"
+            placeholder="Entrez votre description"
+          />
+          <Input
+            type="selector"
+            label="Choisissez une option"
+            value={selectedOption}
+            onChangeText={setSelectedOption}
+          />
+          <Input
+            type="date"
+            label="Date de naissance"
+            value={birthDate}
+            onChangeText={setBirthDate}
+            placeholder="JJ/MM/AAAA"
+          />
+          <Input
+            type="number"
+            label="Sélectionner un nombre"
+            placeholder="XX"
+          />
+          <Input
+            type="text"
+            label="Entrez du texte ici"
+            placeholder="Lorem ipsum dolor sit amet"
+          />
+        </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
