@@ -39,6 +39,66 @@ const GlobalStyles = StyleSheet.create({
     fontFamily: "Roboto-Regular",
     marginBottom: 2,
   },
+  buttonBase: {
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 50,
+    alignItems: "center",
+    alignSelf: "flex-start",
+    backgroundColor: "#ccc",
+  },
+
+  // Boutons types
+  button_primary: { backgroundColor: "#2563EB" },
+  button_secondary: {
+    backgroundColor: "#1E3A8A",
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+  },
+  button_add: {
+    backgroundColor: "#2563EB",
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+  },
+  button_changeState: {
+    backgroundColor: "transparent",
+    borderWidth: 1,
+    borderStyle: "dashed",
+    borderColor: "#1E3A8A",
+  },
+  button_linkSmall: {
+    backgroundColor: "transparent",
+    paddingVertical: 0,
+    paddingHorizontal: 0,
+  },
+  button_linkNormal: {
+    backgroundColor: "transparent",
+    paddingVertical: 0,
+    paddingHorizontal: 0,
+  },
+
+  // Texts types
+  text_primary: {},
+  text_secondary: {},
+  text_add: {},
+  text_changeState: {
+    color: "#1E3A8A",
+  },
+  text_linkSmall: {
+    fontSize: 12,
+    color: "#2563EB",
+  },
+  text_linkNormal: {
+    fontSize: 16,
+    color: "#2563EB",
+  },
+
+  buttonText: {
+    color: "white",
+    fontFamily: "Roboto-Regular",
+    fontSize: 16,
+    marginRight: 8,
+  },
 });
 
 export const Colors = {
