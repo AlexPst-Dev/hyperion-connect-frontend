@@ -99,6 +99,39 @@ const GlobalStyles = StyleSheet.create({
     fontSize: 16,
     marginRight: 8,
   },
+
+  labelBase: {
+    fontFamily: "Roboto-Regular",
+    alignSelf: "flex-start",
+    paddingVertical: 4,
+    paddingHorizontal: 12,
+    borderRadius: 4,
+  },
+  label_blue: {
+    backgroundColor: "#D6EBFF",
+    color: "#1E3A8A",
+  },
+  label_orange: {
+    backgroundColor: "#FFF9F4",
+    color: "#F97316",
+  },
+  label_green: {
+    backgroundColor: "#DEFFD6",
+    color: "#1F7722",
+  },
+  labelTextBase: {
+    fontSize: 16,
+  },
+  label_text_small: {
+    fontSize: 12,
+  },
+  label_text_normal: {
+    fontSize: 16,
+  },
+  label_text_large: {
+    fontSize: 24,
+    fontWeight: "bold",
+  },
 });
 
 export const Colors = {
@@ -108,6 +141,7 @@ export const Colors = {
   lightOrange: "#FF9F45",
   gold: "#CAAB4F",
   grey: "#374151",
+  green: "#1F7722",
 };
 
 export const Fonts = {
