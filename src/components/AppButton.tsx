@@ -106,6 +106,7 @@ export default function AppButton({
             height={type === "add" ? 24 : 20}
             strokeColor={getIconColor()}
             fillColor="currentColor"
+            strokeWidth={1}
           />
         )}
       </View>

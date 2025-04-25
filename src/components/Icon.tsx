@@ -11,6 +11,7 @@ import Eye from "@assets/icons/eye-icon.svg";
 import Message from "@assets/icons/message-icon.svg";
 import Mail from "@assets/icons/mail-icon.svg";
 import Phone from "@assets/icons/phone-icon.svg";
+import Link from "@assets/icons/link-icon.svg";
 
 const icons = {
   user: User,
@@ -24,6 +25,7 @@ const icons = {
   message: Message,
   mail: Mail,
   phone: Phone,
+  link: Link,
 };
 
 export type IconName = keyof typeof icons;
@@ -34,6 +36,7 @@ type Props = {
   height?: number;
   strokeColor?: string;
   fillColor?: string;
+  strokeWidth?: number;
 };
 
 export default function Icon({
@@ -42,6 +45,7 @@ export default function Icon({
   height = 24,
   strokeColor,
   fillColor,
+  strokeWidth = 2,
 }: Props) {
   const webColorStyle: boolean = Platform.OS === "web" ? true : false;
   const SvgIcon = icons[name];
@@ -52,6 +56,7 @@ export default function Icon({
       stroke={strokeColor}
       fill={fillColor}
       style={webColorStyle ? { color: "transparent" } : ("" as any)}
+      strokeWidth={strokeWidth}
     />
   );
 }
