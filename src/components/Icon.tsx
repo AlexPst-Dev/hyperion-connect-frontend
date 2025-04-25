@@ -8,6 +8,9 @@ import Send from "@assets/icons/send-icon.svg";
 import Plus from "@assets/icons/plus-icon.svg";
 import Check from "@assets/icons/check-icon.svg";
 import Eye from "@assets/icons/eye-icon.svg";
+import Message from "@assets/icons/message-icon.svg";
+import Mail from "@assets/icons/mail-icon.svg";
+import Phone from "@assets/icons/phone-icon.svg";
 
 const icons = {
   user: User,
@@ -18,6 +21,9 @@ const icons = {
   plus: Plus,
   check: Check,
   eye: Eye,
+  message: Message,
+  mail: Mail,
+  phone: Phone,
 };
 
 export type IconName = keyof typeof icons;

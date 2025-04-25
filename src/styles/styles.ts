@@ -39,6 +39,13 @@ const GlobalStyles = StyleSheet.create({
     fontFamily: "Roboto-Regular",
     marginBottom: 2,
   },
+  containerShadow: {
+    borderTopWidth: 1,
+    borderBottomWidth: 2,
+    borderLeftWidth: 1,
+    borderRightWidth: 2,
+    borderColor: "#374151",
+  },
   buttonBase: {
     paddingVertical: 12,
     paddingHorizontal: 24,
@@ -142,6 +149,7 @@ export const Colors = {
   gold: "#CAAB4F",
   grey: "#374151",
   green: "#1F7722",
+  shadow: "#CBCBCB",
 };
 
 export const Fonts = {
