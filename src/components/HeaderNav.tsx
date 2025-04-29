@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useState } from "react";
+import { useNavigation } from "@react-navigation/native";
 import {
   StyleSheet,
   ViewStyle,
@@ -7,9 +8,12 @@ import {
   View,
   Text,
   Image,
+  Pressable,
 } from "react-native";
 import GlobalStyles, { Colors } from "../styles/styles";
 import Icon from "./Icon";
+import OptionMenuOverlay from "./OptionMenuOverlay";
+import { useAuth } from "../hooks/useAuth";
 
 interface Props {
   profilePictureUrl?: string;
@@ -61,36 +65,57 @@ const styles = StyleSheet.create<{
 });
 
 export default function HeaderNav({ profilePictureUrl }: Props) {
+  const [menuVisible, setMenuVisible] = useState(false);
+  const navigation = useNavigation();
+  const { logout } = useAuth();
+
+  const handleLogout = async () => {
+    setMenuVisible(false);
+    await logout();
+  };
+
+  const handleNavigate = (route: string) => {
+    navigation.navigate(route as never);
+    setMenuVisible(false);
+  };
+
   return (
-    <View style={styles.container}>
-      <View style={styles.leftPart}>
-        <Image
-          source={
-            appImageUrl
-              ? { uri: appImageUrl }
-              : { uri: "https://reactnative.dev/img/tiny_logo.png" } // fallback
-          }
-          style={styles.appImage}
-        />
-        <Text style={styles.appTitle}>HYPERION</Text>
+    <>
+      <View style={styles.container}>
+        <View style={styles.leftPart}>
+          <Image source={{ uri: appImageUrl }} style={styles.appImage} />
+          <Text style={styles.appTitle}>HYPERION</Text>
+        </View>
+
+        <View style={styles.rightPart}>
+          <Icon
+            name="qrCode"
+            fillColor="white"
+            width={42}
+            height={42}
+            strokeWidth={1}
+          />
+
+          <Pressable onPress={() => setMenuVisible(true)}>
+            <Image
+              source={
+                profilePictureUrl
+                  ? { uri: profilePictureUrl }
+                  : { uri: "https://reactnative.dev/img/tiny_logo.png" }
+              }
+              style={styles.profilePicture}
+            />
+          </Pressable>
+        </View>
       </View>
-      <View style={styles.rightPart}>
-        <Icon
-          name="qrCode"
-          fillColor="white"
-          width={42}
-          height={42}
-          strokeWidth={1}
+
+      {menuVisible && (
+        <OptionMenuOverlay
+          onClose={() => setMenuVisible(false)}
+          onNavigate={handleNavigate}
+          onLogout={handleLogout}
         />
-        <Image
-          source={
-            profilePictureUrl
-              ? { uri: profilePictureUrl }
-              : { uri: "https://reactnative.dev/img/tiny_logo.png" } // fallback
-          }
-          style={styles.profilePicture}
-        />
-      </View>
-    </View>
+      )}
+    </>
   );
 }

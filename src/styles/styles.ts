@@ -150,6 +150,7 @@ export const Colors = {
   grey: "#374151",
   green: "#1F7722",
   shadow: "#CBCBCB",
+  lightRed: "#C61010",
 };
 
 export const Fonts = {

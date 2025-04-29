@@ -10,7 +10,10 @@ const Tab = createBottomTabNavigator();
 
 export default function FreeTabs() {
   return (
-    <Tab.Navigator initialRouteName="Accueil">
+    <Tab.Navigator
+      initialRouteName="Accueil"
+      screenOptions={{ headerShown: false }}
+    >
       <Tab.Screen name="Accueil" component={HomeScreen} />
       <Tab.Screen name="Programmes" component={SessionsScreen} />
       <Tab.Screen name="Planning" component={PlanningScreen} />

@@ -10,7 +10,10 @@ const Tab = createBottomTabNavigator();
 
 export default function PartnerTabs() {
   return (
-    <Tab.Navigator initialRouteName="Home">
+    <Tab.Navigator
+      initialRouteName="Home"
+      screenOptions={{ headerShown: false }}
+    >
       <Tab.Screen name="Accueil" component={HomeScreen} />
       <Tab.Screen name="Communauté" component={CommunityScreen} />
       <Tab.Screen name="Planning" component={PlanningScreen} />

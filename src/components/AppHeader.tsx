@@ -22,7 +22,7 @@ const styles = StyleSheet.create<{
   container: {
     flexDirection: "column",
     width: "100%",
-    height: 209,
+    minHeight: 209,
     backgroundColor: Colors.deepBlue,
     paddingVertical: 32,
     paddingHorizontal: 16,

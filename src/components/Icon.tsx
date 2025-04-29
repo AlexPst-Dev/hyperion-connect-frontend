@@ -14,6 +14,9 @@ import Phone from "@assets/icons/phone-icon.svg";
 import Link from "@assets/icons/link-icon.svg";
 import QrCode from "@assets/icons/qr-code-icon.svg";
 import LeftArrow from "@assets/icons/left-arrow-icon.svg";
+import Settings from "@assets/icons/settings-icon.svg";
+import Legals from "@assets/icons/legals-icon.svg";
+import Subscription from "@assets/icons/subscription-icon.svg";
 
 const icons = {
   user: User,
@@ -30,6 +33,9 @@ const icons = {
   link: Link,
   qrCode: QrCode,
   leftArrow: LeftArrow,
+  settings: Settings,
+  legals: Legals,
+  subscription: Subscription,
 };
 
 export type IconName = keyof typeof icons;
