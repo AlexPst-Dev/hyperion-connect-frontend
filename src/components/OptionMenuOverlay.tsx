@@ -1,5 +1,6 @@
 import React from "react";
-import { View, Text, StyleSheet, Pressable, Dimensions } from "react-native";
+import { Text, StyleSheet, Pressable, Dimensions } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../hooks/useAuth";
 import GlobalStyles, { Colors } from "../styles/styles";
 import Icon, { IconName } from "./Icon";
@@ -19,7 +20,10 @@ export default function OptionMenuOverlay({
 
   return (
     <Pressable style={styles.overlay} onPress={onClose}>
-      <View style={styles.menuContainer}>
+      <SafeAreaView
+        style={styles.menuContainer}
+        edges={["bottom", "left", "right"]}
+      >
         <MenuItem
           label="Profil"
           onPress={() => onNavigate("Profile")}
@@ -48,7 +52,7 @@ export default function OptionMenuOverlay({
           isDestructive
           iconName="login"
         />
-      </View>
+      </SafeAreaView>
     </Pressable>
   );
 }
@@ -106,6 +110,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     paddingHorizontal: 4,
+    paddingBottom: 16,
   },
   item: {
     flexDirection: "row",

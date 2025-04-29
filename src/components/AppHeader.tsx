@@ -1,8 +1,16 @@
 import React from "react";
-import { StyleSheet, ViewStyle, View, TextStyle, Text } from "react-native";
+import {
+  StyleSheet,
+  ViewStyle,
+  View,
+  TextStyle,
+  Text,
+  StatusBar,
+} from "react-native";
 import HeaderNav from "./HeaderNav";
 import GlobalStyles, { Colors } from "../styles/styles";
 import Icon from "./Icon";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 interface Props {
   profilePictureUrl?: string;
@@ -54,20 +62,23 @@ export default function AppHeader({
   onReturnButtonPress,
 }: Props) {
   return (
-    <View style={styles.container}>
-      <HeaderNav />
-      {pageTitle ? <Text style={styles.pageTitle}>{pageTitle}</Text> : null}
-      {textContent ? (
-        <Text style={styles.textContent}>{textContent}</Text>
-      ) : null}
-      {hasReturnButton && (
-        <View style={styles.returnButtonContainer}>
-          <Icon name="leftArrow" strokeWidth={1} strokeColor="white" />
-          <Text style={styles.returnButtonText} onPress={onReturnButtonPress}>
-            Retour
-          </Text>
-        </View>
-      )}
-    </View>
+    <SafeAreaView style={{ backgroundColor: Colors.deepBlue }}>
+      <StatusBar backgroundColor={Colors.deepBlue} barStyle="light-content" />
+      <View style={styles.container}>
+        <HeaderNav />
+        {pageTitle ? <Text style={styles.pageTitle}>{pageTitle}</Text> : null}
+        {textContent ? (
+          <Text style={styles.textContent}>{textContent}</Text>
+        ) : null}
+        {hasReturnButton && (
+          <View style={styles.returnButtonContainer}>
+            <Icon name="leftArrow" strokeWidth={1} strokeColor="white" />
+            <Text style={styles.returnButtonText} onPress={onReturnButtonPress}>
+              Retour
+            </Text>
+          </View>
+        )}
+      </View>
+    </SafeAreaView>
   );
 }
