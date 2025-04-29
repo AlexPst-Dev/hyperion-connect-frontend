@@ -25,13 +25,11 @@ const GlobalStyles = StyleSheet.create({
   h1: {
     fontSize: 36,
     fontFamily: "Montserrat-Bold",
-    color: "#1E3A8A",
     marginBottom: 16,
   },
   h2: {
     fontSize: 24,
     fontFamily: "Montserrat-SemiBold",
-    color: "#2563EB",
     marginBottom: 8,
   },
   p: {

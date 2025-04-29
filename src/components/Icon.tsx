@@ -17,6 +17,7 @@ import LeftArrow from "@assets/icons/left-arrow-icon.svg";
 import Settings from "@assets/icons/settings-icon.svg";
 import Legals from "@assets/icons/legals-icon.svg";
 import Subscription from "@assets/icons/subscription-icon.svg";
+import Close from "@assets/icons/close-icon.svg";
 
 const icons = {
   user: User,
@@ -36,6 +37,7 @@ const icons = {
   settings: Settings,
   legals: Legals,
   subscription: Subscription,
+  close: Close,
 };
 
 export type IconName = keyof typeof icons;
@@ -47,6 +49,7 @@ type Props = {
   strokeColor?: string;
   fillColor?: string;
   strokeWidth?: number;
+  onPress?: () => void;
 };
 
 export default function Icon({
@@ -56,6 +59,7 @@ export default function Icon({
   strokeColor,
   fillColor,
   strokeWidth = 2,
+  onPress,
 }: Props) {
   const webColorStyle: boolean = Platform.OS === "web" ? true : false;
   const SvgIcon = icons[name];
@@ -67,6 +71,7 @@ export default function Icon({
       fill={fillColor}
       style={webColorStyle ? { color: "transparent" } : ("" as any)}
       strokeWidth={strokeWidth}
+      onPress={onPress}
     />
   );
 }

@@ -14,6 +14,7 @@ import GlobalStyles, { Colors } from "../styles/styles";
 import Icon from "./Icon";
 import OptionMenuOverlay from "./OptionMenuOverlay";
 import { useAuth } from "../hooks/useAuth";
+import MemberCard from "./MemberCard";
 
 interface Props {
   profilePictureUrl?: string;
@@ -66,6 +67,7 @@ const styles = StyleSheet.create<{
 
 export default function HeaderNav({ profilePictureUrl }: Props) {
   const [menuVisible, setMenuVisible] = useState(false);
+  const [memberCard, setMemberCard] = useState(false);
   const navigation = useNavigation();
   const { logout } = useAuth();
 
@@ -87,7 +89,7 @@ export default function HeaderNav({ profilePictureUrl }: Props) {
           <Text style={styles.appTitle}>HYPERION</Text>
         </View>
 
-        <View style={styles.rightPart}>
+        <Pressable style={styles.rightPart} onPress={() => setMemberCard(true)}>
           <Icon
             name="qrCode"
             fillColor="white"
@@ -106,7 +108,7 @@ export default function HeaderNav({ profilePictureUrl }: Props) {
               style={styles.profilePicture}
             />
           </Pressable>
-        </View>
+        </Pressable>
       </View>
 
       {menuVisible && (
@@ -116,6 +118,8 @@ export default function HeaderNav({ profilePictureUrl }: Props) {
           onLogout={handleLogout}
         />
       )}
+
+      {memberCard && <MemberCard onClose={() => setMemberCard(false)} />}
     </>
   );
 }
