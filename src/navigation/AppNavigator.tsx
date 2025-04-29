@@ -1,5 +1,8 @@
 import React from "react";
-import { NavigationContainer } from "@react-navigation/native";
+import {
+  NavigationContainer,
+  getFocusedRouteNameFromRoute,
+} from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
 import LoginScreen from "../screens/LoginScreen";
 import RegisterScreen from "../screens/RegisterScreen";
@@ -10,19 +13,20 @@ import PartnerTabs from "./tabs/PartnerTabs";
 import AdminTabs from "./tabs/AdminTabs";
 import { useAuth } from "../hooks/useAuth";
 import { RootStackParamList } from "./types";
-import LogoutButton from "../components/LogoutButton";
+import { HeaderComponent } from "./MainStack";
 
 const Stack = createStackNavigator<RootStackParamList>();
 
 export default function AppNavigator() {
   const { user } = useAuth();
 
-  const mainScreenOptions = {
-    headerShown: true,
-    headerRight: () => {
-      return <LogoutButton />;
-    },
-    title: "Hyperion Connect",
+  if (!user && user !== null) {
+    return null;
+  }
+
+  const pageTitles: Record<string, string> = {
+    Main: "ACCUEIL",
+    Stats: "STATISTIQUES",
   };
 
   return (
@@ -50,14 +54,52 @@ export default function AppNavigator() {
               <Stack.Screen
                 name="Main"
                 component={SportsmanTabs}
-                options={{ ...mainScreenOptions }}
+                options={({ route, navigation }) => {
+                  const focusedRouteName =
+                    getFocusedRouteNameFromRoute(route) || route.name;
+
+                  return {
+                    headerShown: true,
+                    header: () =>
+                      HeaderComponent(
+                        focusedRouteName === "Main"
+                          ? `Bonjour ${user?.firstName ?? ""} ${
+                              user?.lastName ?? ""
+                            } 👋`
+                          : "",
+                        pageTitles[focusedRouteName] ||
+                          focusedRouteName.toUpperCase(),
+                        navigation.canGoBack(),
+                        () => navigation.goBack()
+                      ),
+                  };
+                }}
               />
             )}
             {user.profileCategory === "free" && (
               <Stack.Screen
                 name="Main"
                 component={FreeTabs}
-                options={{ ...mainScreenOptions }}
+                options={({ route, navigation }) => {
+                  const focusedRouteName =
+                    getFocusedRouteNameFromRoute(route) || route.name;
+
+                  return {
+                    headerShown: true,
+                    header: () =>
+                      HeaderComponent(
+                        focusedRouteName === "Main"
+                          ? `Bonjour ${user?.firstName ?? ""} ${
+                              user?.lastName ?? ""
+                            } 👋`
+                          : "",
+                        pageTitles[focusedRouteName] ||
+                          focusedRouteName.toUpperCase(),
+                        navigation.canGoBack(),
+                        () => navigation.goBack()
+                      ),
+                  };
+                }}
               />
             )}
             {(user.profileCategory === "coach" ||
@@ -65,21 +107,79 @@ export default function AppNavigator() {
               <Stack.Screen
                 name="Main"
                 component={ProTabs}
-                options={{ ...mainScreenOptions }}
+                options={({ route, navigation }) => {
+                  const focusedRouteName =
+                    getFocusedRouteNameFromRoute(route) || route.name;
+
+                  return {
+                    headerShown: true,
+                    header: () =>
+                      HeaderComponent(
+                        focusedRouteName === "Main"
+                          ? `Bonjour ${user?.firstName ?? ""} ${
+                              user?.lastName ?? ""
+                            } 👋`
+                          : "",
+                        pageTitles[focusedRouteName] ||
+                          focusedRouteName.toUpperCase(),
+                        navigation.canGoBack(),
+                        () => navigation.goBack()
+                      ),
+                  };
+                }}
               />
             )}
             {user.profileCategory === "partner" && (
               <Stack.Screen
                 name="Main"
                 component={PartnerTabs}
-                options={{ ...mainScreenOptions }}
+                options={({ route, navigation }) => {
+                  const focusedRouteName =
+                    getFocusedRouteNameFromRoute(route) || route.name;
+
+                  return {
+                    headerShown: true,
+                    header: () =>
+                      HeaderComponent(
+                        focusedRouteName === "Main"
+                          ? `Bonjour ${user?.firstName ?? ""} ${
+                              user?.lastName ?? ""
+                            } 👋`
+                          : "",
+                        pageTitles[focusedRouteName] ||
+                          focusedRouteName.toUpperCase(),
+                        navigation.canGoBack(),
+                        () => navigation.goBack()
+                      ),
+                  };
+                }}
               />
             )}
             {user.profileCategory === "admin" && (
               <Stack.Screen
                 name="Main"
                 component={AdminTabs}
-                options={{ ...mainScreenOptions }}
+                options={({ route, navigation }) => {
+                  const focusedRouteName =
+                    getFocusedRouteNameFromRoute(route) || route.name;
+
+                  return {
+                    headerShown: true,
+                    header: () =>
+                      HeaderComponent(
+                        focusedRouteName === "Main" ||
+                          focusedRouteName === "Accueil"
+                          ? `Bonjour ${user?.firstName ?? ""} ${
+                              user?.lastName ?? ""
+                            } 👋`
+                          : "",
+                        pageTitles[focusedRouteName] ||
+                          focusedRouteName.toUpperCase(),
+                        navigation.canGoBack(),
+                        () => navigation.goBack()
+                      ),
+                  };
+                }}
               />
             )}
           </>

@@ -12,6 +12,8 @@ import Message from "@assets/icons/message-icon.svg";
 import Mail from "@assets/icons/mail-icon.svg";
 import Phone from "@assets/icons/phone-icon.svg";
 import Link from "@assets/icons/link-icon.svg";
+import QrCode from "@assets/icons/qr-code-icon.svg";
+import LeftArrow from "@assets/icons/left-arrow-icon.svg";
 
 const icons = {
   user: User,
@@ -26,6 +28,8 @@ const icons = {
   mail: Mail,
   phone: Phone,
   link: Link,
+  qrCode: QrCode,
+  leftArrow: LeftArrow,
 };
 
 export type IconName = keyof typeof icons;
