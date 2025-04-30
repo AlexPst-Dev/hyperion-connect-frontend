@@ -18,6 +18,8 @@ import Settings from "@assets/icons/settings-icon.svg";
 import Legals from "@assets/icons/legals-icon.svg";
 import Subscription from "@assets/icons/subscription-icon.svg";
 import Close from "@assets/icons/close-icon.svg";
+import Objective from "@assets/icons/objective-icon.svg";
+import Calendar from "@assets/icons/calendar-icon.svg";
 
 const icons = {
   user: User,
@@ -38,6 +40,8 @@ const icons = {
   legals: Legals,
   subscription: Subscription,
   close: Close,
+  objective: Objective,
+  calendar: Calendar,
 };
 
 export type IconName = keyof typeof icons;

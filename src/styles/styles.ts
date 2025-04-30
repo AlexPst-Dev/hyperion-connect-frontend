@@ -17,6 +17,10 @@ const GlobalStyles = StyleSheet.create({
   label: {
     fontSize: 12,
   },
+  span: {
+    fontSize: 12,
+    fontFamily: "Roboto-Regular",
+  },
   screenContainer: {
     flex: 1,
     padding: 16,
@@ -31,6 +35,10 @@ const GlobalStyles = StyleSheet.create({
     fontSize: 24,
     fontFamily: "Montserrat-SemiBold",
     marginBottom: 8,
+  },
+  h3: {
+    fontSize: 16,
+    fontFamily: "Montserrat-Bold",
   },
   p: {
     fontSize: 16,
