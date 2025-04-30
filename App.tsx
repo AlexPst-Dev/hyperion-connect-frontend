@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import AppNavigator from "./src/navigation/AppNavigator";
 import { AuthProvider } from "./src/context/AuthContext";
 import * as Font from "expo-font";
+import { NotificationPortal } from "./src/components/NotificationContainer";
 
 export default function App() {
   const [fontsLoaded, setFontsLoaded] = useState(false);
@@ -23,6 +24,7 @@ export default function App() {
   if (!fontsLoaded) return null;
   return (
     <AuthProvider>
+      <NotificationPortal />
       <AppNavigator />
     </AuthProvider>
   );

@@ -20,6 +20,7 @@ import Subscription from "@assets/icons/subscription-icon.svg";
 import Close from "@assets/icons/close-icon.svg";
 import Objective from "@assets/icons/objective-icon.svg";
 import Calendar from "@assets/icons/calendar-icon.svg";
+import Information from "@assets/icons/information-icon.svg";
 
 const icons = {
   user: User,
@@ -42,6 +43,7 @@ const icons = {
   close: Close,
   objective: Objective,
   calendar: Calendar,
+  information: Information,
 };
 
 export type IconName = keyof typeof icons;

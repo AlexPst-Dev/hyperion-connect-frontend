@@ -1,5 +1,24 @@
 import { StyleSheet } from "react-native";
 
+export const Colors = {
+  deepBlue: "#1E3A8A",
+  lightBlue: "#2563EB",
+  orange: "#F97316",
+  lightOrange: "#FF9F45",
+  gold: "#CAAB4F",
+  grey: "#374151",
+  green: "#1F7722",
+  shadow: "#CBCBCB",
+  lightRed: "#C61010",
+  red: "#771F1F",
+};
+
+export const Fonts = {
+  regular: "Roboto-Regular",
+  bold: "Montserrat-Bold",
+  semiBold: "Montserrat-SemiBold",
+};
+
 const GlobalStyles = StyleSheet.create({
   input: {
     fontFamily: "Roboto-Regular",
@@ -29,12 +48,10 @@ const GlobalStyles = StyleSheet.create({
   h1: {
     fontSize: 36,
     fontFamily: "Montserrat-Bold",
-    marginBottom: 16,
   },
   h2: {
     fontSize: 24,
     fontFamily: "Montserrat-SemiBold",
-    marginBottom: 8,
   },
   h3: {
     fontSize: 16,
@@ -43,7 +60,6 @@ const GlobalStyles = StyleSheet.create({
   p: {
     fontSize: 16,
     fontFamily: "Roboto-Regular",
-    marginBottom: 2,
   },
   containerShadow: {
     borderTopWidth: 1,
@@ -145,24 +161,19 @@ const GlobalStyles = StyleSheet.create({
     fontSize: 24,
     fontWeight: "bold",
   },
+
+  notificationBase: {
+    fontFamily: "Roboto-Regular",
+    padding: 8,
+    borderRadius: 8,
+  },
+  notification_information: {
+    color: Colors.deepBlue,
+  },
+  notification_error: {
+    color: Colors.red,
+  },
+  notification_success: {},
 });
-
-export const Colors = {
-  deepBlue: "#1E3A8A",
-  lightBlue: "#2563EB",
-  orange: "#F97316",
-  lightOrange: "#FF9F45",
-  gold: "#CAAB4F",
-  grey: "#374151",
-  green: "#1F7722",
-  shadow: "#CBCBCB",
-  lightRed: "#C61010",
-};
-
-export const Fonts = {
-  regular: "Roboto-Regular",
-  bold: "Montserrat-Bold",
-  semiBold: "Montserrat-SemiBold",
-};
 
 export default GlobalStyles;
