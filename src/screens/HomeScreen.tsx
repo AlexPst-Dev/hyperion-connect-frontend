@@ -1,18 +1,15 @@
-import React, { useState } from "react";
+import React from "react";
 import {
   View,
   Text,
   KeyboardAvoidingView,
   ScrollView,
   Platform,
-  Button,
 } from "react-native";
 import { useAuth } from "../hooks/useAuth";
 import Icon from "../components/Icon";
-import Input from "../components/Input";
 import AppText from "../components/AppText";
 import GlobalStyles from "../styles/styles";
-import AppButton from "../components/AppButton";
 
 export default function HomeScreen() {
   const { user } = useAuth();

@@ -1,15 +1,12 @@
 import React from "react";
 import {
-  Text,
   StyleSheet,
   Pressable,
-  Dimensions,
   View,
   StyleProp,
   TextStyle,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import GlobalStyles, { Colors } from "../styles/styles";
+import GlobalStyles from "../styles/styles";
 import Icon, { IconName } from "./Icon";
 import AppText from "./AppText";
 import AppButton, { ButtonType } from "./AppButton";

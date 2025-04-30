@@ -12,7 +12,6 @@ import RNPickerSelect from "react-native-picker-select";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import AppText from "./AppText";
 import GlobalStyles from "../styles/styles";
-import Select from "react-select";
 
 const types = {
   email: "email",
