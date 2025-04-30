@@ -11,7 +11,7 @@ import {
 import GlobalStyles from "../styles/styles";
 import Icon, { IconName } from "./Icon";
 
-type ButtonType =
+export type ButtonType =
   | "primary"
   | "secondary"
   | "linkSmall"
