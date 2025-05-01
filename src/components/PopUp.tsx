@@ -67,7 +67,7 @@ export default function PopUp({
         <Pressable onPress={onClose}>
           <AppText>{closeText}</AppText>
         </Pressable>
-        {onSubmit && btnText && (
+        {onSubmit && btnText && btnType && (
           <AppButton
             title={btnText}
             onPress={onSubmit}

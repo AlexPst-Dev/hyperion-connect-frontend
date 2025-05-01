@@ -1,7 +1,8 @@
 import React from "react";
 import { Platform } from "react-native";
 import User from "@assets/icons/user-icon.svg";
-import Chevron from "@assets/icons/chevron-down-icon.svg";
+import ChevronDown from "@assets/icons/chevron-down-icon.svg";
+import ChevronUp from "@assets/icons/chevron-up-icon.svg";
 import Login from "@assets/icons/login-icon.svg";
 import Pencil from "@assets/icons/pencil-icon.svg";
 import Send from "@assets/icons/send-icon.svg";
@@ -24,7 +25,8 @@ import Information from "@assets/icons/information-icon.svg";
 
 const icons = {
   user: User,
-  chevron: Chevron,
+  chevronDown: ChevronDown,
+  chevronUp: ChevronUp,
   login: Login,
   pencil: Pencil,
   send: Send,

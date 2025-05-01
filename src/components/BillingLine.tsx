@@ -24,7 +24,6 @@ export default function BillingLine({
 
   const handleChangeState = () => {
     setBillingState("received");
-    console.log("État mis à jour à : reçu");
   };
 
   return (
@@ -49,7 +48,7 @@ export default function BillingLine({
             />
           </View>
         )}
-        <View style={{ marginLeft: 12 }}>
+        <View style={{ marginLeft: 12, alignSelf: "flex-end" }}>
           <Label
             title={
               billingState === "pending"
@@ -72,13 +71,15 @@ const styles = StyleSheet.create({
     backgroundColor: "#E2EBFF",
     borderRadius: 8,
     padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "black",
   },
   header: {
     flexDirection: "column",
   },
   lineControllers: {
-    flexDirection: "row",
-    justifyContent: "flex-end",
-    alignItems: "center",
+    flexDirection: "column",
+    justifyContent: "space-between",
+    gap: 8,
   },
 });
