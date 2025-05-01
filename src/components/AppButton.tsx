@@ -20,9 +20,9 @@ export type ButtonType =
   | "changeState";
 
 interface Props {
-  title?: string;
+  title: string;
   onPress?: (event: GestureResponderEvent) => void;
-  type?: ButtonType;
+  type: ButtonType;
   buttonStyle?: StyleProp<ViewStyle>;
   textStyle?: StyleProp<TextStyle>;
   disabled?: boolean;

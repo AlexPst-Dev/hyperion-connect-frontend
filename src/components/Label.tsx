@@ -7,9 +7,9 @@ type LabelType = "blue" | "orange" | "green";
 type LabelSize = "small" | "normal" | "large";
 
 interface Props {
-  title?: string;
-  type?: LabelType;
-  size?: LabelSize;
+  title: string;
+  type: LabelType;
+  size: LabelSize;
   labelStyle?: StyleProp<ViewStyle>;
   labelTextStyle?: StyleProp<TextStyle>;
 }
