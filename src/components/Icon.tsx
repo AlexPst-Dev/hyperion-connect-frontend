@@ -3,6 +3,7 @@ import { Platform } from "react-native";
 import User from "@assets/icons/user-icon.svg";
 import ChevronDown from "@assets/icons/chevron-down-icon.svg";
 import ChevronUp from "@assets/icons/chevron-up-icon.svg";
+import ChevronRight from "@assets/icons/chevron-right-icon.svg";
 import Login from "@assets/icons/login-icon.svg";
 import Pencil from "@assets/icons/pencil-icon.svg";
 import Send from "@assets/icons/send-icon.svg";
@@ -22,11 +23,14 @@ import Close from "@assets/icons/close-icon.svg";
 import Objective from "@assets/icons/objective-icon.svg";
 import Calendar from "@assets/icons/calendar-icon.svg";
 import Information from "@assets/icons/information-icon.svg";
+import Dumbell from "@assets/icons/dumbell-icon.svg";
+import Timer from "@assets/icons/timer-icon.svg";
 
 const icons = {
   user: User,
   chevronDown: ChevronDown,
   chevronUp: ChevronUp,
+  chevronRight: ChevronRight,
   login: Login,
   pencil: Pencil,
   send: Send,
@@ -46,6 +50,8 @@ const icons = {
   objective: Objective,
   calendar: Calendar,
   information: Information,
+  dumbell: Dumbell,
+  timer: Timer,
 };
 
 export type IconName = keyof typeof icons;
