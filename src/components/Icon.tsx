@@ -1,5 +1,7 @@
 import React from "react";
-import { Platform } from "react-native";
+import { Platform, Pressable } from "react-native";
+import type { SvgProps } from "react-native-svg"; // utile si tes SVGs sont typés
+// Import SVGs
 import User from "@assets/icons/user-icon.svg";
 import ChevronDown from "@assets/icons/chevron-down-icon.svg";
 import ChevronUp from "@assets/icons/chevron-up-icon.svg";
@@ -25,6 +27,8 @@ import Calendar from "@assets/icons/calendar-icon.svg";
 import Information from "@assets/icons/information-icon.svg";
 import Dumbell from "@assets/icons/dumbell-icon.svg";
 import Timer from "@assets/icons/timer-icon.svg";
+import Circle from "@assets/icons/circle-icon.svg";
+import CircleChecked from "@assets/icons/circle-checked-icon.svg";
 
 const icons = {
   user: User,
@@ -52,6 +56,8 @@ const icons = {
   information: Information,
   dumbell: Dumbell,
   timer: Timer,
+  circle: Circle,
+  circleChecked: CircleChecked,
 };
 
 export type IconName = keyof typeof icons;
@@ -75,17 +81,33 @@ export default function Icon({
   strokeWidth = 2,
   onPress,
 }: Props) {
-  const webColorStyle: boolean = Platform.OS === "web" ? true : false;
   const SvgIcon = icons[name];
-  return (
+  const webColorStyle: boolean = Platform.OS === "web" ? true : false;
+
+  const svg = (
     <SvgIcon
       width={width}
       height={height}
       stroke={strokeColor}
       fill={fillColor}
-      style={webColorStyle ? { color: "transparent" } : ("" as any)}
       strokeWidth={strokeWidth}
-      onPress={onPress}
+      style={webColorStyle ? { color: "transparent" } : ("" as any)}
     />
   );
+
+  // Wrap only if onPress is defined
+  if (onPress) {
+    return (
+      <Pressable
+        onPress={onPress}
+        style={({ pressed }) => ({
+          opacity: pressed ? 0.6 : 1,
+        })}
+      >
+        {svg}
+      </Pressable>
+    );
+  }
+
+  return svg;
 }

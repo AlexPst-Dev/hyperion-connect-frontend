@@ -1,18 +1,10 @@
 import React from "react";
-import {
-  StyleSheet,
-  ViewStyle,
-  TextStyle,
-  ImageStyle,
-  View,
-  Text,
-  Image,
-} from "react-native";
+import { StyleSheet, View, Text, Image } from "react-native";
 import GlobalStyles, { Colors } from "../styles/styles";
-import Icon from "./Icon";
+import Icon, { IconName } from "./Icon";
 
 interface Props {
-  isCompany?: boolean;
+  isCompany: boolean;
   companyName?: string;
   link?: string;
   firstName?: string;
@@ -20,16 +12,10 @@ interface Props {
   sport?: string;
   job?: string;
   profilePictureUrl?: string;
+  iconName?: IconName;
 }
 
-const styles = StyleSheet.create<{
-  header: ViewStyle;
-  name: TextStyle;
-  userInfos: ViewStyle;
-  profilePicture: ImageStyle;
-  separator: ViewStyle;
-  icon: ViewStyle;
-}>({
+const styles = StyleSheet.create({
   header: {
     paddingVertical: 12,
     paddingHorizontal: 8,
@@ -79,6 +65,7 @@ export default function ItemUser({
   sport,
   job,
   profilePictureUrl,
+  iconName = "send",
 }: Props) {
   return (
     <View style={styles.header}>
@@ -98,7 +85,7 @@ export default function ItemUser({
               {firstName} {lastName}
             </Text>
             <Text style={GlobalStyles.p}>
-              {sport} | {job}
+              {sport ? sport : ""} {sport && job ? "|" : ""} {job ? job : ""}
             </Text>
           </View>
         ) : (
@@ -115,7 +102,7 @@ export default function ItemUser({
           />
         ) : (
           <Icon
-            name="send"
+            name={iconName}
             fillColor="transparent"
             strokeColor={Colors.deepBlue}
             strokeWidth={2}

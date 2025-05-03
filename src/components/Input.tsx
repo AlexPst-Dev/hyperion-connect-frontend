@@ -19,6 +19,7 @@ const types = {
   text: "text",
   textarea: "textarea",
   selector: "selector",
+  multiSelector: "multi-selector",
   date: "date",
   number: "number",
   checkbox: "checkbox",
@@ -31,7 +32,8 @@ type Props = {
   type: InputType;
   label: string;
   placeholder?: string;
-  value?: string | boolean;
+  value?: string | string[] | boolean;
+  options?: { label: string; value: string }[];
   onChangeText?: (text: string) => void;
   onChange?: (checked: boolean) => void;
   secureTextEntry?: boolean;
@@ -45,6 +47,7 @@ export default function Input({
   onChangeText,
   secureTextEntry,
   onChange,
+  options,
 }: Props) {
   const InputType = types[type];
 
@@ -91,12 +94,14 @@ export default function Input({
         </View>
       );
     case "selector":
-      const options = [
+      const selectorOptions = [
         { label: "Option 1", value: "option1" },
         { label: "Option 2", value: "option2" },
       ];
       const [modalVisible, setModalVisible] = useState(false);
-      const selectedLabel = options.find((opt) => opt.value === value)?.label;
+      const selectedLabel = selectorOptions.find(
+        (opt) => opt.value === value
+      )?.label;
 
       return (
         <View>
@@ -141,7 +146,7 @@ export default function Input({
                       width: 300,
                     }}
                   >
-                    {options.map((opt) => (
+                    {selectorOptions.map((opt) => (
                       <Pressable
                         key={opt.value}
                         onPress={() => {
@@ -165,7 +170,7 @@ export default function Input({
             <View style={GlobalStyles.input}>
               <RNPickerSelect
                 onValueChange={(value) => onChangeText?.(value as string)}
-                items={options}
+                items={selectorOptions}
                 placeholder={{
                   label: placeholder ?? "Choisissez une option",
                   value: null,
@@ -305,6 +310,123 @@ export default function Input({
           />
         </View>
       );
+    case "multi-selector":
+      const [multiVisible, setMultiVisible] = useState(false);
+      const selectedValues = Array.isArray(value)
+        ? value
+        : typeof value === "string" && value.length > 0
+        ? value.split(",")
+        : [];
+
+      const multiOptions = options ?? [
+        { label: "Option 1", value: "option1" },
+        { label: "Option 2", value: "option2" },
+        { label: "Option 3", value: "option3" },
+      ];
+
+      const allValues = multiOptions.map((opt) => opt.value);
+      const allSelected = allValues.every((v) => selectedValues.includes(v));
+
+      const toggleAll = () => {
+        const newSelected = allSelected ? [] : allValues;
+        onChangeText?.(newSelected.join(","));
+      };
+
+      return (
+        <View>
+          <AppText style={GlobalStyles.label}>{label}</AppText>
+
+          <Pressable
+            onPress={() => setMultiVisible(true)}
+            style={[
+              GlobalStyles.input,
+              {
+                justifyContent: "center",
+                height: 40,
+              },
+            ]}
+          >
+            <Text style={GlobalStyles.p}>
+              {selectedValues.length > 0
+                ? multiOptions
+                    .filter((opt) => selectedValues.includes(opt.value))
+                    .map((opt) => opt.label)
+                    .join(", ")
+                : placeholder || "Choisissez des options"}
+            </Text>
+          </Pressable>
+
+          <Modal
+            visible={multiVisible}
+            transparent
+            animationType="fade"
+            onRequestClose={() => setMultiVisible(false)}
+          >
+            <View
+              style={{
+                flex: 1,
+                backgroundColor: "rgba(0,0,0,0.5)",
+                justifyContent: "center",
+                alignItems: "center",
+              }}
+            >
+              <View
+                style={{
+                  backgroundColor: "white",
+                  padding: 20,
+                  borderRadius: 16,
+                  width: 300,
+                }}
+              >
+                <Pressable
+                  onPress={toggleAll}
+                  style={{
+                    marginBottom: 12,
+                    alignSelf: "flex-end",
+                  }}
+                >
+                  <Text style={{ color: "#007AFF", fontWeight: "bold" }}>
+                    {allSelected ? "Tout désélectionner" : "Tout sélectionner"}
+                  </Text>
+                </Pressable>
+
+                {multiOptions.map((opt) => {
+                  const checked = selectedValues.includes(opt.value);
+                  return (
+                    <Pressable
+                      key={opt.value}
+                      onPress={() => {
+                        const newSelected = checked
+                          ? selectedValues.filter((v) => v !== opt.value)
+                          : [...selectedValues, opt.value];
+                        onChangeText?.(newSelected.join(","));
+                      }}
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        paddingVertical: 8,
+                      }}
+                    >
+                      <Checkbox value={checked} />
+                      <Text style={{ marginLeft: 8, fontSize: 16 }}>
+                        {opt.label}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+
+                <Pressable
+                  onPress={() => setMultiVisible(false)}
+                  style={{ marginTop: 16, alignSelf: "center" }}
+                >
+                  <Text style={GlobalStyles.p}>Fermer</Text>
+                </Pressable>
+              </View>
+            </View>
+          </Modal>
+        </View>
+      );
+
     default:
       return (
         <View>

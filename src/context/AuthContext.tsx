@@ -2,7 +2,7 @@ import React, { createContext, useState, useEffect, ReactNode } from "react";
 import { getToken, setToken, removeToken } from "../utils/storage";
 import { getMe } from "../services/api";
 
-interface User {
+export interface User {
   id: number;
   firstName: string;
   lastName: string;
