@@ -14,7 +14,7 @@ import AppButton, { ButtonType } from "./AppButton";
 interface Props {
   onClose: () => void;
   title: string;
-  closeText: string;
+  closeText?: string;
   paragraph?: string;
   inputs?: React.ReactElement | React.ReactElement[];
   specificBody?: React.ReactElement;
@@ -62,7 +62,7 @@ export default function PopUp({
         </View>
       )}
       {inputs && <View style={{ marginBottom: 24 }}>{inputs}</View>}
-      {specificBody && <View style={{ marginBottom: 24 }}>{specificBody}</View>}
+      {specificBody && <View>{specificBody}</View>}
       <View style={styles.menuControllers}>
         <Pressable onPress={onClose}>
           <AppText>{closeText}</AppText>

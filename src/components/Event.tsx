@@ -15,9 +15,11 @@ interface Props {
   isInPerson?: boolean;
   theme?: string;
   infoDescription: string;
+  link?: string;
+  onPress?: () => void;
 }
 
-export default function UserCard({
+export default function Event({
   title,
   type,
   personsInvolved,
@@ -27,6 +29,8 @@ export default function UserCard({
   isInPerson,
   theme,
   infoDescription,
+  link,
+  onPress,
 }: Props) {
   const userList = new Set(
     Array.isArray(personsInvolved)
@@ -36,13 +40,8 @@ export default function UserCard({
       : [personsInvolved.firstName + " " + personsInvolved.lastName]
   );
 
-  const [poupUpDetailedVisible, setPoupUpDetailedVisible] = useState(false);
-
   return (
-    <Pressable
-      onPress={() => setPoupUpDetailedVisible(!poupUpDetailedVisible)}
-      style={styles.container}
-    >
+    <Pressable onPress={onPress} style={styles.container}>
       <View style={styles.content}>
         <AppText
           style={[
@@ -59,17 +58,20 @@ export default function UserCard({
         </AppText>
         <View style={styles.separator} />
         <View style={styles.infos}>
-          <View style={{ flexDirection: "row", maxWidth: 215 }}>
+          <View style={{ flexDirection: "row", flex: 1, minWidth: 0 }}>
             <AppText
               numberOfLines={1}
               ellipsizeMode="tail"
-              style={[GlobalStyles.span, { color: Colors.grey, flexShrink: 1 }]}
+              style={[
+                GlobalStyles.span,
+                { color: Colors.grey, flex: 1, minWidth: 0 },
+              ]}
             >
               {type === "medical"
                 ? "Soignant : "
                 : type === "sportingActivity"
                 ? "Sportif : "
-                : "Intervenants :"}
+                : "Intervenants : "}
               {[...userList].join("")}
             </AppText>
           </View>
@@ -92,7 +94,12 @@ export default function UserCard({
         </View>
       </View>
       <View style={styles.controller}>
-        <AppButton title="Voir" type="linkSmall" iconName="eye" />
+        <AppButton
+          title="Voir"
+          type="linkSmall"
+          iconName="eye"
+          onPress={onPress}
+        />
       </View>
     </Pressable>
   );

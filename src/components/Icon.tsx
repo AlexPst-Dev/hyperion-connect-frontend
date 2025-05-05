@@ -24,11 +24,13 @@ import Subscription from "@assets/icons/subscription-icon.svg";
 import Close from "@assets/icons/close-icon.svg";
 import Objective from "@assets/icons/objective-icon.svg";
 import Calendar from "@assets/icons/calendar-icon.svg";
+import CalendarAdd from "@assets/icons/calendar-add-icon.svg";
 import Information from "@assets/icons/information-icon.svg";
 import Dumbell from "@assets/icons/dumbell-icon.svg";
 import Timer from "@assets/icons/timer-icon.svg";
 import Circle from "@assets/icons/circle-icon.svg";
 import CircleChecked from "@assets/icons/circle-checked-icon.svg";
+import MapAdd from "@assets/icons/map-add-icon.svg";
 
 const icons = {
   user: User,
@@ -58,6 +60,8 @@ const icons = {
   timer: Timer,
   circle: Circle,
   circleChecked: CircleChecked,
+  mapAdd: MapAdd,
+  calendarAdd: CalendarAdd,
 };
 
 export type IconName = keyof typeof icons;
