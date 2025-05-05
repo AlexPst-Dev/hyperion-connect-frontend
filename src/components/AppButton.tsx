@@ -64,6 +64,17 @@ export default function AppButton({
     }
   };
 
+  const getIconSize = (): number => {
+    switch (type) {
+      case "add":
+        return 24;
+      case "linkSmall":
+        return 16;
+      default:
+        return 20;
+    }
+  };
+
   const setLinkButtonStyle = (): {} => {
     if (type === "linkSmall" || type === "linkNormal") {
       return {
@@ -92,8 +103,8 @@ export default function AppButton({
         {iconName && iconPosition === "left" && (
           <Icon
             name={iconName}
-            width={type === "add" ? 24 : 20}
-            height={type === "add" ? 24 : 20}
+            width={getIconSize()}
+            height={getIconSize()}
             strokeColor={getIconColor()}
             fillColor="currentColor"
           />
@@ -102,8 +113,8 @@ export default function AppButton({
         {iconName && iconPosition === "right" && (
           <Icon
             name={iconName}
-            width={type === "add" ? 24 : 20}
-            height={type === "add" ? 24 : 20}
+            width={getIconSize()}
+            height={getIconSize()}
             strokeColor={getIconColor()}
             fillColor="currentColor"
             strokeWidth={1}
