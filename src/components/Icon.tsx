@@ -1,6 +1,5 @@
 import React from "react";
 import { Platform, Pressable } from "react-native";
-import type { SvgProps } from "react-native-svg"; // utile si tes SVGs sont typés
 // Import SVGs
 import User from "@assets/icons/user-icon.svg";
 import ChevronDown from "@assets/icons/chevron-down-icon.svg";
@@ -31,6 +30,12 @@ import Timer from "@assets/icons/timer-icon.svg";
 import Circle from "@assets/icons/circle-icon.svg";
 import CircleChecked from "@assets/icons/circle-checked-icon.svg";
 import MapAdd from "@assets/icons/map-add-icon.svg";
+import Home from "@assets/icons/home-icon.svg";
+import Stats from "@assets/icons/stats-icon.svg";
+import Health from "@assets/icons/health-icon.svg";
+import Store from "@assets/icons/store-icon.svg";
+import Network from "@assets/icons/network-icon.svg";
+import UserFind from "@assets/icons/user-find-icon.svg";
 
 const icons = {
   user: User,
@@ -62,6 +67,12 @@ const icons = {
   circleChecked: CircleChecked,
   mapAdd: MapAdd,
   calendarAdd: CalendarAdd,
+  home: Home,
+  stats: Stats,
+  health: Health,
+  store: Store,
+  network: Network,
+  userFind: UserFind,
 };
 
 export type IconName = keyof typeof icons;

@@ -174,6 +174,36 @@ const GlobalStyles = StyleSheet.create({
     color: Colors.red,
   },
   notification_success: {},
+
+  //Tab bar
+  tabBarStyle: {
+    position: "absolute",
+    marginRight: 8,
+    bottom: 24,
+    left: 8,
+    right: 8,
+    height: 64,
+    backgroundColor: "white",
+    borderRadius: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 4,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 8,
+  },
+  tabBarIcon: {
+    flexDirection: "column",
+    gap: 2,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 4,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+  },
 });
 
 export default GlobalStyles;
