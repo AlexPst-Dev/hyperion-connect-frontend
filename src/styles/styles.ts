@@ -1,4 +1,4 @@
-import { StyleSheet } from "react-native";
+import { Platform, StyleSheet } from "react-native";
 
 export const Colors = {
   deepBlue: "#1E3A8A",
@@ -183,17 +183,13 @@ const GlobalStyles = StyleSheet.create({
   tabBarStyle: {
     position: "absolute",
     marginRight: 8,
+    marginLeft: 8,
     bottom: 24,
     left: 8,
     right: 8,
     height: 64,
     backgroundColor: "white",
     borderRadius: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 4,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
@@ -204,9 +200,11 @@ const GlobalStyles = StyleSheet.create({
     gap: 2,
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 4,
+    paddingVertical: Platform.OS === "web" ? 4 : 16,
     paddingHorizontal: 12,
     borderRadius: 8,
+    minWidth: Platform.OS === "web" ? 0 : 72,
+    marginTop: Platform.OS === "web" ? 0 : 20,
   },
 });
 

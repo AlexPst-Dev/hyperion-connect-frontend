@@ -8,7 +8,7 @@ import UsersScreen from "@/src/screens/UsersScreen";
 import { Platform, View } from "react-native";
 import { getTabBarIcon } from "../tabConfig";
 import AppText from "@/src/components/AppText";
-import GlobalStyles, { Colors } from "@/src/styles/styles";
+import GlobalStyles, { Colors, shadowStyles } from "@/src/styles/styles";
 
 const Tab = createBottomTabNavigator();
 
@@ -29,12 +29,13 @@ export default function AdminTabs() {
             ]}
           >
             {getTabBarIcon(route.name, focused)}
+
             <AppText
               style={[
-                GlobalStyles.span,
+                Platform.OS === "web" ? GlobalStyles.span : { fontSize: 8 },
                 {
                   color: Colors.deepBlue,
-                  marginBottom: Platform.OS === "android" ? 4 : 0,
+                  marginBottom: 0,
                 },
               ]}
             >
@@ -42,7 +43,7 @@ export default function AdminTabs() {
             </AppText>
           </View>
         ),
-        tabBarStyle: GlobalStyles.tabBarStyle,
+        tabBarStyle: [GlobalStyles.tabBarStyle, shadowStyles.medium],
       })}
     >
       <Tab.Screen name="Accueil" component={HomeScreen} />
