@@ -1,6 +1,6 @@
 import React from "react";
 import { StyleSheet, View } from "react-native";
-import GlobalStyles, { Colors } from "../styles/styles";
+import GlobalStyles, { Colors, shadowStyles } from "../styles/styles";
 import Icon, { IconName } from "./Icon";
 import AppText from "./AppText";
 
@@ -14,6 +14,7 @@ interface Props {
 
 const styles = StyleSheet.create({
   container: {
+    width: "100%",
     flexDirection: "column",
     borderRadius: 4,
     padding: 8,
@@ -23,9 +24,6 @@ const styles = StyleSheet.create({
     borderRightWidth: 2,
     borderLeftWidth: 1,
     borderTopWidth: 1,
-    alignSelf: "flex-start",
-    marginRight: 8,
-    marginTop: 8,
   },
   header: {
     marginBottom: 8,
@@ -52,7 +50,7 @@ const styles = StyleSheet.create({
 
 export default function Kpi({ title, iconName, value, unit, fillIcon }: Props) {
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, shadowStyles.small]}>
       <View style={styles.header}>
         <AppText style={[GlobalStyles.span, styles.title]}>{title}</AppText>
         <View

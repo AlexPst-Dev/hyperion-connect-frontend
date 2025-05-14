@@ -11,7 +11,7 @@ import Checkbox from "expo-checkbox";
 import RNPickerSelect from "react-native-picker-select";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import AppText from "./AppText";
-import GlobalStyles from "../styles/styles";
+import GlobalStyles, { Colors } from "../styles/styles";
 
 const types = {
   email: "email",
@@ -346,14 +346,14 @@ export default function Input({
               },
             ]}
           >
-            <Text style={GlobalStyles.p}>
+            <AppText style={{ color: Colors.grey }}>
               {selectedValues.length > 0
                 ? multiOptions
                     .filter((opt) => selectedValues.includes(opt.value))
                     .map((opt) => opt.label)
                     .join(", ")
                 : placeholder || "Choisissez des options"}
-            </Text>
+            </AppText>
           </Pressable>
 
           <Modal

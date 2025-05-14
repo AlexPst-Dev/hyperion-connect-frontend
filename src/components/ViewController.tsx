@@ -4,13 +4,13 @@ import AppText from "./AppText";
 import Icon, { IconName } from "./Icon";
 import GlobalStyles, { Colors } from "../styles/styles";
 
-interface Tab {
+export interface ViewControllerTab {
   title: string;
   icon: IconName;
 }
 
 interface Props {
-  tabs: Tab[];
+  tabs: ViewControllerTab[];
   onTabChange?: (index: number) => void;
 }
 
@@ -66,6 +66,7 @@ const styles = StyleSheet.create({
     padding: 8,
     alignSelf: "flex-start",
     marginLeft: "auto",
+    flexWrap: "wrap",
   },
   tab: {
     alignItems: "center",

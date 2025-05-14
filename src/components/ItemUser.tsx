@@ -1,6 +1,6 @@
 import React from "react";
 import { StyleSheet, View, Text, Image } from "react-native";
-import GlobalStyles, { Colors } from "../styles/styles";
+import GlobalStyles, { Colors, shadowStyles } from "../styles/styles";
 import Icon, { IconName } from "./Icon";
 
 interface Props {
@@ -68,7 +68,7 @@ export default function ItemUser({
   iconName = "send",
 }: Props) {
   return (
-    <View style={styles.header}>
+    <View style={[styles.header, shadowStyles.small]}>
       <Image
         source={
           profilePictureUrl
@@ -85,7 +85,9 @@ export default function ItemUser({
               {firstName} {lastName}
             </Text>
             <Text style={GlobalStyles.p}>
-              {sport ? sport : ""} {sport && job ? "|" : ""} {job ? job : ""}
+              {sport ? sport : ""}
+              {sport && job ? "|" : ""}
+              {job ? job : ""}
             </Text>
           </View>
         ) : (

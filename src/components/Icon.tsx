@@ -36,6 +36,10 @@ import Health from "@assets/icons/health-icon.svg";
 import Store from "@assets/icons/store-icon.svg";
 import Network from "@assets/icons/network-icon.svg";
 import UserFind from "@assets/icons/user-find-icon.svg";
+import Handshake from "@assets/icons/handshake-icon.svg";
+import Medal from "@assets/icons/medal-icon.svg";
+import Medic from "@assets/icons/medic-icon.svg";
+import Run from "@assets/icons/run-icon.svg";
 
 const icons = {
   user: User,
@@ -73,6 +77,10 @@ const icons = {
   store: Store,
   network: Network,
   userFind: UserFind,
+  handshake: Handshake,
+  medal: Medal,
+  medic: Medic,
+  run: Run,
 };
 
 export type IconName = keyof typeof icons;

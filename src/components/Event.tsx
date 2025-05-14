@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { StyleSheet, View, Text, Pressable } from "react-native";
-import GlobalStyles, { Colors } from "../styles/styles";
+import GlobalStyles, { Colors, shadowStyles } from "../styles/styles";
 import { User } from "../context/AuthContext";
 import AppButton from "./AppButton";
 import AppText from "./AppText";
@@ -14,7 +14,7 @@ interface Props {
   hour: string;
   isInPerson?: boolean;
   theme?: string;
-  infoDescription: string;
+  infoDescription?: string;
   link?: string;
   onPress?: () => void;
 }
@@ -41,7 +41,7 @@ export default function Event({
   );
 
   return (
-    <Pressable onPress={onPress} style={styles.container}>
+    <Pressable onPress={onPress} style={[styles.container, shadowStyles.small]}>
       <View style={styles.content}>
         <AppText
           style={[
@@ -93,14 +93,16 @@ export default function Event({
           )}
         </View>
       </View>
-      <View style={styles.controller}>
-        <AppButton
-          title="Voir"
-          type="linkSmall"
-          iconName="eye"
-          onPress={onPress}
-        />
-      </View>
+      {infoDescription && (
+        <View style={styles.controller}>
+          <AppButton
+            title="Voir"
+            type="linkSmall"
+            iconName="eye"
+            onPress={onPress}
+          />
+        </View>
+      )}
     </Pressable>
   );
 }
@@ -115,13 +117,9 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderRightWidth: 2,
     borderBottomWidth: 2,
-    shadowColor: "black",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 4,
     paddingVertical: 12,
     paddingHorizontal: 16,
+    backgroundColor: "white",
   },
   content: {
     flexDirection: "row",

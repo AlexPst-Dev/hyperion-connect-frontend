@@ -84,10 +84,13 @@ export default function HeaderNav({ profilePictureUrl }: Props) {
   return (
     <>
       <View style={styles.container}>
-        <View style={styles.leftPart}>
+        <Pressable
+          style={styles.leftPart}
+          onPress={() => navigation.navigate("Main" as never)}
+        >
           <Image source={{ uri: appImageUrl }} style={styles.appImage} />
           <Text style={styles.appTitle}>HYPERION</Text>
-        </View>
+        </Pressable>
 
         <Pressable style={styles.rightPart} onPress={() => setMemberCard(true)}>
           <Icon

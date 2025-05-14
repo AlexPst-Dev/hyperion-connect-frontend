@@ -1,14 +1,6 @@
 import React from "react";
-import {
-  StyleSheet,
-  ViewStyle,
-  TextStyle,
-  ImageStyle,
-  View,
-  Text,
-  Image,
-} from "react-native";
-import GlobalStyles, { Colors } from "../styles/styles";
+import { StyleSheet, View, Text, Image } from "react-native";
+import GlobalStyles, { Colors, shadowStyles } from "../styles/styles";
 import Icon from "./Icon";
 
 interface Props {
@@ -24,16 +16,7 @@ interface Props {
   profilePictureUrl?: string;
 }
 
-const styles = StyleSheet.create<{
-  container: ViewStyle;
-  name: TextStyle;
-  header: ViewStyle;
-  userInfos: ViewStyle;
-  profilePicture: ImageStyle;
-  separator: ViewStyle;
-  detailedContainer: ViewStyle;
-  contactsControllers: ViewStyle;
-}>({
+const styles = StyleSheet.create({
   container: {
     flexDirection: "column",
     paddingVertical: 16,
@@ -96,7 +79,7 @@ export default function UserCard({
   profilePictureUrl,
 }: Props) {
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, shadowStyles.small]}>
       <View style={styles.header}>
         <Image
           source={

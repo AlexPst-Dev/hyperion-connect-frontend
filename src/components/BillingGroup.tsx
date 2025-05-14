@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { StyleSheet, View, Pressable } from "react-native";
 import AppText from "./AppText";
 import Icon from "./Icon";
-import GlobalStyles, { Colors } from "../styles/styles";
+import GlobalStyles, { Colors, shadowStyles } from "../styles/styles";
 
 interface Props {
   billingLines?: React.ReactElement | React.ReactElement[];
@@ -34,7 +34,7 @@ export default function BillingGroup({
   };
 
   return (
-    <View style={styles.groupContainer}>
+    <View style={[styles.groupContainer, shadowStyles.small]}>
       <Pressable onPress={toggleBillingLines} style={styles.headerContainer}>
         <View style={{ flex: 1 }}>
           <AppText style={[GlobalStyles.p, { fontWeight: "bold" }]}>

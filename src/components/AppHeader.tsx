@@ -1,12 +1,5 @@
 import React from "react";
-import {
-  StyleSheet,
-  ViewStyle,
-  View,
-  TextStyle,
-  Text,
-  StatusBar,
-} from "react-native";
+import { StyleSheet, View, Text, StatusBar, Platform } from "react-native";
 import HeaderNav from "./HeaderNav";
 import GlobalStyles, { Colors } from "../styles/styles";
 import Icon from "./Icon";
@@ -20,20 +13,19 @@ interface Props {
   onReturnButtonPress?: () => void;
 }
 
-const styles = StyleSheet.create<{
-  container: ViewStyle;
-  textContent: TextStyle;
-  pageTitle: TextStyle;
-  returnButtonText: TextStyle;
-  returnButtonContainer: ViewStyle;
-}>({
+const styles = StyleSheet.create({
   container: {
     flexDirection: "column",
     width: "100%",
-    minHeight: 209,
     backgroundColor: Colors.deepBlue,
-    paddingVertical: 32,
+    paddingTop: 32,
     paddingHorizontal: 16,
+    paddingBottom: Platform.select({
+      web: 42,
+      android: 0,
+      ios: 0,
+      default: 0,
+    }),
   },
   textContent: {
     color: "white",

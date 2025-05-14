@@ -18,7 +18,7 @@ interface Props {
   onPress: () => void;
 }
 
-export default function UserCard({
+export default function OfferCard({
   companyName,
   companyImgUrl,
   title,
@@ -55,8 +55,8 @@ export default function UserCard({
             <AppText style={[GlobalStyles.span]}>{conditions}</AppText>
             <AppText style={[GlobalStyles.span]}>
               Du
-              {startDate.toLocaleDateString("fr-FR")} au
-              {endDate.toLocaleDateString("fr-FR")}
+              {" " + startDate.toLocaleDateString("fr-FR")} au
+              {" " + endDate.toLocaleDateString("fr-FR")}
             </AppText>
           </View>
         </View>

@@ -1,6 +1,6 @@
 import React from "react";
 import { StyleSheet, View, Text, Image, Pressable } from "react-native";
-import GlobalStyles, { Colors } from "../styles/styles";
+import GlobalStyles, { Colors, shadowStyles } from "../styles/styles";
 import Icon from "./Icon";
 import AppText from "./AppText";
 import Label from "./Label";
@@ -46,7 +46,7 @@ export default function Session({
   isInPerson,
 }: Props) {
   return (
-    <Pressable onPress={onPress} style={styles.container}>
+    <Pressable onPress={onPress} style={[styles.container, shadowStyles.small]}>
       <View style={styles.content}>
         <View style={styles.img}>
           <Image

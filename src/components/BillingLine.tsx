@@ -37,6 +37,17 @@ export default function BillingLine({
       </View>
 
       <View style={styles.lineControllers}>
+        <View style={{ alignSelf: "flex-end" }}>
+          <Label
+            title={
+              billingState === "pending"
+                ? "Paiement en attente"
+                : "Paiement reçu"
+            }
+            type={billingState === "pending" ? "orange" : "green"}
+            size="small"
+          />
+        </View>
         {billingState === "pending" && (
           <View>
             <AppButton
@@ -48,17 +59,6 @@ export default function BillingLine({
             />
           </View>
         )}
-        <View style={{ marginLeft: 12, alignSelf: "flex-end" }}>
-          <Label
-            title={
-              billingState === "pending"
-                ? "Paiement en attente"
-                : "Paiement reçu"
-            }
-            type={billingState === "pending" ? "orange" : "green"}
-            size="small"
-          />
-        </View>
       </View>
     </View>
   );

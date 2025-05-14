@@ -40,10 +40,14 @@ const GlobalStyles = StyleSheet.create({
     fontSize: 12,
     fontFamily: "Roboto-Regular",
   },
-  screenContainer: {
+  screenContainer: {},
+  pageStyle: {
     flex: 1,
-    padding: 16,
     backgroundColor: "white",
+    paddingLeft: 16,
+    paddingRight: 16,
+    paddingTop: 16,
+    paddingBottom: 92,
   },
   h1: {
     fontSize: 36,
@@ -205,5 +209,38 @@ const GlobalStyles = StyleSheet.create({
     borderRadius: 8,
   },
 });
+
+export const shadowStyles = {
+  small: {
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.18,
+    shadowRadius: 1.0,
+    elevation: 1, // For Android
+  },
+  medium: {
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.23,
+    shadowRadius: 2.62,
+    elevation: 4, // For Android
+  },
+  large: {
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 4.65,
+    elevation: 8, // For Android
+  },
+};
 
 export default GlobalStyles;

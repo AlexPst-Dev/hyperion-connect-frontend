@@ -166,6 +166,7 @@ const styles = StyleSheet.create({
   },
   inviteBtn: {
     marginTop: 24,
+    marginBottom: 24,
     flexDirection: "row",
     alignSelf: "flex-end",
   },

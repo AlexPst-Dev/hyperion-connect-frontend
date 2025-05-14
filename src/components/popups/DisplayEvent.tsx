@@ -68,12 +68,13 @@ export default function DisplayEvent({
     eventOwnerId: number,
     eventType: string
   ): EventActionType {
-    if (user.id === eventOwnerId) {
+    if (user.id === eventOwnerId || user.profileCategory === "admin") {
       return "editable";
     }
     if (
       eventType === "sportingActivity" &&
-      user.profileCategory === "sportsman"
+      user.profileCategory === "sportsman" &&
+      eventOwnerId !== user.id
     ) {
       return "applyToSportingActivity";
     }
@@ -149,7 +150,7 @@ export default function DisplayEvent({
                       />
                       <AppText>{date.toLocaleDateString("fr-FR")}</AppText>
                     </View>
-                    {eventType === "sportingActivity" && (
+                    {eventType === "sportingActivity" && link && (
                       <View style={styles.eventInfo}>
                         <Icon
                           name="link"
