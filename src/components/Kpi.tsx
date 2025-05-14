@@ -67,7 +67,7 @@ export default function Kpi({ title, iconName, value, unit, fillIcon }: Props) {
             height={16}
             fillColor={fillIcon ? Colors.deepBlue : "transparent"}
             strokeColor={Colors.deepBlue}
-            strokeWidth={1}
+            strokeWidth={2}
           />
         </View>
       </View>

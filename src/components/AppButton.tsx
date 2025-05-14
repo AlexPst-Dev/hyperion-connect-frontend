@@ -106,7 +106,7 @@ export default function AppButton({
             width={getIconSize()}
             height={getIconSize()}
             strokeColor={getIconColor()}
-            fillColor="currentColor"
+            fillColor="transparent"
           />
         )}
         {title && <Text style={[getTextStyle(), textStyle]}>{title}</Text>}
@@ -116,8 +116,8 @@ export default function AppButton({
             width={getIconSize()}
             height={getIconSize()}
             strokeColor={getIconColor()}
-            fillColor="currentColor"
-            strokeWidth={1}
+            fillColor="transparent"
+            strokeWidth={2}
           />
         )}
       </View>
