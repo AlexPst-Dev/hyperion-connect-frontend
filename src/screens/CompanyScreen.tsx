@@ -1,12 +1,21 @@
 import React from "react";
-import { View, Text } from "react-native";
+import { KeyboardAvoidingView, Platform, ScrollView } from "react-native";
+import AppText from "../components/AppText";
+import GlobalStyles from "../styles/styles";
 
 export default function Companycreen() {
   return (
-    <View className="flex-1 justify-center items-center bg-white">
-      <Text className="text-2xl font-bold text-deepBlue">
-        Votre entreprise - Companycreen
-      </Text>
-    </View>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={80}
+      style={GlobalStyles.pageStyle}
+    >
+      <ScrollView
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <AppText>Company screen</AppText>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
