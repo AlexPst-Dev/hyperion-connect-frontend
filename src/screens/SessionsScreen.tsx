@@ -1,12 +1,21 @@
 import React from "react";
-import { View, Text } from "react-native";
+import { KeyboardAvoidingView, Platform, ScrollView } from "react-native";
+import GlobalStyles from "../styles/styles";
+import AppText from "../components/AppText";
 
 export default function SessionsScreen() {
   return (
-    <View className="flex-1 justify-center items-center bg-white">
-      <Text className="text-2xl font-bold text-deepBlue">
-        Programmes - SessionsScreen
-      </Text>
-    </View>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={80}
+      style={GlobalStyles.pageStyle}
+    >
+      <ScrollView
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <AppText>Sessions screen</AppText>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }

@@ -5,12 +5,46 @@ import PlanningScreen from "@/src/screens/PlanningScreen";
 import CommunityScreen from "@/src/screens/CommunityScreen";
 import StatisticsScreen from "@/src/screens/StatisticsScreen";
 import Companycreen from "@/src/screens/CompanyScreen";
+import AppText from "@/src/components/AppText";
+import GlobalStyles, { Colors } from "@/src/styles/styles";
+import { View, Platform } from "react-native";
+import { getTabBarIcon } from "../tabConfig";
 
 const Tab = createBottomTabNavigator();
 
 export default function PartnerTabs() {
   return (
-    <Tab.Navigator initialRouteName="Home">
+    <Tab.Navigator
+      initialRouteName="Accueil"
+      screenOptions={({ route }) => ({
+        headerShown: false,
+        tabBarShowLabel: false,
+        tabBarIcon: ({ focused }) => (
+          <View
+            style={[
+              GlobalStyles.tabBarIcon,
+              {
+                backgroundColor: focused ? "#ECF2FF" : "transparent",
+              },
+            ]}
+          >
+            {getTabBarIcon(route.name, focused)}
+            <AppText
+              style={[
+                GlobalStyles.span,
+                {
+                  color: Colors.deepBlue,
+                  marginBottom: Platform.OS === "android" ? 4 : 0,
+                },
+              ]}
+            >
+              {route.name}
+            </AppText>
+          </View>
+        ),
+        tabBarStyle: GlobalStyles.tabBarStyle,
+      })}
+    >
       <Tab.Screen name="Accueil" component={HomeScreen} />
       <Tab.Screen name="Communauté" component={CommunityScreen} />
       <Tab.Screen name="Planning" component={PlanningScreen} />

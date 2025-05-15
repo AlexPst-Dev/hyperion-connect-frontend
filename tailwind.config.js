@@ -13,6 +13,12 @@ module.exports = {
         gold: "#CAAB4F",
         grey: "#374151",
       },
+      fontFamily: {
+        montserrat: ["Montserrat-Regular"],
+        montserratBold: ["Montserrat-Bold"],
+        montserratSemiBold: ["Montserrat-SemiBold"],
+        roboto: ["Roboto-Regular"],
+      },
     },
   },
   plugins: [],
