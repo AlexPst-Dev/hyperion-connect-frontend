@@ -47,7 +47,7 @@ const GlobalStyles = StyleSheet.create({
     paddingLeft: 16,
     paddingRight: 16,
     paddingTop: 16,
-    paddingBottom: 92,
+    paddingBottom: Platform.OS === "web" ? 92 : 128,
   },
   h1: {
     fontSize: 36,
@@ -184,7 +184,7 @@ const GlobalStyles = StyleSheet.create({
     position: "absolute",
     marginRight: 8,
     marginLeft: 8,
-    bottom: 24,
+    bottom: Platform.OS === "web" ? 24 : 48,
     left: 8,
     right: 8,
     height: 64,
