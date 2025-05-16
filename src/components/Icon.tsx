@@ -40,6 +40,7 @@ import Handshake from "@assets/icons/handshake-icon.svg";
 import Medal from "@assets/icons/medal-icon.svg";
 import Medic from "@assets/icons/medic-icon.svg";
 import Run from "@assets/icons/run-icon.svg";
+import Star from "@assets/icons/star-icon.svg";
 
 const icons = {
   user: User,
@@ -81,6 +82,7 @@ const icons = {
   medal: Medal,
   medic: Medic,
   run: Run,
+  star: Star,
 };
 
 export type IconName = keyof typeof icons;
