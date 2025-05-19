@@ -18,6 +18,8 @@ import ParametersScreen from "../screens/params/ParametersScreen";
 import ProfileScreen from "../screens/params/ProfileScreen";
 import SubscriptionScreen from "../screens/params/SubscriptionScreen";
 import LegalsScreen from "../screens/params/LegalsScreen";
+import SessionDetailScreen from "../screens/SessionDetailScreen";
+import ExerciceDetailScreen from "../screens/ExerciceDetailScreen";
 
 const Stack = createStackNavigator<RootStackParamList>();
 
@@ -79,13 +81,29 @@ export default function AppNavigator() {
         ) : (
           <>
             {user.profileCategory === "sportsman" && (
-              <Stack.Screen
-                name="Main"
-                component={SportsmanTabs}
-                options={({ route, navigation }) =>
-                  mainOptions(route, navigation, user)
-                }
-              />
+              <>
+                <Stack.Screen
+                  name="Main"
+                  component={SportsmanTabs}
+                  options={({ route, navigation }) =>
+                    mainOptions(route, navigation, user)
+                  }
+                />
+                <Stack.Screen
+                  name="SessionDetail"
+                  component={SessionDetailScreen}
+                  options={({ route, navigation }) =>
+                    mainOptions(route, navigation, user, "PROGRAMMES")
+                  }
+                />
+                <Stack.Screen
+                  name="ExerciceDetail"
+                  component={ExerciceDetailScreen}
+                  options={({ route, navigation }) =>
+                    mainOptions(route, navigation, user, "PROGRAMMES")
+                  }
+                />
+              </>
             )}
             {user.profileCategory === "free" && (
               <Stack.Screen
@@ -98,13 +116,29 @@ export default function AppNavigator() {
             )}
             {(user.profileCategory === "coach" ||
               user.profileCategory === "medic") && (
-              <Stack.Screen
-                name="Main"
-                component={ProTabs}
-                options={({ route, navigation }) =>
-                  mainOptions(route, navigation, user)
-                }
-              />
+              <>
+                <Stack.Screen
+                  name="Main"
+                  component={ProTabs}
+                  options={({ route, navigation }) =>
+                    mainOptions(route, navigation, user)
+                  }
+                />
+                <Stack.Screen
+                  name="SessionDetail"
+                  component={SessionDetailScreen}
+                  options={({ route, navigation }) =>
+                    mainOptions(route, navigation, user, "PROGRAMMES")
+                  }
+                />
+                <Stack.Screen
+                  name="ExerciceDetail"
+                  component={ExerciceDetailScreen}
+                  options={({ route, navigation }) =>
+                    mainOptions(route, navigation, user, "PROGRAMMES")
+                  }
+                />
+              </>
             )}
             {user.profileCategory === "partner" && (
               <Stack.Screen
@@ -116,13 +150,29 @@ export default function AppNavigator() {
               />
             )}
             {user.profileCategory === "admin" && (
-              <Stack.Screen
-                name="Main"
-                component={AdminTabs}
-                options={({ route, navigation }) =>
-                  mainOptions(route, navigation, user)
-                }
-              />
+              <>
+                <Stack.Screen
+                  name="Main"
+                  component={AdminTabs}
+                  options={({ route, navigation }) =>
+                    mainOptions(route, navigation, user)
+                  }
+                />
+                <Stack.Screen
+                  name="SessionDetail"
+                  component={SessionDetailScreen}
+                  options={({ route, navigation }) =>
+                    mainOptions(route, navigation, user, "PROGRAMMES")
+                  }
+                />
+                <Stack.Screen
+                  name="ExerciceDetail"
+                  component={ExerciceDetailScreen}
+                  options={({ route, navigation }) =>
+                    mainOptions(route, navigation, user, "PROGRAMMES")
+                  }
+                />
+              </>
             )}
             <Stack.Screen
               name="Settings"

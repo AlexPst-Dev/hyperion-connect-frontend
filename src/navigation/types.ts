@@ -7,4 +7,19 @@ export type RootStackParamList = {
   Subscription: undefined;
   Legals: undefined;
   Settings: undefined;
+  SessionDetail: {
+    session: {
+      title: string;
+      nbExercises: number;
+      durationTime: number;
+      isEditable?: boolean;
+    };
+  };
+  ExerciceDetail: {
+    exercice: {
+      title: string;
+      durationTime: number;
+      isEditable?: boolean;
+    };
+  };
 };

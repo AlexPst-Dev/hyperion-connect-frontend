@@ -41,6 +41,8 @@ import Medal from "@assets/icons/medal-icon.svg";
 import Medic from "@assets/icons/medic-icon.svg";
 import Run from "@assets/icons/run-icon.svg";
 import Star from "@assets/icons/star-icon.svg";
+import Download from "@assets/icons/download-icon.svg";
+import Trash from "@assets/icons/trash-icon.svg";
 
 const icons = {
   user: User,
@@ -83,6 +85,8 @@ const icons = {
   medic: Medic,
   run: Run,
   star: Star,
+  download: Download,
+  trash: Trash,
 };
 
 export type IconName = keyof typeof icons;

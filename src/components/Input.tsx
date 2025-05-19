@@ -94,14 +94,8 @@ export default function Input({
         </View>
       );
     case "selector":
-      const selectorOptions = [
-        { label: "Option 1", value: "option1" },
-        { label: "Option 2", value: "option2" },
-      ];
       const [modalVisible, setModalVisible] = useState(false);
-      const selectedLabel = selectorOptions.find(
-        (opt) => opt.value === value
-      )?.label;
+      const selectedLabel = options?.find((opt) => opt.value === value)?.label;
 
       return (
         <View>
@@ -146,22 +140,29 @@ export default function Input({
                       width: 300,
                     }}
                   >
-                    {selectorOptions.map((opt) => (
-                      <Pressable
-                        key={opt.value}
-                        onPress={() => {
-                          setModalVisible(false);
-                          onChangeText?.(opt.value);
-                        }}
-                        style={{ paddingVertical: 10 }}
-                      >
-                        <Text
-                          style={{ fontFamily: "Roboto-Regular", fontSize: 16 }}
+                    {options ? (
+                      options.map((opt) => (
+                        <Pressable
+                          key={opt.value}
+                          onPress={() => {
+                            setModalVisible(false);
+                            onChangeText?.(opt.value);
+                          }}
+                          style={{ paddingVertical: 10 }}
                         >
-                          {opt.label}
-                        </Text>
-                      </Pressable>
-                    ))}
+                          <Text
+                            style={{
+                              fontFamily: "Roboto-Regular",
+                              fontSize: 16,
+                            }}
+                          >
+                            {opt.label}
+                          </Text>
+                        </Pressable>
+                      ))
+                    ) : (
+                      <Text>Aucune options disponibles</Text>
+                    )}
                   </View>
                 </View>
               </Modal>
@@ -170,7 +171,7 @@ export default function Input({
             <View style={GlobalStyles.input}>
               <RNPickerSelect
                 onValueChange={(value) => onChangeText?.(value as string)}
-                items={selectorOptions}
+                items={options ?? []}
                 placeholder={{
                   label: placeholder ?? "Choisissez une option",
                   value: null,

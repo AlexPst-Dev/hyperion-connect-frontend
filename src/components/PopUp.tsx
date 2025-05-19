@@ -43,7 +43,9 @@ export default function PopUp({
   return (
     <Pressable style={styles.menuContainer} onPress={() => {}}>
       <View style={styles.menuTitle}>
-        <AppText style={[GlobalStyles.h2, { marginBottom: 0 }]}>
+        <AppText
+          style={[GlobalStyles.h2, { marginBottom: 0, maxWidth: "70%" }]}
+        >
           {title}
         </AppText>
         <Icon

@@ -42,7 +42,6 @@ const GlobalStyles = StyleSheet.create({
   },
   screenContainer: {},
   pageStyle: {
-    flex: 1,
     backgroundColor: "white",
     paddingLeft: 16,
     paddingRight: 16,

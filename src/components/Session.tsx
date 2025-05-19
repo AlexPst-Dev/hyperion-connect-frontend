@@ -24,6 +24,7 @@ interface Props {
   date?: Date;
   hour?: string;
   isInPerson?: boolean;
+  hideIcon?: boolean;
 }
 
 export default function Session({
@@ -44,6 +45,7 @@ export default function Session({
   date,
   hour,
   isInPerson,
+  hideIcon = false,
 }: Props) {
   function getImageSource(imageUrl?: string): any {
     if (!imageUrl) {
@@ -137,7 +139,7 @@ export default function Session({
         <View style={styles.rightPart}>
           {isDone && <Label title="Fait" type="green" size="small" />}
           {isToDo && <Label title="À faire" type="orange" size="small" />}
-          {isExercice && !isDone && !isToDo && (
+          {isExercice && !isDone && !isToDo && !hideIcon && (
             <Icon
               name="eye"
               strokeColor="black"
@@ -147,7 +149,7 @@ export default function Session({
               height={24}
             />
           )}
-          {!isExercice && !isDone && !isToDo && (
+          {!isExercice && !isDone && !isToDo && !hideIcon && (
             <Icon
               name="chevronRight"
               strokeColor="black"
