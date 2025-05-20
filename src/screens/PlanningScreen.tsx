@@ -111,7 +111,7 @@ export default function PlanningScreen() {
         </View>,
 
         // Tab 1 : Evenements
-        <View key="seances" style={{ flexDirection: "column", gap: 16 }}>
+        <View key="events" style={{ flexDirection: "column", gap: 16 }}>
           <AppText style={GlobalStyles.h3}>PROCHAINS EVENEMENTS</AppText>
           <Event
             title="Evénement Hyperion Vannes"
