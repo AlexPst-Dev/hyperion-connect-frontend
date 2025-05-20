@@ -10,7 +10,7 @@ interface Props {
   objectives: React.ReactElement | React.ReactElement[];
 }
 
-export default function ItemUser({ user, objectives }: Props) {
+export default function ItemClient({ user, objectives }: Props) {
   function getImageSource(): any {
     if (!user.imageUrl) {
       // fallback
