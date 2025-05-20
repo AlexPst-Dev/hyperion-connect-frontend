@@ -20,6 +20,7 @@ import SubscriptionScreen from "../screens/params/SubscriptionScreen";
 import LegalsScreen from "../screens/params/LegalsScreen";
 import SessionDetailScreen from "../screens/SessionDetailScreen";
 import ExerciceDetailScreen from "../screens/ExerciceDetailScreen";
+import PlanningHistory from "../screens/PlanningHistory";
 
 const Stack = createStackNavigator<RootStackParamList>();
 
@@ -136,6 +137,13 @@ export default function AppNavigator() {
                   component={ExerciceDetailScreen}
                   options={({ route, navigation }) =>
                     mainOptions(route, navigation, user, "PROGRAMMES")
+                  }
+                />
+                <Stack.Screen
+                  name="PlanningHistory"
+                  component={PlanningHistory}
+                  options={({ route, navigation }) =>
+                    mainOptions(route, navigation, user, "PLANNING")
                   }
                 />
               </>

@@ -22,4 +22,5 @@ export type RootStackParamList = {
       isEditable?: boolean;
     };
   };
+  PlanningHistory: undefined;
 };
