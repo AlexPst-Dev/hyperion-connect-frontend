@@ -14,6 +14,9 @@ import OfferCard from "../components/OfferCard";
 import PopUp from "../components/PopUp";
 import Input from "../components/Input";
 import { useAuth } from "../hooks/useAuth";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { RootStackParamList } from "../navigation/types";
+import { useNavigation } from "@react-navigation/native";
 
 export default function OffersScreen() {
   const [candidateSponsoringPopUpVisible, setCandidateSponsoringPopUpVisible] =
@@ -28,6 +31,12 @@ export default function OffersScreen() {
   let isFree: boolean = false;
 
   user?.profileCategory === "free" ? (isFree = true) : (isFree = false);
+
+  type NavigationProp = NativeStackNavigationProp<
+    RootStackParamList,
+    "PartnersList"
+  >;
+  const navigation = useNavigation<NavigationProp>();
 
   return (
     <>
@@ -46,6 +55,9 @@ export default function OffersScreen() {
                 type="linkNormal"
                 title="Voir tous nos partenaires"
                 iconName="eye"
+                onPress={() => {
+                  navigation.navigate("PartnersList");
+                }}
               />
             </View>
             <AppText>

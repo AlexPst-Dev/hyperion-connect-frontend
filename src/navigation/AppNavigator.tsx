@@ -22,6 +22,7 @@ import SessionDetailScreen from "../screens/SessionDetailScreen";
 import ExerciceDetailScreen from "../screens/ExerciceDetailScreen";
 import PlanningHistory from "../screens/PlanningHistory";
 import ContactDetailScreen from "../screens/ContactDetailScreen";
+import PartnersListScreen from "../screens/PartnersListScreen";
 
 const Stack = createStackNavigator<RootStackParamList>();
 
@@ -112,16 +113,32 @@ export default function AppNavigator() {
                     mainOptions(route, navigation, user, "COMMUNAUTE")
                   }
                 />
+                <Stack.Screen
+                  name="PartnersList"
+                  component={PartnersListScreen}
+                  options={({ route, navigation }) =>
+                    mainOptions(route, navigation, user, "NOS PARTENAIRES")
+                  }
+                />
               </>
             )}
             {user.profileCategory === "free" && (
-              <Stack.Screen
-                name="Main"
-                component={FreeTabs}
-                options={({ route, navigation }) =>
-                  mainOptions(route, navigation, user)
-                }
-              />
+              <>
+                <Stack.Screen
+                  name="Main"
+                  component={FreeTabs}
+                  options={({ route, navigation }) =>
+                    mainOptions(route, navigation, user)
+                  }
+                />
+                <Stack.Screen
+                  name="PartnersList"
+                  component={PartnersListScreen}
+                  options={({ route, navigation }) =>
+                    mainOptions(route, navigation, user, "NOS PARTENAIRES")
+                  }
+                />
+              </>
             )}
             {(user.profileCategory === "coach" ||
               user.profileCategory === "medic") && (

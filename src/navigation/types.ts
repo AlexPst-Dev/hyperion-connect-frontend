@@ -28,4 +28,5 @@ export type RootStackParamList = {
   ContactDetail: {
     contact: User;
   };
+  PartnersList: undefined;
 };
