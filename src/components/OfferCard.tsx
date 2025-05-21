@@ -4,6 +4,7 @@ import AppText from "./AppText";
 import Label from "./Label";
 import AppButton from "./AppButton";
 import GlobalStyles, { Colors } from "../styles/styles";
+import { IconName } from "./Icon";
 
 interface Props {
   companyName: string;
@@ -15,6 +16,7 @@ interface Props {
   endDate: Date;
   isSponsorship: boolean;
   labelTxt?: string;
+  iconName: IconName;
   onPress: () => void;
 }
 
@@ -28,13 +30,35 @@ export default function OfferCard({
   endDate,
   isSponsorship,
   labelTxt = "Réduction",
+  iconName,
   onPress,
 }: Props) {
+  function getImageSource(imageUrl?: string): any {
+    if (!imageUrl) {
+      // fallback
+      return require("../assets/images/react-logo.png");
+    }
+
+    if (imageUrl.startsWith("http") || imageUrl.startsWith("https")) {
+      return { uri: imageUrl };
+    }
+
+    // Mapping of konwn local images
+    const localImages: Record<string, any> = {
+      "users/companies/nutrisport-logo": require("../assets/images/users/companies/nutrisport-logo.png"),
+    };
+
+    return localImages[imageUrl] || require("../assets/images/react-logo.png");
+  }
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <View style={styles.companyInfos}>
-          <Image source={{ uri: companyImgUrl }} style={styles.companyImg} />
+          <Image
+            source={getImageSource(companyImgUrl)}
+            style={styles.companyImg}
+          />
           <AppText style={[GlobalStyles.h3, { color: Colors.deepBlue }]}>
             {companyName}
           </AppText>
@@ -64,7 +88,7 @@ export default function OfferCard({
           <AppButton
             title={isSponsorship ? "Postuler" : ""}
             type="primary"
-            iconName={isSponsorship ? "send" : "link"}
+            iconName={iconName}
             onPress={onPress}
           />
         </View>
