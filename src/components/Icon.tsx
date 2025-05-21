@@ -43,6 +43,7 @@ import Run from "@assets/icons/run-icon.svg";
 import Star from "@assets/icons/star-icon.svg";
 import Download from "@assets/icons/download-icon.svg";
 import Trash from "@assets/icons/trash-icon.svg";
+import LinkDenied from "@assets/icons/link-denied-icon.svg";
 
 const icons = {
   user: User,
@@ -87,6 +88,7 @@ const icons = {
   star: Star,
   download: Download,
   trash: Trash,
+  linkDenied: LinkDenied,
 };
 
 export type IconName = keyof typeof icons;
