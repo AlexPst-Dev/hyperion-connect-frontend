@@ -1,3 +1,5 @@
+import { User } from "../context/AuthContext";
+
 export type RootStackParamList = {
   Login: undefined;
   Home: undefined;
@@ -23,4 +25,7 @@ export type RootStackParamList = {
     };
   };
   PlanningHistory: undefined;
+  ContactDetail: {
+    contact: User;
+  };
 };

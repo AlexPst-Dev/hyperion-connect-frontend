@@ -19,8 +19,17 @@ import PopUp from "../components/PopUp";
 import Input from "../components/Input";
 import DisplayEvent from "../components/popups/DisplayEvent";
 import ItemUser from "../components/ItemUser";
+import { NavigationProp, useNavigation } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { RootStackParamList } from "../navigation/types";
 
 export default function CommunityScreen() {
+  type NavigationProp = NativeStackNavigationProp<
+    RootStackParamList,
+    "ContactDetail"
+  >;
+  const navigation = useNavigation<NavigationProp>();
+
   const tempAdminUser: User = {
     id: 1,
     firstName: "Chloé",
@@ -282,13 +291,20 @@ export default function CommunityScreen() {
                 }}
               >
                 {listOfContactUsers.map((user) => (
-                  <ItemUser
+                  <Pressable
+                    onPress={() => {
+                      navigation.navigate("ContactDetail", { contact: user });
+                    }}
                     key={user.id}
-                    firstName={user.firstName}
-                    lastName={user.lastName}
-                    isCompany={false}
-                    iconName="send"
-                  />
+                  >
+                    <ItemUser
+                      key={user.id}
+                      firstName={user.firstName}
+                      lastName={user.lastName}
+                      isCompany={false}
+                      iconName="send"
+                    />
+                  </Pressable>
                 ))}
               </View>
             </ScrollView>

@@ -78,15 +78,29 @@ export default function UserCard({
   age,
   profilePictureUrl,
 }: Props) {
+  function getImageSource(imageUrl?: string): any {
+    if (!imageUrl) {
+      // fallback
+      return require("../assets/images/react-logo.png");
+    }
+
+    if (imageUrl.startsWith("http") || imageUrl.startsWith("https")) {
+      return { uri: imageUrl };
+    }
+
+    // Mapping of konwn local images
+    const localImages: Record<string, any> = {
+      "users/profilePicture/img-profile-1": require("../assets/images/users/profilePicture/img-profil-1.png"),
+    };
+
+    return localImages[imageUrl] || require("../assets/images/react-logo.png");
+  }
+
   return (
     <View style={[styles.container, shadowStyles.small]}>
       <View style={styles.header}>
         <Image
-          source={
-            profilePictureUrl
-              ? { uri: profilePictureUrl }
-              : { uri: "https://reactnative.dev/img/tiny_logo.png" } // fallback
-          }
+          source={getImageSource(profilePictureUrl)}
           style={styles.profilePicture}
         />
         <View style={styles.separator} />
@@ -94,8 +108,10 @@ export default function UserCard({
           <Text style={styles.name}>
             {firstName} {lastName}
           </Text>
-          <Text style={GlobalStyles.p}>{susbcriptionLabel}</Text>
-          <Text style={GlobalStyles.p}>{sport}</Text>
+          {susbcriptionLabel && susbcriptionLabel !== "" && (
+            <Text style={GlobalStyles.p}>{susbcriptionLabel}</Text>
+          )}
+          {sport && sport !== "" && <Text style={GlobalStyles.p}>{sport}</Text>}
         </View>
       </View>
       {detailled && (

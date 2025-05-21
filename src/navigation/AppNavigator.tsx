@@ -21,6 +21,7 @@ import LegalsScreen from "../screens/params/LegalsScreen";
 import SessionDetailScreen from "../screens/SessionDetailScreen";
 import ExerciceDetailScreen from "../screens/ExerciceDetailScreen";
 import PlanningHistory from "../screens/PlanningHistory";
+import ContactDetailScreen from "../screens/ContactDetailScreen";
 
 const Stack = createStackNavigator<RootStackParamList>();
 
@@ -104,6 +105,13 @@ export default function AppNavigator() {
                     mainOptions(route, navigation, user, "PROGRAMMES")
                   }
                 />
+                <Stack.Screen
+                  name="ContactDetail"
+                  component={ContactDetailScreen}
+                  options={({ route, navigation }) =>
+                    mainOptions(route, navigation, user, "COMMUNAUTE")
+                  }
+                />
               </>
             )}
             {user.profileCategory === "free" && (
@@ -146,16 +154,32 @@ export default function AppNavigator() {
                     mainOptions(route, navigation, user, "PLANNING")
                   }
                 />
+                <Stack.Screen
+                  name="ContactDetail"
+                  component={ContactDetailScreen}
+                  options={({ route, navigation }) =>
+                    mainOptions(route, navigation, user, "COMMUNAUTE")
+                  }
+                />
               </>
             )}
             {user.profileCategory === "partner" && (
-              <Stack.Screen
-                name="Main"
-                component={PartnerTabs}
-                options={({ route, navigation }) =>
-                  mainOptions(route, navigation, user)
-                }
-              />
+              <>
+                <Stack.Screen
+                  name="Main"
+                  component={PartnerTabs}
+                  options={({ route, navigation }) =>
+                    mainOptions(route, navigation, user)
+                  }
+                />
+                <Stack.Screen
+                  name="ContactDetail"
+                  component={ContactDetailScreen}
+                  options={({ route, navigation }) =>
+                    mainOptions(route, navigation, user, "COMMUNAUTE")
+                  }
+                />
+              </>
             )}
             {user.profileCategory === "admin" && (
               <>
@@ -178,6 +202,13 @@ export default function AppNavigator() {
                   component={ExerciceDetailScreen}
                   options={({ route, navigation }) =>
                     mainOptions(route, navigation, user, "PROGRAMMES")
+                  }
+                />
+                <Stack.Screen
+                  name="ContactDetail"
+                  component={ContactDetailScreen}
+                  options={({ route, navigation }) =>
+                    mainOptions(route, navigation, user, "COMMUNAUTE")
                   }
                 />
               </>
