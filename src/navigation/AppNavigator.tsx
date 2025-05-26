@@ -205,6 +205,13 @@ export default function AppNavigator() {
                     mainOptions(route, navigation, user, "COMMUNAUTE")
                   }
                 />
+                <Stack.Screen
+                  name="OffersHistory"
+                  component={OffersHistoryScreen}
+                  options={({ route, navigation }) =>
+                    mainOptions(route, navigation, user, "CLIENTS")
+                  }
+                />
               </>
             )}
             {user.profileCategory === "admin" && (
