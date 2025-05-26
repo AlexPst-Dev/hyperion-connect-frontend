@@ -217,6 +217,7 @@ const styles = StyleSheet.create({
   },
   sessionAttribute: {
     flexDirection: "row",
+    alignItems: "center",
   },
   categoryLabels: {
     flexDirection: "row",

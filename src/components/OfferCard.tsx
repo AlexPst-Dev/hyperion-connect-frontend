@@ -16,8 +16,8 @@ interface Props {
   endDate: Date;
   isSponsorship: boolean;
   labelTxt?: string;
-  iconName: IconName;
-  onPress: () => void;
+  iconName?: IconName;
+  onPress?: () => void;
 }
 
 export default function OfferCard({
@@ -84,14 +84,16 @@ export default function OfferCard({
             </AppText>
           </View>
         </View>
-        <View style={styles.controllers}>
-          <AppButton
-            title={isSponsorship ? "Postuler" : ""}
-            type="primary"
-            iconName={iconName}
-            onPress={onPress}
-          />
-        </View>
+        {onPress && iconName && (
+          <View style={styles.controllers}>
+            <AppButton
+              title={isSponsorship ? "Postuler" : ""}
+              type="primary"
+              iconName={iconName}
+              onPress={onPress}
+            />
+          </View>
+        )}
       </View>
     </View>
   );

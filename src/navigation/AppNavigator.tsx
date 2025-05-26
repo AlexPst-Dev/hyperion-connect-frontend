@@ -23,6 +23,8 @@ import ExerciceDetailScreen from "../screens/ExerciceDetailScreen";
 import PlanningHistory from "../screens/PlanningHistory";
 import ContactDetailScreen from "../screens/ContactDetailScreen";
 import PartnersListScreen from "../screens/PartnersListScreen";
+import ClientDetailScreen from "../screens/ClientDetailScreen";
+import OffersHistoryScreen from "../screens/OffersHistoryScreen";
 
 const Stack = createStackNavigator<RootStackParamList>();
 
@@ -178,6 +180,13 @@ export default function AppNavigator() {
                     mainOptions(route, navigation, user, "COMMUNAUTE")
                   }
                 />
+                <Stack.Screen
+                  name="ClientDetail"
+                  component={ClientDetailScreen}
+                  options={({ route, navigation }) =>
+                    mainOptions(route, navigation, user, "CLIENTS")
+                  }
+                />
               </>
             )}
             {user.profileCategory === "partner" && (
@@ -226,6 +235,20 @@ export default function AppNavigator() {
                   component={ContactDetailScreen}
                   options={({ route, navigation }) =>
                     mainOptions(route, navigation, user, "COMMUNAUTE")
+                  }
+                />
+                <Stack.Screen
+                  name="ClientDetail"
+                  component={ClientDetailScreen}
+                  options={({ route, navigation }) =>
+                    mainOptions(route, navigation, user, "CLIENTS")
+                  }
+                />
+                <Stack.Screen
+                  name="OffersHistory"
+                  component={OffersHistoryScreen}
+                  options={({ route, navigation }) =>
+                    mainOptions(route, navigation, user, "CLIENTS")
                   }
                 />
               </>

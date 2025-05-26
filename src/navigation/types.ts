@@ -28,5 +28,9 @@ export type RootStackParamList = {
   ContactDetail: {
     contact: User;
   };
+  ClientDetail: {
+    client: User;
+  };
   PartnersList: undefined;
+  OffersHistory: undefined;
 };

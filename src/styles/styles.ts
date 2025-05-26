@@ -54,7 +54,7 @@ const GlobalStyles = StyleSheet.create({
   },
   h2: {
     fontSize: 24,
-    fontFamily: "Montserrat-SemiBold",
+    fontFamily: "Montserrat-Bold",
   },
   h3: {
     fontSize: 16,

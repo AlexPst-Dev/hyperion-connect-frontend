@@ -14,6 +14,9 @@ interface Props {
   email?: string;
   age?: string;
   profilePictureUrl?: string;
+  companyName?: string;
+  companyAdress?: string;
+  companyLink?: string;
 }
 
 const styles = StyleSheet.create({
@@ -77,6 +80,9 @@ export default function UserCard({
   email,
   age,
   profilePictureUrl,
+  companyName,
+  companyAdress,
+  companyLink,
 }: Props) {
   function getImageSource(imageUrl?: string): any {
     if (!imageUrl) {
@@ -91,6 +97,7 @@ export default function UserCard({
     // Mapping of konwn local images
     const localImages: Record<string, any> = {
       "users/profilePicture/img-profile-1": require("../assets/images/users/profilePicture/img-profil-1.png"),
+      "users/companies/nutrisport-logo": require("../assets/images/users/companies/nutrisport-logo.png"),
     };
 
     return localImages[imageUrl] || require("../assets/images/react-logo.png");
@@ -105,9 +112,24 @@ export default function UserCard({
         />
         <View style={styles.separator} />
         <View style={styles.userInfos}>
-          <Text style={styles.name}>
-            {firstName} {lastName}
-          </Text>
+          {!companyName && !companyAdress && (
+            <Text style={styles.name}>
+              {firstName} {lastName}
+            </Text>
+          )}
+          {companyName && companyAdress && (
+            <>
+              <Text style={styles.name}>{companyName}</Text>
+              <Text
+                style={[
+                  GlobalStyles.p,
+                  { flexDirection: "row", maxWidth: "80%" },
+                ]}
+              >
+                {companyAdress}
+              </Text>
+            </>
+          )}
           {susbcriptionLabel && susbcriptionLabel !== "" && (
             <Text style={GlobalStyles.p}>{susbcriptionLabel}</Text>
           )}
@@ -133,6 +155,11 @@ export default function UserCard({
           <View>
             <Icon name="phone" fillColor="transparent" strokeColor="black" />
           </View>
+        </View>
+      )}
+      {companyLink && (
+        <View style={styles.contactsControllers}>
+          <Icon name="link" fillColor="transparent" strokeColor="black" />
         </View>
       )}
     </View>

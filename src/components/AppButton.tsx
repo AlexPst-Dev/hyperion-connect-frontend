@@ -28,6 +28,8 @@ interface Props {
   disabled?: boolean;
   iconName?: IconName;
   iconPosition?: "left" | "right";
+  borderColor?: string;
+  iconColor?: string;
 }
 
 export default function AppButton({
@@ -39,6 +41,8 @@ export default function AppButton({
   disabled = false,
   iconName,
   iconPosition = "right",
+  borderColor = "#2563EB",
+  iconColor,
 }: Props) {
   const getButtonStyle = (): ViewStyle => {
     return {
@@ -55,7 +59,9 @@ export default function AppButton({
   };
 
   const getIconColor = (): string => {
-    if (type === "changeState") {
+    if (iconColor) {
+      return iconColor;
+    } else if (type === "changeState") {
       return "#1E3A8A";
     } else if (type === "linkSmall" || type === "linkNormal") {
       return "#2563EB";
@@ -79,7 +85,7 @@ export default function AppButton({
     if (type === "linkSmall" || type === "linkNormal") {
       return {
         borderBottomWidth: 1,
-        borderBottomColor: "#2563EB",
+        borderBottomColor: borderColor,
       };
     }
     return {};

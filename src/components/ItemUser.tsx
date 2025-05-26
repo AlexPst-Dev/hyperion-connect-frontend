@@ -109,7 +109,7 @@ export default function ItemUser({
         )}
       </View>
       <View style={styles.icon}>
-        {isCompany ? (
+        {isCompany && !iconName ? (
           <Icon
             name="link"
             fillColor="transparent"
