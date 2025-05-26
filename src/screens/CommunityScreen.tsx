@@ -268,9 +268,9 @@ export default function CommunityScreen() {
         <View style={{ flexDirection: "column", gap: 24 }}>
           <ViewController
             tabs={[
-              { title: "SPORTIFS", icon: "medal" },
-              { title: "COACHS", icon: "dumbell" },
-              { title: "SOIGNANTS", icon: "medic" },
+              { title: "Sportifs", icon: "medal" },
+              { title: "Coachs", icon: "dumbell" },
+              { title: "Soignants", icon: "medic" },
             ]}
             onTabChange={setActiveTabIndex}
           />

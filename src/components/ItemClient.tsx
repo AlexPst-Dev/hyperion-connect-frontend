@@ -37,7 +37,7 @@ export default function ItemClient({ user, objectives }: Props) {
         <Image source={getImageSource()} style={styles.profilePicture} />
         <View style={styles.separator} />
         <View style={styles.userInfos}>
-          <AppText>
+          <AppText style={{ fontWeight: "bold", color: Colors.deepBlue }}>
             {user.firstName} {user.lastName}
           </AppText>
           <AppText>{user.profileCategory}</AppText>

@@ -137,8 +137,8 @@ export default function PlanningScreen() {
           <View style={{ flexDirection: "column", gap: 24 }}>
             <ViewController
               tabs={[
-                { title: "SEANCES", icon: "dumbell" },
-                { title: "EVENEMENTS", icon: "calendar" },
+                { title: "Seances", icon: "dumbell" },
+                { title: "Evenements", icon: "calendar" },
               ]}
               onTabChange={setActiveTabIndex}
             />

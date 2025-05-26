@@ -16,8 +16,9 @@ import AppButton from "../components/AppButton";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../navigation/types";
 import { useNavigation } from "@react-navigation/native";
-import Icon from "../components/Icon";
+import Icon, { IconName } from "../components/Icon";
 import AddContacts from "../components/popups/AddContacts";
+import { useAuth } from "../hooks/useAuth";
 
 export default function UsersScreen() {
   const [displayUsersList, setDisplayUsersList] = useState(true);
@@ -594,6 +595,8 @@ export default function UsersScreen() {
     </View>,
   ];
 
+  const { user } = useAuth();
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -612,18 +615,22 @@ export default function UsersScreen() {
                 { title: "Sportifs", icon: "medal" },
                 { title: "Coachs", icon: "dumbell" },
                 { title: "Soignants", icon: "medic" },
-                { title: "Parternaires", icon: "handshake" },
+                ...(user?.profileCategory === "admin"
+                  ? [{ title: "Parternaires", icon: "handshake" as IconName }]
+                  : []),
               ]}
               onTabChange={setActiveTabIndex}
             />
             {tabViews[activeTabIndex]}
-            <View style={{ flexDirection: "row", justifyContent: "center" }}>
-              <AppButton
-                type="add"
-                iconName="plus"
-                onPress={handleDisplayUserList}
-              />
-            </View>
+            {user?.profileCategory === "admin" && (
+              <View style={{ flexDirection: "row", justifyContent: "center" }}>
+                <AppButton
+                  type="add"
+                  iconName="plus"
+                  onPress={handleDisplayUserList}
+                />
+              </View>
+            )}
           </View>
         )}
         {!displayUsersList && (

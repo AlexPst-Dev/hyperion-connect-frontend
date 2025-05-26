@@ -26,6 +26,7 @@ import * as DocumentPicker from "expo-document-picker";
 import AddContacts from "../components/popups/AddContacts";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { useAuth } from "../hooks/useAuth";
 
 type SessionDetailRouteProp = RouteProp<RootStackParamList, "SessionDetail">;
 
@@ -93,6 +94,19 @@ export default function SessionDetailScreen() {
       ],
     },
   ];
+
+  const { user } = useAuth();
+
+  if (!user) return null;
+
+  let isExerciceEditable: boolean = false;
+  if (
+    user.profileCategory !== "sportsman" &&
+    user.profileCategory !== "free" &&
+    user.profileCategory !== "partner"
+  ) {
+    isExerciceEditable = true;
+  }
 
   return (
     <KeyboardAvoidingView
@@ -214,7 +228,7 @@ export default function SessionDetailScreen() {
                   exercice: {
                     title: "Course lente",
                     durationTime: 10,
-                    isEditable: true,
+                    isEditable: isExerciceEditable,
                   },
                 })
               }
@@ -229,7 +243,7 @@ export default function SessionDetailScreen() {
                   exercice: {
                     title: "Exercices dynamiques",
                     durationTime: 18,
-                    isEditable: true,
+                    isEditable: isExerciceEditable,
                   },
                 })
               }
