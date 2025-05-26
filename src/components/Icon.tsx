@@ -47,6 +47,7 @@ import LinkDenied from "@assets/icons/link-denied-icon.svg";
 import Billing from "@assets/icons/billing-icon.svg";
 import Archive from "@assets/icons/archive-icon.svg";
 import Ticket from "@assets/icons/ticket-icon.svg";
+import Hearth from "@assets/icons/hearth-icon.svg";
 
 const icons = {
   user: User,
@@ -95,6 +96,7 @@ const icons = {
   billing: Billing,
   archive: Archive,
   ticket: Ticket,
+  hearth: Hearth,
 };
 
 export type IconName = keyof typeof icons;
