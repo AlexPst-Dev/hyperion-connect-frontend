@@ -1,3 +1,5 @@
+import { User } from "../context/AuthContext";
+
 export type RootStackParamList = {
   Login: undefined;
   Home: undefined;
@@ -7,4 +9,28 @@ export type RootStackParamList = {
   Subscription: undefined;
   Legals: undefined;
   Settings: undefined;
+  SessionDetail: {
+    session: {
+      title: string;
+      nbExercises: number;
+      durationTime: number;
+      isEditable?: boolean;
+    };
+  };
+  ExerciceDetail: {
+    exercice: {
+      title: string;
+      durationTime: number;
+      isEditable?: boolean;
+    };
+  };
+  PlanningHistory: undefined;
+  ContactDetail: {
+    contact: User;
+  };
+  ClientDetail: {
+    client: User;
+  };
+  PartnersList: undefined;
+  OffersHistory: undefined;
 };

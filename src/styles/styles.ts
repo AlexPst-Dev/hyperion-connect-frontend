@@ -42,7 +42,6 @@ const GlobalStyles = StyleSheet.create({
   },
   screenContainer: {},
   pageStyle: {
-    flex: 1,
     backgroundColor: "white",
     paddingLeft: 16,
     paddingRight: 16,
@@ -55,7 +54,7 @@ const GlobalStyles = StyleSheet.create({
   },
   h2: {
     fontSize: 24,
-    fontFamily: "Montserrat-SemiBold",
+    fontFamily: "Montserrat-Bold",
   },
   h3: {
     fontSize: 16,

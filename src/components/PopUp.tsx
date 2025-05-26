@@ -43,7 +43,9 @@ export default function PopUp({
   return (
     <Pressable style={styles.menuContainer} onPress={() => {}}>
       <View style={styles.menuTitle}>
-        <AppText style={[GlobalStyles.h2, { marginBottom: 0 }]}>
+        <AppText
+          style={[GlobalStyles.h2, { marginBottom: 0, maxWidth: "70%" }]}
+        >
           {title}
         </AppText>
         <Icon
@@ -62,7 +64,7 @@ export default function PopUp({
         </View>
       )}
       {inputs && <View style={{ marginBottom: 24 }}>{inputs}</View>}
-      {specificBody && <View>{specificBody}</View>}
+      {specificBody && <View style={{ marginBottom: 24 }}>{specificBody}</View>}
       <View style={styles.menuControllers}>
         <Pressable onPress={onClose}>
           <AppText>{closeText}</AppText>

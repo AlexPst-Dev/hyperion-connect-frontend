@@ -40,6 +40,14 @@ import Handshake from "@assets/icons/handshake-icon.svg";
 import Medal from "@assets/icons/medal-icon.svg";
 import Medic from "@assets/icons/medic-icon.svg";
 import Run from "@assets/icons/run-icon.svg";
+import Star from "@assets/icons/star-icon.svg";
+import Download from "@assets/icons/download-icon.svg";
+import Trash from "@assets/icons/trash-icon.svg";
+import LinkDenied from "@assets/icons/link-denied-icon.svg";
+import Billing from "@assets/icons/billing-icon.svg";
+import Archive from "@assets/icons/archive-icon.svg";
+import Ticket from "@assets/icons/ticket-icon.svg";
+import Hearth from "@assets/icons/hearth-icon.svg";
 
 const icons = {
   user: User,
@@ -81,6 +89,14 @@ const icons = {
   medal: Medal,
   medic: Medic,
   run: Run,
+  star: Star,
+  download: Download,
+  trash: Trash,
+  linkDenied: LinkDenied,
+  billing: Billing,
+  archive: Archive,
+  ticket: Ticket,
+  hearth: Hearth,
 };
 
 export type IconName = keyof typeof icons;

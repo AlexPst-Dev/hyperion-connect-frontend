@@ -67,14 +67,28 @@ export default function ItemUser({
   profilePictureUrl,
   iconName = "send",
 }: Props) {
+  function getImageSource(imageUrl?: string): any {
+    if (!imageUrl) {
+      // fallback
+      return require("../assets/images/react-logo.png");
+    }
+
+    if (imageUrl.startsWith("http") || imageUrl.startsWith("https")) {
+      return { uri: imageUrl };
+    }
+
+    // Mapping of konwn local images
+    const localImages: Record<string, any> = {
+      "users/companies/nutrisport-logo": require("../assets/images/users/companies/nutrisport-logo.png"),
+    };
+
+    return localImages[imageUrl] || require("../assets/images/react-logo.png");
+  }
+
   return (
     <View style={[styles.header, shadowStyles.small]}>
       <Image
-        source={
-          profilePictureUrl
-            ? { uri: profilePictureUrl }
-            : { uri: "https://reactnative.dev/img/tiny_logo.png" } // fallback
-        }
+        source={getImageSource(profilePictureUrl)}
         style={styles.profilePicture}
       />
       <View style={styles.separator} />
@@ -95,7 +109,7 @@ export default function ItemUser({
         )}
       </View>
       <View style={styles.icon}>
-        {isCompany ? (
+        {isCompany && !iconName ? (
           <Icon
             name="link"
             fillColor="transparent"

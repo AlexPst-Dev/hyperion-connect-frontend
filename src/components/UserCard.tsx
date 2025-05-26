@@ -14,6 +14,9 @@ interface Props {
   email?: string;
   age?: string;
   profilePictureUrl?: string;
+  companyName?: string;
+  companyAdress?: string;
+  companyLink?: string;
 }
 
 const styles = StyleSheet.create({
@@ -77,25 +80,60 @@ export default function UserCard({
   email,
   age,
   profilePictureUrl,
+  companyName,
+  companyAdress,
+  companyLink,
 }: Props) {
+  function getImageSource(imageUrl?: string): any {
+    if (!imageUrl) {
+      // fallback
+      return require("../assets/images/react-logo.png");
+    }
+
+    if (imageUrl.startsWith("http") || imageUrl.startsWith("https")) {
+      return { uri: imageUrl };
+    }
+
+    // Mapping of konwn local images
+    const localImages: Record<string, any> = {
+      "users/profilePicture/img-profile-1": require("../assets/images/users/profilePicture/img-profil-1.png"),
+      "users/companies/nutrisport-logo": require("../assets/images/users/companies/nutrisport-logo.png"),
+    };
+
+    return localImages[imageUrl] || require("../assets/images/react-logo.png");
+  }
+
   return (
     <View style={[styles.container, shadowStyles.small]}>
       <View style={styles.header}>
         <Image
-          source={
-            profilePictureUrl
-              ? { uri: profilePictureUrl }
-              : { uri: "https://reactnative.dev/img/tiny_logo.png" } // fallback
-          }
+          source={getImageSource(profilePictureUrl)}
           style={styles.profilePicture}
         />
         <View style={styles.separator} />
         <View style={styles.userInfos}>
-          <Text style={styles.name}>
-            {firstName} {lastName}
-          </Text>
-          <Text style={GlobalStyles.p}>{susbcriptionLabel}</Text>
-          <Text style={GlobalStyles.p}>{sport}</Text>
+          {!companyName && !companyAdress && (
+            <Text style={styles.name}>
+              {firstName} {lastName}
+            </Text>
+          )}
+          {companyName && companyAdress && (
+            <>
+              <Text style={styles.name}>{companyName}</Text>
+              <Text
+                style={[
+                  GlobalStyles.p,
+                  { flexDirection: "row", maxWidth: "80%" },
+                ]}
+              >
+                {companyAdress}
+              </Text>
+            </>
+          )}
+          {susbcriptionLabel && susbcriptionLabel !== "" && (
+            <Text style={GlobalStyles.p}>{susbcriptionLabel}</Text>
+          )}
+          {sport && sport !== "" && <Text style={GlobalStyles.p}>{sport}</Text>}
         </View>
       </View>
       {detailled && (
@@ -117,6 +155,11 @@ export default function UserCard({
           <View>
             <Icon name="phone" fillColor="transparent" strokeColor="black" />
           </View>
+        </View>
+      )}
+      {companyLink && (
+        <View style={styles.contactsControllers}>
+          <Icon name="link" fillColor="transparent" strokeColor="black" />
         </View>
       )}
     </View>

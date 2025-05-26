@@ -18,6 +18,13 @@ import ParametersScreen from "../screens/params/ParametersScreen";
 import ProfileScreen from "../screens/params/ProfileScreen";
 import SubscriptionScreen from "../screens/params/SubscriptionScreen";
 import LegalsScreen from "../screens/params/LegalsScreen";
+import SessionDetailScreen from "../screens/SessionDetailScreen";
+import ExerciceDetailScreen from "../screens/ExerciceDetailScreen";
+import PlanningHistory from "../screens/PlanningHistory";
+import ContactDetailScreen from "../screens/ContactDetailScreen";
+import PartnersListScreen from "../screens/PartnersListScreen";
+import ClientDetailScreen from "../screens/ClientDetailScreen";
+import OffersHistoryScreen from "../screens/OffersHistoryScreen";
 
 const Stack = createStackNavigator<RootStackParamList>();
 
@@ -79,50 +86,179 @@ export default function AppNavigator() {
         ) : (
           <>
             {user.profileCategory === "sportsman" && (
-              <Stack.Screen
-                name="Main"
-                component={SportsmanTabs}
-                options={({ route, navigation }) =>
-                  mainOptions(route, navigation, user)
-                }
-              />
+              <>
+                <Stack.Screen
+                  name="Main"
+                  component={SportsmanTabs}
+                  options={({ route, navigation }) =>
+                    mainOptions(route, navigation, user)
+                  }
+                />
+                <Stack.Screen
+                  name="SessionDetail"
+                  component={SessionDetailScreen}
+                  options={({ route, navigation }) =>
+                    mainOptions(route, navigation, user, "PROGRAMMES")
+                  }
+                />
+                <Stack.Screen
+                  name="ExerciceDetail"
+                  component={ExerciceDetailScreen}
+                  options={({ route, navigation }) =>
+                    mainOptions(route, navigation, user, "PROGRAMMES")
+                  }
+                />
+                <Stack.Screen
+                  name="ContactDetail"
+                  component={ContactDetailScreen}
+                  options={({ route, navigation }) =>
+                    mainOptions(route, navigation, user, "COMMUNAUTE")
+                  }
+                />
+                <Stack.Screen
+                  name="PartnersList"
+                  component={PartnersListScreen}
+                  options={({ route, navigation }) =>
+                    mainOptions(route, navigation, user, "NOS PARTENAIRES")
+                  }
+                />
+              </>
             )}
             {user.profileCategory === "free" && (
-              <Stack.Screen
-                name="Main"
-                component={FreeTabs}
-                options={({ route, navigation }) =>
-                  mainOptions(route, navigation, user)
-                }
-              />
+              <>
+                <Stack.Screen
+                  name="Main"
+                  component={FreeTabs}
+                  options={({ route, navigation }) =>
+                    mainOptions(route, navigation, user)
+                  }
+                />
+                <Stack.Screen
+                  name="PartnersList"
+                  component={PartnersListScreen}
+                  options={({ route, navigation }) =>
+                    mainOptions(route, navigation, user, "NOS PARTENAIRES")
+                  }
+                />
+              </>
             )}
             {(user.profileCategory === "coach" ||
               user.profileCategory === "medic") && (
-              <Stack.Screen
-                name="Main"
-                component={ProTabs}
-                options={({ route, navigation }) =>
-                  mainOptions(route, navigation, user)
-                }
-              />
+              <>
+                <Stack.Screen
+                  name="Main"
+                  component={ProTabs}
+                  options={({ route, navigation }) =>
+                    mainOptions(route, navigation, user)
+                  }
+                />
+                <Stack.Screen
+                  name="SessionDetail"
+                  component={SessionDetailScreen}
+                  options={({ route, navigation }) =>
+                    mainOptions(route, navigation, user, "PROGRAMMES")
+                  }
+                />
+                <Stack.Screen
+                  name="ExerciceDetail"
+                  component={ExerciceDetailScreen}
+                  options={({ route, navigation }) =>
+                    mainOptions(route, navigation, user, "PROGRAMMES")
+                  }
+                />
+                <Stack.Screen
+                  name="PlanningHistory"
+                  component={PlanningHistory}
+                  options={({ route, navigation }) =>
+                    mainOptions(route, navigation, user, "PLANNING")
+                  }
+                />
+                <Stack.Screen
+                  name="ContactDetail"
+                  component={ContactDetailScreen}
+                  options={({ route, navigation }) =>
+                    mainOptions(route, navigation, user, "COMMUNAUTE")
+                  }
+                />
+                <Stack.Screen
+                  name="ClientDetail"
+                  component={ClientDetailScreen}
+                  options={({ route, navigation }) =>
+                    mainOptions(route, navigation, user, "CLIENTS")
+                  }
+                />
+              </>
             )}
             {user.profileCategory === "partner" && (
-              <Stack.Screen
-                name="Main"
-                component={PartnerTabs}
-                options={({ route, navigation }) =>
-                  mainOptions(route, navigation, user)
-                }
-              />
+              <>
+                <Stack.Screen
+                  name="Main"
+                  component={PartnerTabs}
+                  options={({ route, navigation }) =>
+                    mainOptions(route, navigation, user)
+                  }
+                />
+                <Stack.Screen
+                  name="ContactDetail"
+                  component={ContactDetailScreen}
+                  options={({ route, navigation }) =>
+                    mainOptions(route, navigation, user, "COMMUNAUTE")
+                  }
+                />
+                <Stack.Screen
+                  name="OffersHistory"
+                  component={OffersHistoryScreen}
+                  options={({ route, navigation }) =>
+                    mainOptions(route, navigation, user, "CLIENTS")
+                  }
+                />
+              </>
             )}
             {user.profileCategory === "admin" && (
-              <Stack.Screen
-                name="Main"
-                component={AdminTabs}
-                options={({ route, navigation }) =>
-                  mainOptions(route, navigation, user)
-                }
-              />
+              <>
+                <Stack.Screen
+                  name="Main"
+                  component={AdminTabs}
+                  options={({ route, navigation }) =>
+                    mainOptions(route, navigation, user)
+                  }
+                />
+                <Stack.Screen
+                  name="SessionDetail"
+                  component={SessionDetailScreen}
+                  options={({ route, navigation }) =>
+                    mainOptions(route, navigation, user, "PROGRAMMES")
+                  }
+                />
+                <Stack.Screen
+                  name="ExerciceDetail"
+                  component={ExerciceDetailScreen}
+                  options={({ route, navigation }) =>
+                    mainOptions(route, navigation, user, "PROGRAMMES")
+                  }
+                />
+                <Stack.Screen
+                  name="ContactDetail"
+                  component={ContactDetailScreen}
+                  options={({ route, navigation }) =>
+                    mainOptions(route, navigation, user, "COMMUNAUTE")
+                  }
+                />
+                <Stack.Screen
+                  name="ClientDetail"
+                  component={ClientDetailScreen}
+                  options={({ route, navigation }) =>
+                    mainOptions(route, navigation, user, "CLIENTS")
+                  }
+                />
+                <Stack.Screen
+                  name="OffersHistory"
+                  component={OffersHistoryScreen}
+                  options={({ route, navigation }) =>
+                    mainOptions(route, navigation, user, "CLIENTS")
+                  }
+                />
+              </>
             )}
             <Stack.Screen
               name="Settings"

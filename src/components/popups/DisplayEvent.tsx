@@ -165,9 +165,10 @@ export default function DisplayEvent({
 
                   <View style={styles.descriptionContainer}>
                     <AppText style={{ fontWeight: "bold" }}>
-                      Informations :
+                      Informations
                     </AppText>
-                    <AppText>{infoDescription}</AppText>
+                    {theme && <AppText>Thème : {theme}</AppText>}
+                    <AppText>Description : {infoDescription}</AppText>
                   </View>
                 </View>
 

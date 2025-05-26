@@ -24,6 +24,7 @@ interface Props {
   date?: Date;
   hour?: string;
   isInPerson?: boolean;
+  hideIcon?: boolean;
 }
 
 export default function Session({
@@ -44,18 +45,33 @@ export default function Session({
   date,
   hour,
   isInPerson,
+  hideIcon = false,
 }: Props) {
+  function getImageSource(imageUrl?: string): any {
+    if (!imageUrl) {
+      // fallback
+      return require("../assets/images/default-session.png");
+    }
+
+    if (imageUrl.startsWith("http") || imageUrl.startsWith("https")) {
+      return { uri: imageUrl };
+    }
+
+    // Mapping of konwn local images
+    const localImages: Record<string, any> = {
+      "sessions/img-running": require("../assets/images/sessions/img-running.png"),
+    };
+
+    return (
+      localImages[imageUrl] || require("../assets/images/default-session.png")
+    );
+  }
+
   return (
     <Pressable onPress={onPress} style={[styles.container, shadowStyles.small]}>
       <View style={styles.content}>
         <View style={styles.img}>
-          <Image
-            source={
-              imageUrl
-                ? { uri: imageUrl }
-                : { uri: "https://reactnative.dev/img/tiny_logo.png" }
-            }
-          />
+          <Image source={getImageSource(imageUrl)} />
         </View>
         <View style={styles.separator} />
         <View style={styles.infos}>
@@ -123,7 +139,7 @@ export default function Session({
         <View style={styles.rightPart}>
           {isDone && <Label title="Fait" type="green" size="small" />}
           {isToDo && <Label title="À faire" type="orange" size="small" />}
-          {isExercice && !isDone && !isToDo && (
+          {isExercice && !isDone && !isToDo && !hideIcon && (
             <Icon
               name="eye"
               strokeColor="black"
@@ -133,7 +149,7 @@ export default function Session({
               height={24}
             />
           )}
-          {!isExercice && !isDone && !isToDo && (
+          {!isExercice && !isDone && !isToDo && !hideIcon && (
             <Icon
               name="chevronRight"
               strokeColor="black"
@@ -201,6 +217,7 @@ const styles = StyleSheet.create({
   },
   sessionAttribute: {
     flexDirection: "row",
+    alignItems: "center",
   },
   categoryLabels: {
     flexDirection: "row",
