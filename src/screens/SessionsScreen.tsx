@@ -28,6 +28,7 @@ import AddSessions, {
 } from "../components/popups/AddSession";
 import * as DocumentPicker from "expo-document-picker";
 import { BlurView } from "expo-blur";
+import ProgressGraph from "../components/ProgressGraph";
 
 export default function SessionsScreen() {
   type SessionPageRenderer = (user: User) => JSX.Element;
@@ -45,6 +46,9 @@ export default function SessionsScreen() {
         useState(false);
       const [evaluateSessionPopUpVisible, setEvaluateSessionPopUpVisible] =
         useState(false);
+      const [addValueToGraphPopUpVisible, setAddValueToGraphPopUpVisible] =
+        useState(false);
+      const [value, setValue] = useState("");
 
       const handleDispoPopUpVisibility = () =>
         setChangeDispoPopUpVisible(!changeDispoPopUpVisible);
@@ -142,7 +146,35 @@ export default function SessionsScreen() {
 
         // Tab 2 : Performances
         <View key="performances" style={{ flexDirection: "column", gap: 24 }}>
-          <View style={{ flexDirection: "column", gap: 16 }}>
+          <View style={{ flexDirection: "column", gap: 24 }}>
+            <View>
+              <ProgressGraph
+                title="Evolution de la VMA"
+                data={[
+                  { month: "Jan", value: 55 },
+                  { month: "Fév", value: 62 },
+                  { month: "Mar", value: 60 },
+                  { month: "Avr", value: 68 },
+                  { month: "Mai", value: 55 },
+                  { month: "Jun", value: 62 },
+                  { month: "Jul", value: 70 },
+                  { month: "Aou", value: 65 },
+                  { month: "Sep", value: 72 },
+                ]}
+              />
+              <View
+                style={{ flexDirection: "row", justifyContent: "flex-end" }}
+              >
+                <AppButton
+                  type="primary"
+                  title="Ajouter une mesure"
+                  iconName="plus"
+                  onPress={() =>
+                    setAddValueToGraphPopUpVisible(!addValueToGraphPopUpVisible)
+                  }
+                />
+              </View>
+            </View>
             <AppText style={GlobalStyles.h3}>VOTRE RESUME</AppText>
             <View style={{ flexDirection: "column", gap: 8 }}>
               <View style={{ flexDirection: "row", gap: 8 }}>
@@ -430,6 +462,56 @@ export default function SessionsScreen() {
                       />
                     </>
                   }
+                />
+              </Pressable>
+            </Pressable>
+          </Modal>
+          <Modal
+            visible={addValueToGraphPopUpVisible}
+            transparent={true}
+            onRequestClose={() =>
+              setAddValueToGraphPopUpVisible(!addValueToGraphPopUpVisible)
+            }
+          >
+            <Pressable
+              onPress={() =>
+                setAddValueToGraphPopUpVisible(!addValueToGraphPopUpVisible)
+              }
+              style={{
+                flex: 1,
+                backgroundColor: "rgba(0,0,0,0.5)",
+                justifyContent: "center",
+                padding: 24,
+              }}
+            >
+              {/* Stop propagation here to avoid closing on content press */}
+              <Pressable
+                onPress={() => {}}
+                style={{ borderRadius: 16, overflow: "hidden" }}
+              >
+                <PopUp
+                  onClose={() =>
+                    setAddValueToGraphPopUpVisible(!addValueToGraphPopUpVisible)
+                  }
+                  title="Ajouter une mesure"
+                  paragraph="Indiquez ici une nouvelle mesure pour votre graph sur “Evolution de la VMA”"
+                  btnText="Enregistrer"
+                  iconName="pencil"
+                  btnType="primary"
+                  onSubmit={() =>
+                    setAddValueToGraphPopUpVisible(!addValueToGraphPopUpVisible)
+                  }
+                  closeText="Annuler"
+                  inputs={[
+                    <Input
+                      key="value"
+                      type="number"
+                      label="Valeur"
+                      placeholder="De 0 à 100"
+                      value={value}
+                      onChangeText={setValue}
+                    />,
+                  ]}
                 />
               </Pressable>
             </Pressable>
