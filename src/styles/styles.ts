@@ -47,6 +47,7 @@ const GlobalStyles = StyleSheet.create({
     paddingRight: 16,
     paddingTop: 16,
     paddingBottom: Platform.OS === "web" ? 92 : 128,
+    flex: 1,
   },
   h1: {
     fontSize: 36,

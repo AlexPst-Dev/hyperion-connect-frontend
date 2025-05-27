@@ -951,8 +951,8 @@ export default function ClientDetailScreen() {
                     btnType="primary"
                     iconName="check"
                     specificBody={
-                      <View style={{ flexDirection: "column", gap: 24 }}>
-                        <View style={{ flexDirection: "column", gap: 16 }}>
+                      <View style={{ flexDirection: "column", gap: 16 }}>
+                        <View style={{ flexDirection: "column", gap: 8 }}>
                           <Input
                             type="selector"
                             label="Catégorie d'offre"
@@ -993,7 +993,7 @@ export default function ClientDetailScreen() {
                             />
                           )}
                         </View>
-                        <View style={{ flexDirection: "column", gap: 16 }}>
+                        <View style={{ flexDirection: "column", gap: 8 }}>
                           <AppText>Détails de l'offre</AppText>
                           {newOfferType === "commerciale" && (
                             <>
