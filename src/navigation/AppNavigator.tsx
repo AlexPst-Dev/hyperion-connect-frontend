@@ -36,7 +36,6 @@ export default function AppNavigator() {
   }
 
   const pageTitles: Record<string, string> = {
-    Main: "ACCUEIL",
     Stats: "STATISTIQUES",
   };
 
@@ -47,18 +46,21 @@ export default function AppNavigator() {
     overrideTitle?: string
   ) => {
     const focusedRouteName = getFocusedRouteNameFromRoute(route) || route.name;
+    const isHomePage =
+      focusedRouteName === "Main" || focusedRouteName === "Accueil";
 
     return {
       headerShown: true,
       header: () =>
         HeaderComponent(
-          focusedRouteName === "Main"
+          isHomePage
             ? `Bonjour ${user?.firstName ?? ""} ${user?.lastName ?? ""} 👋`
             : "",
-          overrideTitle ||
-            pageTitles[focusedRouteName] ||
-            focusedRouteName.toUpperCase(),
+          overrideTitle || pageTitles[focusedRouteName] || isHomePage
+            ? ""
+            : focusedRouteName.toUpperCase(),
           navigation.canGoBack(),
+          isHomePage ? true : false,
           () => navigation.goBack()
         ),
     };

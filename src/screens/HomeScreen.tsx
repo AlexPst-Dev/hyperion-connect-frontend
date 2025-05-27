@@ -524,8 +524,8 @@ export default function HomeScreen() {
       <ScrollView
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
+        style={{ paddingTop: 32 }}
       >
-        {/* // TODO : Put News component for displaying a deletable notification */}
         {RenderProfileComponents ? RenderProfileComponents(user) : null}
       </ScrollView>
     </KeyboardAvoidingView>
