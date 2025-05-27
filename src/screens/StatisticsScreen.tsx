@@ -19,6 +19,7 @@ import { useNavigation } from "@react-navigation/native";
 import OfferCard from "../components/OfferCard";
 import PopUp from "../components/PopUp";
 import { User } from "../context/AuthContext";
+import ProgressGraph from "../components/ProgressGraph";
 
 export default function StatisticsScreen() {
   const { user } = useAuth();
@@ -198,6 +199,15 @@ export default function StatisticsScreen() {
             </View>
           </View>
         </View>
+        <ProgressGraph
+          title="Nombre d'utilisateurs"
+          data={[
+            { month: "Jan", value: 55 },
+            { month: "Fév", value: 62 },
+            { month: "Mar", value: 70 },
+            { month: "Avr", value: 68 },
+          ]}
+        />
       </View>
     ),
   };

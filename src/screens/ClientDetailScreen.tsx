@@ -29,6 +29,7 @@ import OfferCard from "../components/OfferCard";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import PopUp from "../components/PopUp";
 import Input from "../components/Input";
+import ProgressGraph from "../components/ProgressGraph";
 
 type ClientDetailRouteProp = RouteProp<RootStackParamList, "ClientDetail">;
 
@@ -302,6 +303,25 @@ export default function ClientDetailScreen() {
           <View style={{ flexDirection: "row", justifyContent: "flex-end" }}>
             <AppButton type="primary" title="Télécharger" iconName="download" />
           </View>
+        </View>
+        <View>
+          <ProgressGraph
+            title="Historique des performances"
+            data={[
+              { month: "Jan", value: 55 },
+              { month: "Fév", value: 62 },
+              { month: "Mar", value: 60 },
+              { month: "Avr", value: 68 },
+              { month: "Mai", value: 55 },
+              { month: "Jun", value: 62 },
+              { month: "Jul", value: 70 },
+              { month: "Aou", value: 65 },
+              { month: "Sep", value: 72 },
+              { month: "Oct", value: 70 },
+              { month: "Nov", value: 86 },
+              { month: "Dec", value: 92 },
+            ]}
+          />
         </View>
         {/* User profile management */}
         {user.profileCategory === "admin" && (
