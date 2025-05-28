@@ -39,7 +39,11 @@ export default function SportsmanTabs() {
                 },
               ]}
             >
-              {route.name}
+              {Platform.OS === "web"
+                ? route.name
+                : route.name.length > 7
+                ? `${route.name.slice(0, 7)}.`
+                : route.name}
             </AppText>
           </View>
         ),
