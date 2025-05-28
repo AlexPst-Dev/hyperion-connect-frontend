@@ -54,6 +54,10 @@ export default function ProgressGraph({ title, data }: Props) {
             strokeWidth: "2",
             stroke: Colors.lightBlue,
           },
+          propsForLabels: {
+            fontFamily: GlobalStyles.span.fontFamily,
+            fontSize: GlobalStyles.span.fontSize,
+          },
         }}
         bezier
         fromZero
