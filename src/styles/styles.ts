@@ -45,7 +45,7 @@ const GlobalStyles = StyleSheet.create({
     backgroundColor: "white",
     paddingLeft: 16,
     paddingRight: 16,
-    paddingTop: 16,
+    paddingTop: Platform.OS === "web" ? 32 : 16,
     paddingBottom: Platform.OS === "web" ? 92 : 128,
     flex: 1,
   },

@@ -1,5 +1,11 @@
 import React from "react";
-import { KeyboardAvoidingView, Platform, ScrollView, View } from "react-native";
+import {
+  Dimensions,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  View,
+} from "react-native";
 import GlobalStyles from "../styles/styles";
 import AppText from "../components/AppText";
 import Event from "../components/Event";
@@ -14,6 +20,7 @@ type PlanningHistoryRouteProp = RouteProp<
 
 export default function PlanningHistoryScreen() {
   const route = useRoute<PlanningHistoryRouteProp>();
+  const screenWidth = Dimensions.get("window").width;
 
   const tempAdminUser: User = {
     id: 1,
@@ -32,6 +39,11 @@ export default function PlanningHistoryScreen() {
       <ScrollView
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
+        style={
+          Platform.OS === "web"
+            ? { maxHeight: screenWidth + 180, paddingBottom: 32 }
+            : {}
+        }
       >
         <View style={{ flexDirection: "column", gap: 16 }}>
           <AppText style={GlobalStyles.h3}>HISTORIQUE</AppText>

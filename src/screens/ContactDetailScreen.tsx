@@ -6,6 +6,7 @@ import {
   ScrollView,
   View,
   Image,
+  Dimensions,
 } from "react-native";
 import { RouteProp, useRoute } from "@react-navigation/native";
 import { RootStackParamList } from "@/src/navigation/types";
@@ -19,6 +20,8 @@ export default function ContactDetailScreen() {
   const route = useRoute<ContactDetailRouteProp>();
   const { contact } = route.params;
 
+  const screenWidth = Dimensions.get("window").width;
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -28,6 +31,11 @@ export default function ContactDetailScreen() {
       <ScrollView
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
+        style={
+          Platform.OS === "web"
+            ? { maxHeight: screenWidth + 180, paddingBottom: 32 }
+            : {}
+        }
       >
         <View style={{ flexDirection: "column", gap: 24 }}>
           <UserCard

@@ -8,6 +8,7 @@ import {
   Image,
   Modal,
   Pressable,
+  Dimensions,
 } from "react-native";
 import AppText from "@/src/components/AppText";
 import { RouteProp, useRoute } from "@react-navigation/native";
@@ -108,6 +109,8 @@ export default function SessionDetailScreen() {
     isExerciceEditable = true;
   }
 
+  const screenWidth = Dimensions.get("window").width;
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -117,6 +120,11 @@ export default function SessionDetailScreen() {
       <ScrollView
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
+        style={
+          Platform.OS === "web"
+            ? { maxHeight: screenWidth + 180, paddingBottom: 32 }
+            : {}
+        }
       >
         <View style={{ flexDirection: "column", gap: 24 }}>
           <View

@@ -1,9 +1,17 @@
 import React from "react";
-import { KeyboardAvoidingView, Platform, ScrollView, View } from "react-native";
+import {
+  Dimensions,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  View,
+} from "react-native";
 import GlobalStyles from "../styles/styles";
 import ItemUser from "../components/ItemUser";
 
 export default function PartnersListScreen() {
+  const screenWidth = Dimensions.get("window").width;
+
   return (
     <>
       <KeyboardAvoidingView
@@ -14,6 +22,11 @@ export default function PartnersListScreen() {
         <ScrollView
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
+          style={
+            Platform.OS === "web"
+              ? { maxHeight: screenWidth + 180, paddingBottom: 32 }
+              : {}
+          }
         >
           <View style={{ flexDirection: "column", gap: 16 }}>
             <ItemUser

@@ -524,7 +524,6 @@ export default function HomeScreen() {
       <ScrollView
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
-        style={{ paddingTop: 32 }}
       >
         {RenderProfileComponents ? RenderProfileComponents(user) : null}
       </ScrollView>

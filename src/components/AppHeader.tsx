@@ -88,12 +88,12 @@ export default function AppHeader({
           </View>
         )}
         {hasNewsComponent && newsVisible && (
-          <Pressable
+          <View
             style={{
               position: "absolute",
-              bottom: -24,
+              bottom: Platform.OS === "web" ? -24 : -64,
               left: 16,
-              width: "92%",
+              width: Platform.OS === "web" ? "92%" : "100%",
             }}
           >
             <News
@@ -103,7 +103,7 @@ export default function AppHeader({
                 setNewsVisible(!newsVisible);
               }}
             />
-          </Pressable>
+          </View>
         )}
       </View>
     </SafeAreaView>

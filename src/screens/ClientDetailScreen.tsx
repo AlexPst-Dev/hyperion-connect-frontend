@@ -8,6 +8,7 @@ import {
   Image,
   Modal,
   Pressable,
+  Dimensions,
 } from "react-native";
 import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
 import { RootStackParamList } from "@/src/navigation/types";
@@ -1107,6 +1108,8 @@ export default function ClientDetailScreen() {
   const RenderProfileComponents =
     ClientDetailPageByProfile[user.profileCategory];
 
+  const screenWidth = Dimensions.get("window").width;
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -1116,6 +1119,11 @@ export default function ClientDetailScreen() {
       <ScrollView
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
+        style={
+          Platform.OS === "web"
+            ? { maxHeight: screenWidth + 180, paddingBottom: 32 }
+            : {}
+        }
       >
         {RenderProfileComponents ? RenderProfileComponents(user) : null}
       </ScrollView>

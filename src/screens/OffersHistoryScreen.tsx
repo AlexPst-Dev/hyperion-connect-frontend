@@ -1,11 +1,10 @@
-// src/screens/SessionDetailScreen.tsx
 import React from "react";
 import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
   View,
-  Image,
+  Dimensions,
 } from "react-native";
 
 import GlobalStyles from "../styles/styles";
@@ -13,6 +12,8 @@ import OfferCard from "../components/OfferCard";
 import AppText from "../components/AppText";
 
 export default function OffersHistoryScreen() {
+  const screenWidth = Dimensions.get("window").width;
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -22,6 +23,11 @@ export default function OffersHistoryScreen() {
       <ScrollView
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
+        style={
+          Platform.OS === "web"
+            ? { maxHeight: screenWidth + 180, paddingBottom: 32 }
+            : {}
+        }
       >
         <View style={{ flexDirection: "column", gap: 24 }}>
           <AppText style={GlobalStyles.h2}>HISTORIQUE DES OFFRES</AppText>
