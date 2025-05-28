@@ -953,149 +953,151 @@ export default function ClientDetailScreen() {
                 transparent
                 onRequestClose={handleEditNewOfferPopUp}
               >
-                <Pressable
-                  onPress={handleEditNewOfferPopUp}
-                  style={{
-                    flex: 1,
-                    backgroundColor: "rgba(0,0,0,0.5)",
-                    justifyContent: "center",
-                    padding: 24,
-                  }}
-                >
-                  <PopUp
-                    title="Editer une offre partenaire"
-                    paragraph="De quelle type d'offre s'agit t'il ? "
-                    onClose={handleEditNewOfferPopUp}
-                    closeText="Annuler"
-                    onSubmit={handleEditNewOfferPopUp}
-                    btnText="Valider"
-                    btnType="primary"
-                    iconName="check"
-                    specificBody={
-                      <View style={{ flexDirection: "column", gap: 16 }}>
-                        <View style={{ flexDirection: "column", gap: 8 }}>
-                          <Input
-                            type="selector"
-                            label="Catégorie d'offre"
-                            options={[
-                              {
-                                label: "Offre commerciale",
-                                value: "commerciale",
-                              },
-                              {
-                                label: "Offre de sponsoring",
-                                value: "sponsoring",
-                              },
-                            ]}
-                            onChangeText={() => handleTypeNewOffer()}
-                          />
-                          {newOfferType === "commerciale" && (
-                            <Input
-                              type="text"
-                              label="Taux de réduction"
-                              placeholder="10%"
-                            />
-                          )}
-                          {newOfferType === "sponsoring" && (
+                <ScrollView>
+                  <Pressable
+                    onPress={handleEditNewOfferPopUp}
+                    style={{
+                      flex: 1,
+                      backgroundColor: "rgba(0,0,0,0.5)",
+                      justifyContent: "center",
+                      padding: 24,
+                    }}
+                  >
+                    <PopUp
+                      title="Editer une offre partenaire"
+                      paragraph="De quelle type d'offre s'agit t'il ? "
+                      onClose={handleEditNewOfferPopUp}
+                      closeText="Annuler"
+                      onSubmit={handleEditNewOfferPopUp}
+                      btnText="Valider"
+                      btnType="primary"
+                      iconName="check"
+                      specificBody={
+                        <View style={{ flexDirection: "column", gap: 16 }}>
+                          <View style={{ flexDirection: "column", gap: 8 }}>
                             <Input
                               type="selector"
-                              label="Pour quelle catégorie de sport ?"
-                              placeholder="Running"
+                              label="Catégorie d'offre"
                               options={[
                                 {
-                                  label: "Running",
-                                  value: "running",
+                                  label: "Offre commerciale",
+                                  value: "commerciale",
                                 },
                                 {
-                                  label: "Natation",
-                                  value: "natation",
+                                  label: "Offre de sponsoring",
+                                  value: "sponsoring",
                                 },
                               ]}
+                              onChangeText={() => handleTypeNewOffer()}
                             />
-                          )}
+                            {newOfferType === "commerciale" && (
+                              <Input
+                                type="text"
+                                label="Taux de réduction"
+                                placeholder="10%"
+                              />
+                            )}
+                            {newOfferType === "sponsoring" && (
+                              <Input
+                                type="selector"
+                                label="Pour quelle catégorie de sport ?"
+                                placeholder="Running"
+                                options={[
+                                  {
+                                    label: "Running",
+                                    value: "running",
+                                  },
+                                  {
+                                    label: "Natation",
+                                    value: "natation",
+                                  },
+                                ]}
+                              />
+                            )}
+                          </View>
+                          <View style={{ flexDirection: "column", gap: 8 }}>
+                            <AppText>Détails de l'offre</AppText>
+                            {newOfferType === "commerciale" && (
+                              <>
+                                <Input
+                                  type="text"
+                                  label="Libellé"
+                                  placeholder="Nom du magasin, ..."
+                                />
+                                <Input
+                                  type="text"
+                                  label="Descritpion"
+                                  placeholder="Comment fonctionne l'offre..."
+                                />
+                                <Input
+                                  type="text"
+                                  label="Conditions"
+                                  placeholder="Jusqu'à quand ? Conditions d'utilistations..."
+                                />
+                                <Input
+                                  type="text"
+                                  label="Lien de l'offre"
+                                  placeholder="https://www..."
+                                />
+                                <View style={{ flexDirection: "row", gap: 16 }}>
+                                  <View style={{ width: "48%" }}>
+                                    <Input
+                                      type="date"
+                                      label="Date de début"
+                                      placeholder="XX/XX/XXX"
+                                    />
+                                  </View>
+                                  <View style={{ width: "48%" }}>
+                                    <Input
+                                      type="date"
+                                      label="Date de fin"
+                                      placeholder="XX/XX/XXX"
+                                    />
+                                  </View>
+                                </View>
+                              </>
+                            )}
+                            {newOfferType === "sponsoring" && (
+                              <>
+                                <Input
+                                  type="text"
+                                  label="Libellé"
+                                  placeholder="Nom du contrat"
+                                />
+                                <Input
+                                  type="text"
+                                  label="Descritpion"
+                                  placeholder="Résumé de l'offre"
+                                />
+                                <Input
+                                  type="text"
+                                  label="Contrat"
+                                  placeholder="Choisir un fichier"
+                                />
+                                <View style={{ flexDirection: "row", gap: 16 }}>
+                                  <View style={{ width: "48%" }}>
+                                    <Input
+                                      type="date"
+                                      label="Date de début"
+                                      placeholder="XX/XX/XXX"
+                                    />
+                                  </View>
+                                  <View style={{ width: "48%" }}>
+                                    <Input
+                                      type="date"
+                                      label="Date de fin"
+                                      placeholder="XX/XX/XXX"
+                                    />
+                                  </View>
+                                </View>
+                              </>
+                            )}
+                          </View>
                         </View>
-                        <View style={{ flexDirection: "column", gap: 8 }}>
-                          <AppText>Détails de l'offre</AppText>
-                          {newOfferType === "commerciale" && (
-                            <>
-                              <Input
-                                type="text"
-                                label="Libellé"
-                                placeholder="Nom du magasin, ..."
-                              />
-                              <Input
-                                type="text"
-                                label="Descritpion"
-                                placeholder="Comment fonctionne l'offre..."
-                              />
-                              <Input
-                                type="text"
-                                label="Conditions"
-                                placeholder="Jusqu'à quand ? Conditions d'utilistations..."
-                              />
-                              <Input
-                                type="text"
-                                label="Lien de l'offre"
-                                placeholder="https://www..."
-                              />
-                              <View style={{ flexDirection: "row", gap: 16 }}>
-                                <View style={{ width: "48%" }}>
-                                  <Input
-                                    type="date"
-                                    label="Date de début"
-                                    placeholder="XX/XX/XXX"
-                                  />
-                                </View>
-                                <View style={{ width: "48%" }}>
-                                  <Input
-                                    type="date"
-                                    label="Date de fin"
-                                    placeholder="XX/XX/XXX"
-                                  />
-                                </View>
-                              </View>
-                            </>
-                          )}
-                          {newOfferType === "sponsoring" && (
-                            <>
-                              <Input
-                                type="text"
-                                label="Libellé"
-                                placeholder="Nom du contrat"
-                              />
-                              <Input
-                                type="text"
-                                label="Descritpion"
-                                placeholder="Résumé de l'offre"
-                              />
-                              <Input
-                                type="text"
-                                label="Contrat"
-                                placeholder="Choisir un fichier"
-                              />
-                              <View style={{ flexDirection: "row", gap: 16 }}>
-                                <View style={{ width: "48%" }}>
-                                  <Input
-                                    type="date"
-                                    label="Date de début"
-                                    placeholder="XX/XX/XXX"
-                                  />
-                                </View>
-                                <View style={{ width: "48%" }}>
-                                  <Input
-                                    type="date"
-                                    label="Date de fin"
-                                    placeholder="XX/XX/XXX"
-                                  />
-                                </View>
-                              </View>
-                            </>
-                          )}
-                        </View>
-                      </View>
-                    }
-                  />
-                </Pressable>
+                      }
+                    />
+                  </Pressable>
+                </ScrollView>
               </Modal>
             </>
           );
