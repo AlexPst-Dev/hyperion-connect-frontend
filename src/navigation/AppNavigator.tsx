@@ -48,6 +48,10 @@ export default function AppNavigator() {
     const focusedRouteName = getFocusedRouteNameFromRoute(route) || route.name;
     const isHomePage =
       focusedRouteName === "Main" || focusedRouteName === "Accueil";
+    const title =
+      overrideTitle ||
+      pageTitles[focusedRouteName] ||
+      (isHomePage ? "" : focusedRouteName.toUpperCase());
 
     return {
       headerShown: true,
@@ -56,11 +60,9 @@ export default function AppNavigator() {
           isHomePage
             ? `Bonjour ${user?.firstName ?? ""} ${user?.lastName ?? ""} 👋`
             : "",
-          overrideTitle || pageTitles[focusedRouteName] || isHomePage
-            ? ""
-            : focusedRouteName.toUpperCase(),
+          title,
           navigation.canGoBack(),
-          isHomePage ? true : false,
+          isHomePage,
           () => navigation.goBack()
         ),
     };
