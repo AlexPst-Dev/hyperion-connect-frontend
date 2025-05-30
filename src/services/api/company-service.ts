@@ -12,7 +12,7 @@ import {
 
 export class CompanyService {
   /**
-   * Crée une nouvelle entreprise
+   * Creates a new company
    */
   static async createCompany(
     companyData: CreateCompanyPayload,
@@ -26,14 +26,14 @@ export class CompanyService {
   }
 
   /**
-   * Récupère toutes les entreprises
+   * Retrieves all companies
    */
   static async getAllCompanies(token?: string): Promise<Company[]> {
     return apiClient.get<Company[]>("/companies", token);
   }
 
   /**
-   * Récupère une entreprise par son ID
+   * Retrieves a company by its ID
    */
   static async getCompanyById(
     companyId: number,
@@ -43,7 +43,7 @@ export class CompanyService {
   }
 
   /**
-   * Récupère le responsable d'une entreprise par l'ID de l'entreprise
+   * Retrieves the responsible person of a company by the company ID
    */
   static async getCompanyResponsibleById(
     companyId: number,
@@ -56,7 +56,7 @@ export class CompanyService {
   }
 
   /**
-   * Met à jour une entreprise
+   * Updates a company
    */
   static async updateCompany(
     companyId: number,
@@ -71,7 +71,7 @@ export class CompanyService {
   }
 
   /**
-   * Supprime une entreprise
+   * Deletes a company
    */
   static async deleteCompany(
     companyId: number,
@@ -83,17 +83,17 @@ export class CompanyService {
     );
   }
 
-  // Méthodes utilitaires
+  // Utility methods
 
   /**
-   * Vérifie si une entreprise est active
+   * Checks if a company is active
    */
   static isCompanyActive(company: Company): boolean {
     return company.isActive;
   }
 
   /**
-   * Vérifie si l'adhésion d'une entreprise est expirée
+   * Checks if a company's membership is expired
    */
   static isMembershipExpired(company: Company): boolean {
     if (!company.dateEndMembership) return false;
@@ -105,7 +105,7 @@ export class CompanyService {
   }
 
   /**
-   * Calcule le nombre de jours restants avant l'expiration de l'adhésion
+   * Calculates the number of days remaining before membership expiry
    */
   static getDaysUntilMembershipExpiry(company: Company): number | null {
     if (!company.dateEndMembership) return null;
@@ -119,14 +119,14 @@ export class CompanyService {
   }
 
   /**
-   * Formate l'adresse complète d'une entreprise
+   * Formats the full address of a company
    */
   static getFullAddress(company: Company): string {
     return `${company.street}, ${company.postalCode} ${company.city}`;
   }
 
   /**
-   * Récupère tous les liens sociaux d'une entreprise
+   * Retrieves all social links of a company
    */
   static getSocialLinks(company: Company): Record<string, string> {
     const links: Record<string, string> = {};
@@ -142,7 +142,7 @@ export class CompanyService {
   }
 
   /**
-   * Vérifie si une entreprise a des liens sociaux
+   * Checks if a company has social links
    */
   static hasSocialLinks(company: Company): boolean {
     return !!(
@@ -156,14 +156,14 @@ export class CompanyService {
   }
 
   /**
-   * Filtre les entreprises actives
+   * Filters active companies
    */
   static filterActiveCompanies(companies: Company[]): Company[] {
     return companies.filter((company) => company.isActive);
   }
 
   /**
-   * Filtre les entreprises par ville
+   * Filters companies by city
    */
   static filterCompaniesByCity(companies: Company[], city: string): Company[] {
     return companies.filter(
@@ -172,7 +172,7 @@ export class CompanyService {
   }
 
   /**
-   * Filtre les entreprises par code postal
+   * Filters companies by postal code
    */
   static filterCompaniesByPostalCode(
     companies: Company[],
@@ -182,7 +182,7 @@ export class CompanyService {
   }
 
   /**
-   * Recherche des entreprises par nom (insensible à la casse)
+   * Searches companies by name (case-insensitive)
    */
   static searchCompaniesByName(
     companies: Company[],
@@ -195,14 +195,14 @@ export class CompanyService {
   }
 
   /**
-   * Trie les entreprises par nom (A-Z)
+   * Sorts companies by name (A-Z)
    */
   static sortCompaniesByName(companies: Company[]): Company[] {
     return [...companies].sort((a, b) => a.name.localeCompare(b.name));
   }
 
   /**
-   * Trie les entreprises par date de création (plus récent en premier)
+   * Sorts companies by creation date (most recent first)
    */
   static sortCompaniesByCreationDate(companies: Company[]): Company[] {
     return [...companies].sort(
@@ -212,7 +212,7 @@ export class CompanyService {
   }
 
   /**
-   * Trie les entreprises par date d'expiration d'adhésion (plus proche en premier)
+   * Sorts companies by membership expiry date (soonest first)
    */
   static sortCompaniesByMembershipExpiry(companies: Company[]): Company[] {
     return [...companies].sort((a, b) => {
@@ -228,7 +228,7 @@ export class CompanyService {
   }
 
   /**
-   * Récupère les entreprises dont l'adhésion expire bientôt (dans les X jours)
+   * Retrieves companies whose membership expires soon (within X days)
    */
   static getCompaniesWithUpcomingExpiry(
     companies: Company[],
@@ -245,14 +245,14 @@ export class CompanyService {
   }
 
   /**
-   * Récupère les entreprises avec adhésion expirée
+   * Retrieves companies with expired membership
    */
   static getExpiredMembershipCompanies(companies: Company[]): Company[] {
     return companies.filter((company) => this.isMembershipExpired(company));
   }
 
   /**
-   * Valide les données d'une entreprise avant création/mise à jour
+   * Validates company data before creation/update
    */
   static validateCompanyData(
     data: CreateCompanyPayload | UpdateCompanyPayload
@@ -262,41 +262,39 @@ export class CompanyService {
   } {
     const errors: string[] = [];
 
-    // Validation du nom (requis pour la création)
+    // Name validation (required for creation)
     if ("name" in data && data.name !== undefined) {
       if (!data.name || data.name.trim().length === 0) {
-        errors.push("Le nom de l'entreprise est requis");
+        errors.push("Company name is required");
       } else if (data.name.length > 100) {
-        errors.push(
-          "Le nom de l'entreprise ne peut pas dépasser 100 caractères"
-        );
+        errors.push("Company name cannot exceed 100 characters");
       }
     }
 
-    // Validation de la ville
+    // City validation
     if ("city" in data && data.city !== undefined) {
       if (!data.city || data.city.trim().length === 0) {
-        errors.push("La ville est requise");
+        errors.push("City is required");
       }
     }
 
-    // Validation du code postal
+    // Postal code validation
     if ("postalCode" in data && data.postalCode !== undefined) {
       if (!data.postalCode || data.postalCode.trim().length === 0) {
-        errors.push("Le code postal est requis");
+        errors.push("Postal code is required");
       } else if (!/^\d{5}$/.test(data.postalCode)) {
-        errors.push("Le code postal doit contenir 5 chiffres");
+        errors.push("Postal code must be 5 digits");
       }
     }
 
-    // Validation de la rue
+    // Street validation
     if ("street" in data && data.street !== undefined) {
       if (!data.street || data.street.trim().length === 0) {
-        errors.push("L'adresse est requise");
+        errors.push("Address is required");
       }
     }
 
-    // Validation des URLs
+    // URL validation
     const urlFields = [
       "linkWebsite",
       "linkFacebook",
@@ -312,16 +310,16 @@ export class CompanyService {
         try {
           new URL(url);
         } catch {
-          errors.push(`${field} doit être une URL valide`);
+          errors.push(`${field} must be a valid URL`);
         }
       }
     });
 
-    // Validation de la date d'expiration
+    // Membership expiry date validation
     if ("dateEndMembership" in data && data.dateEndMembership) {
       const date = new Date(data.dateEndMembership);
       if (isNaN(date.getTime())) {
-        errors.push("La date de fin d'adhésion doit être une date valide");
+        errors.push("Membership end date must be a valid date");
       }
     }
 
@@ -332,7 +330,7 @@ export class CompanyService {
   }
 
   /**
-   * Formate une entreprise pour l'affichage dans une liste
+   * Formats a company for display in a list
    */
   static formatCompanyForList(company: Company): {
     id: number;

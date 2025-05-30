@@ -24,7 +24,6 @@ export interface Company {
   updatedAt: string;
 }
 
-// Payload pour création d'entreprise
 export interface CreateCompanyPayload {
   responsibleId: number;
   name: string;
@@ -41,12 +40,10 @@ export interface CreateCompanyPayload {
   linkYoutube?: string;
 }
 
-// Payload pour mise à jour d'entreprise
 export interface UpdateCompanyPayload extends Partial<CreateCompanyPayload> {
   isActive?: boolean;
 }
 
-// Réponses API
 export interface CreateCompanyResponse {
   message: string;
   company: Company;
