@@ -45,3 +45,22 @@ export interface CreateCompanyPayload {
 export interface UpdateCompanyPayload extends Partial<CreateCompanyPayload> {
   isActive?: boolean;
 }
+
+// Réponses API
+export interface CreateCompanyResponse {
+  message: string;
+  company: Company;
+}
+
+export interface UpdateCompanyResponse {
+  message: string;
+  company: Company;
+}
+
+export interface DeleteCompanyResponse {
+  message: string;
+}
+
+export interface GetResponsibleResponse {
+  responsible: User;
+}
