@@ -9,3 +9,15 @@ export interface Subscription {
   createdAt: string;
   updatedAt: string;
 }
+
+export interface CreateSubscriptionRequest {
+  labelDiagnostic: string;
+  labelPerformancePlan: string;
+  subscriptionFileId: number;
+}
+
+export interface UpdateSubscriptionRequest {
+  labelDiagnostic?: string;
+  labelPerformancePlan?: string;
+  subscriptionFileId?: number;
+}
