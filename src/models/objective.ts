@@ -13,3 +13,21 @@ export interface Objective {
   createdAt: string;
   updatedAt: string;
 }
+
+export interface CreateObjective {
+  sportsmanId: number;
+  label: string;
+  responsibleId: number;
+  startDate: string;
+  endDate: string;
+  isActive?: boolean;
+}
+
+export interface UpdateObjective {
+  sportsmanId?: number;
+  label?: string;
+  responsibleId?: number;
+  startDate?: string;
+  endDate?: string;
+  isActive?: boolean;
+}
