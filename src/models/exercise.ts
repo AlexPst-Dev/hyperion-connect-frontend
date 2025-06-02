@@ -1,4 +1,4 @@
-export interface Exercice {
+export interface Exercise {
   id: number;
   label: string;
   listMuscleGroupIds: string;
@@ -10,4 +10,9 @@ export interface Exercice {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface ExerciseWithDetails extends Exercise {
+  filePicture: File;
+  muscleGroups: any[];
 }
