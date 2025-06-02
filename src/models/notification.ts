@@ -11,3 +11,15 @@ export interface Notification {
   createdAt: string;
   updatedAt: string;
 }
+
+export interface CreateNotificationDto {
+  notificationCategory: NotificationCategory;
+  title: string;
+  text: string;
+}
+
+export interface UpdateNotificationDto {
+  notificationCategory?: NotificationCategory;
+  title?: string;
+  text?: string;
+}
