@@ -22,21 +22,17 @@ export interface CreateGraph {
   title: string;
   measuredValue: string;
   listMonthlyValue: string;
-  isActive?: boolean;
   startDate: string;
   endDate: string;
 }
 
 export interface UpdateGraph {
-  id: number;
-  userId?: number;
-  responsibleId?: number;
   title?: string;
   measuredValue?: string;
   listMonthlyValue?: string;
-  isActive?: boolean;
   startDate?: string;
   endDate?: string;
+  isActive?: boolean;
 }
 
 export interface GraphResponse {
@@ -51,6 +47,8 @@ export interface GraphResponse {
   endDate: string;
   createdAt: string;
   updatedAt: string;
+  user?: User;
+  responsible?: User;
 }
 
 export const mapGraphResponse = (
