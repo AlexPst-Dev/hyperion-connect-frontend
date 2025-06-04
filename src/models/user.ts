@@ -217,18 +217,6 @@ export interface UserResponse {
   profile?: UserProfile;
 }
 
-export interface LoginResponse {
-  token: string;
-  user: User;
-  message: string;
-}
-
-export interface RegisterResponse {
-  message: string;
-  user: User;
-  token: string;
-}
-
 // Utilitaires pour les jours disponibles (pour les sportifs)
 export interface AvailableDays {
   monday: boolean;

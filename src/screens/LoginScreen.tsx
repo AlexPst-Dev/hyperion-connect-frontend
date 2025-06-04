@@ -1,7 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { View, ActivityIndicator, Button } from "react-native";
 import { useNavigation } from "@react-navigation/native";
-import { login } from "../services/api";
 import { useAuth } from "../hooks/useAuth";
 import Input from "../components/Input";
 import AppText from "../components/AppText";
@@ -10,20 +9,32 @@ export default function LoginScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [loading, setIsLoading] = useState(false);
   const navigation = useNavigation();
-  const { login: authLogin } = useAuth();
+  const { login, isLoading } = useAuth();
 
   const handleLogin = async () => {
-    setError(null);
-    setIsLoading(true);
+    // Validation basique
+    if (!email.trim() || !password.trim()) {
+      setError("Veuillez remplir tous les champs");
+      return;
+    }
+
+    // Validation email simple
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) {
+      setError("Format d'email invalide");
+      return;
+    }
+
     try {
-      const token = await login(email, password);
-      await authLogin(token);
+      console.log("Tentative de connexion avec:", email.trim());
+      await login({ email: email.trim(), password });
+      console.log("Connexion réussie !");
+      // La navigation sera gérée automatiquement par AppNavigator
     } catch (error: any) {
-      setError(error.message);
-    } finally {
-      setIsLoading(false);
+      console.error("Erreur de connexion:", error);
+      // Afficher le message d'erreur sur l'interface
+      setError(error.message || "Une erreur est survenue lors de la connexion");
     }
   };
 
@@ -35,30 +46,81 @@ export default function LoginScreen() {
 
       <Input
         placeholder="Email"
-        onChangeText={setEmail}
+        onChangeText={(text) => {
+          setEmail(text);
+          if (error) setError(null);
+        }}
         value={email}
         type="email"
         label="Email"
       />
+
       <Input
         placeholder="Mot de passe"
         secureTextEntry
-        onChangeText={setPassword}
+        onChangeText={(text) => {
+          setPassword(text);
+          if (error) setError(null);
+        }}
         value={password}
         type="password"
         label="Mot de passe"
       />
-      {error && <AppText style={{ color: "red" }}>{error}</AppText>}
-      {loading ? (
-        <ActivityIndicator size="large" color="#0A84FF" />
-      ) : (
-        <Button title="Se connecter" onPress={handleLogin} />
+
+      {/* Message d'erreur affiché sous les champs */}
+      {error && (
+        <View
+          style={{
+            width: "100%",
+            marginTop: 10,
+            marginBottom: 16,
+            paddingHorizontal: 16,
+            backgroundColor: "#FEF2F2",
+            borderRadius: 8,
+            padding: 12,
+            borderLeftWidth: 4,
+            borderLeftColor: "#EF4444",
+          }}
+        >
+          <AppText
+            style={{
+              color: "#DC2626",
+              textAlign: "center",
+              fontSize: 14,
+              fontWeight: "500",
+            }}
+          >
+            {error}
+          </AppText>
+        </View>
       )}
+
+      {isLoading ? (
+        <ActivityIndicator
+          size="large"
+          color="#0A84FF"
+          style={{ marginVertical: 20 }}
+        />
+      ) : (
+        <Button
+          title="Se connecter"
+          onPress={handleLogin}
+          disabled={!email.trim() || !password.trim()}
+        />
+      )}
+
       <AppText className="text-sm text-gray-500 mt-4">
         Pas encore inscrit ?{" "}
         <AppText
-          style={{ textDecorationLine: "underline", color: "#2563EB" }}
-          onPress={() => navigation.navigate("Register" as never)}
+          style={{
+            textDecorationLine: "underline",
+            color: "#2563EB",
+          }}
+          onPress={() => {
+            if (!isLoading) {
+              navigation.navigate("Register" as never);
+            }
+          }}
         >
           Inscrivez-vous ici
         </AppText>
