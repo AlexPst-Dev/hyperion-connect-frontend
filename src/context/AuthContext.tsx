@@ -36,16 +36,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       ]);
 
       if (storedToken && storedUser) {
-        // Vérifier si le token est encore valide
-        const isValid = await authService.isTokenValid(storedToken);
-
-        if (isValid) {
-          setToken(storedToken);
-          setUser(storedUser);
-        } else {
-          // Token expiré, nettoyer le stockage
-          await authService.logout();
-        }
+        setToken(storedToken);
+        setUser(storedUser);
       }
     } catch (error) {
       console.error(
