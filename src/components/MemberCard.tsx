@@ -1,18 +1,32 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { View, StyleSheet, Pressable, Dimensions, Image } from "react-native";
 import { useAuth } from "../hooks/useAuth";
 import GlobalStyles, { Colors } from "../styles/styles";
 import AppText from "./AppText";
 import Icon from "./Icon";
+import { getImageSource } from "../utils/imgSrcHandler";
+import { UserService } from "../services/api/user-service";
+import { User, UserResponse } from "../models/user";
 
 interface Props {
   onClose: () => void;
 }
 
-const appImageUrl = "https://reactnative.dev/img/tiny_logo.png";
-
 export default function MemberCard({ onClose }: Props) {
   const { user } = useAuth();
+  const [connectedUser, setConnectedUser] = useState<User>();
+
+  useEffect(() => {
+    if (user) {
+      let isMounted = true;
+      UserService.getUserById(user.id).then((connectedUser: UserResponse) => {
+        if (isMounted) setConnectedUser(connectedUser.user);
+      });
+      return () => {
+        isMounted = false;
+      };
+    }
+  }, [user]);
 
   return (
     <Pressable style={styles.overlay} onPress={onClose}>
@@ -31,11 +45,7 @@ export default function MemberCard({ onClose }: Props) {
         </View>
         <View style={styles.qrCodeContainer}>
           <Image
-            source={
-              appImageUrl
-                ? { uri: appImageUrl }
-                : { uri: "https://reactnative.dev/img/tiny_logo.png" }
-            }
+            source={getImageSource(connectedUser?.image)}
             style={styles.qrCodeImg}
           />
         </View>
@@ -47,10 +57,13 @@ export default function MemberCard({ onClose }: Props) {
               marginBottom: 4,
             }}
           >
-            {user?.firstName} {user?.lastName}
+            {connectedUser?.firstName} {connectedUser?.lastName}
           </AppText>
           <AppText style={{ marginBottom: 4 }}>
-            Membre depuis le XX/XX/XXXX
+            Membre depuis le{" "}
+            {connectedUser?.createdAt
+              ? new Date(connectedUser.createdAt).toLocaleDateString("fr-FR")
+              : ""}
           </AppText>
           <AppText style={{ marginBottom: 4 }}>Sport</AppText>
           <AppText>Abonnement</AppText>
