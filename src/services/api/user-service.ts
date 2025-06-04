@@ -11,8 +11,6 @@ import {
   ProfileCategory,
   CreateUserProfilePayload,
   UserResponse,
-  LoginResponse,
-  RegisterResponse,
 } from "../../models/user";
 
 export class UserService {
@@ -21,6 +19,16 @@ export class UserService {
    */
   static async getAllUsers(token: string): Promise<User[]> {
     return apiClient.get<User[]>("/users", token);
+  }
+  static async getUsersPaginated(
+    token: string,
+    limit: number,
+    offset: number = 0
+  ): Promise<User[]> {
+    return apiClient.get<User[]>(
+      `/users?limit=${limit}&offset=${offset}`,
+      token
+    );
   }
 
   /**

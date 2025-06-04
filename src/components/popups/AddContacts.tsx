@@ -26,22 +26,45 @@ export default function AddContacts({
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
 
-  const [limit] = useState(20);
+  const [allUsers, setAllUsers] = useState<User[]>([]);
+  const [visibleUsers, setVisibleUsers] = useState<User[]>([]);
+  const [limit] = useState(4);
   const [offset, setOffset] = useState(0);
-  const [listOfUser, setListOfUser] = useState<User[]>([]);
 
+  // Fetch all users once for filtering and filter options
   useEffect(() => {
     let isMounted = true;
-    UserService.getUsersPaginated(token, limit, offset).then((users) => {
-      if (isMounted) setListOfUser(users);
-    });
+    UserService.getAllUsers(token).then(
+      (response: User[] | { users: User[] }) => {
+        const users = Array.isArray(response) ? response : response.users;
+        if (isMounted && Array.isArray(users)) setAllUsers(users);
+        else if (isMounted) setAllUsers([]);
+      }
+    );
     return () => {
       isMounted = false;
     };
-  }, [token, limit, offset]);
+  }, [token]);
 
+  // Filter and paginate users in-memory
+  useEffect(() => {
+    // Apply filters and search to allUsers
+    const filtered = allUsers.filter((user) => {
+      const matchesSearch =
+        searchTerm.length < 3 ||
+        user.firstName.toLowerCase().startsWith(searchTerm.toLowerCase()) ||
+        user.lastName.toLowerCase().startsWith(searchTerm.toLowerCase()) ||
+        user.email?.toLowerCase().startsWith(searchTerm.toLowerCase());
+      const matchesFilter = selectedFilters.includes(user.profileCategory);
+      return matchesSearch && matchesFilter;
+    });
+    // Paginate
+    setVisibleUsers(filtered.slice(offset, offset + limit));
+  }, [allUsers, searchTerm, selectedFilters, offset, limit]);
+
+  // Use allUsers for filter options
   const filterCategories = Array.from(
-    new Set(listOfUser.map((user) => user.profileCategory).filter(Boolean))
+    new Set(allUsers.map((user) => user.profileCategory).filter(Boolean))
   );
   useEffect(() => {
     if (
@@ -67,24 +90,14 @@ export default function AddContacts({
   };
 
   const handleSubmit = () => {
-    const selectedUsers = listOfUser.filter((user) =>
-      selectedUserIds.includes(user.id)
-    );
-    onSubmit?.(selectedUsers);
+    if (onSubmit) {
+      const selectedUsers = allUsers.filter((user) =>
+        selectedUserIds.includes(user.id)
+      );
+      onSubmit(selectedUsers);
+    }
     onClose();
   };
-
-  const filteredUsers = listOfUser.filter((user) => {
-    const matchesSearch =
-      searchTerm.length < 3 ||
-      user.firstName.toLowerCase().startsWith(searchTerm.toLowerCase()) ||
-      user.lastName.toLowerCase().startsWith(searchTerm.toLowerCase()) ||
-      user.email?.toLowerCase().startsWith(searchTerm.toLowerCase());
-
-    const matchesFilter = selectedFilters.includes(user.profileCategory);
-
-    return matchesSearch && matchesFilter;
-  });
 
   return (
     <Modal
@@ -125,8 +138,8 @@ export default function AddContacts({
             specificBody={
               <>
                 <ScrollView style={styles.userList}>
-                  {filteredUsers.length > 0 ? (
-                    filteredUsers.map((user, index) => {
+                  {visibleUsers.length > 0 ? (
+                    visibleUsers.map((user, index) => {
                       const isSelected = selectedUserIds.includes(user.id);
                       return (
                         <Pressable
@@ -134,7 +147,7 @@ export default function AddContacts({
                           onPress={() => toggleSelection(user.id)}
                           style={{
                             marginBottom:
-                              index === filteredUsers.length - 1 ? 0 : 12,
+                              index === visibleUsers.length - 1 ? 0 : 12,
                           }}
                         >
                           <ItemUser
@@ -186,6 +199,6 @@ const styles = StyleSheet.create({
     alignSelf: "flex-end",
   },
   userList: {
-    maxHeight: 300,
+    maxHeight: 240,
   },
 });

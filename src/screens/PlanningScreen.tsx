@@ -25,6 +25,7 @@ import { LoggedUser } from "../models/auth";
 
 export default function PlanningScreen() {
   type PlanningPageRenderer = (user: LoggedUser) => JSX.Element;
+  const { token } = useAuth();
 
   const tempAdminUser: User = {
     id: 1,
@@ -203,7 +204,7 @@ export default function PlanningScreen() {
           {addContactPopUpVisible && (
             <AddContacts
               visible={addContactPopUpVisible}
-              token=""
+              token={token ? token : ""}
               onClose={displayAddContactPopUp}
             />
           )}
@@ -362,7 +363,7 @@ export default function PlanningScreen() {
           {addContactPopUpVisible && (
             <AddContacts
               visible={addContactPopUpVisible}
-              token=""
+              token={token ? token : ""}
               onClose={displayAddContactPopUp}
             />
           )}
@@ -513,6 +514,14 @@ export default function PlanningScreen() {
         setAddContactPopUpVisible(!addContactPopUpVisible);
       const displayEventDetailPopup = (event?: EventType) =>
         setDisplayEvent(event ? event : false);
+
+      const [selectedUsers, setSelectedUser] = useState<User[] | []>([]);
+
+      const handleAddContactsSubmit = (selectedUsers: User[]) => {
+        console.log("Selected users:", selectedUsers);
+        setSelectedUser(selectedUsers);
+        setAddContactPopUpVisible(false);
+      };
 
       return (
         <>
@@ -682,9 +691,17 @@ export default function PlanningScreen() {
                         marginTop: 8,
                       }}
                     >
-                      <AppText style={{ color: Colors.grey }}>
-                        Selectionnez une personne à ajouter à l'évenement
-                      </AppText>
+                      {selectedUsers.length !== 0 ? (
+                        selectedUsers.map((user) => (
+                          <AppText key={user.id}>
+                            {user.firstName} {user.lastName}
+                          </AppText>
+                        ))
+                      ) : (
+                        <AppText style={{ color: Colors.grey }}>
+                          Selectionnez une personne à ajouter à l'évenement
+                        </AppText>
+                      )}
                     </Pressable>
                   </>
                 }
@@ -694,8 +711,9 @@ export default function PlanningScreen() {
           {addContactPopUpVisible && (
             <AddContacts
               visible={addContactPopUpVisible}
-              token=""
+              token={token ? token : ""}
               onClose={displayAddContactPopUp}
+              onSubmit={handleAddContactsSubmit}
             />
           )}
           {eventDetailVisible && (
