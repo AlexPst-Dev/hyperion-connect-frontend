@@ -1,7 +1,7 @@
 import React from "react";
 import { StyleSheet, View, Image } from "react-native";
 import GlobalStyles, { Colors, shadowStyles } from "../styles/styles";
-import { User } from "../context/AuthContext";
+import { User } from "../models/user";
 import AppText from "./AppText";
 import Objective from "./Objective";
 
@@ -12,13 +12,13 @@ interface Props {
 
 export default function ItemClient({ user, objectives }: Props) {
   function getImageSource(): any {
-    if (!user.imageUrl) {
+    if (!user.image) {
       // fallback
       return require("../assets/images/react-logo.png");
     }
 
-    if (user.imageUrl.startsWith("http") || user.imageUrl.startsWith("https")) {
-      return { uri: user.imageUrl };
+    if (user.image.startsWith("http") || user.image.startsWith("https")) {
+      return { uri: user.image };
     }
 
     // Mapping of konwn local images
@@ -27,7 +27,7 @@ export default function ItemClient({ user, objectives }: Props) {
     };
 
     return (
-      localImages[user.imageUrl] || require("../assets/images/react-logo.png")
+      localImages[user.image] || require("../assets/images/react-logo.png")
     );
   }
 

@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { StyleSheet, View, Text, Pressable } from "react-native";
 import GlobalStyles, { Colors, shadowStyles } from "../styles/styles";
-import { User } from "../context/AuthContext";
+import { User } from "../models/user";
 import AppButton from "./AppButton";
 import AppText from "./AppText";
 

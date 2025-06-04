@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import AppText from "../components/AppText";
 import GlobalStyles from "../styles/styles";
-import { User } from "../context/AuthContext";
+import { ProfileCategory, User } from "../models/user";
 import ViewController from "../components/ViewController";
 import Event from "../components/Event";
 import AddContacts from "../components/popups/AddContacts";
@@ -22,6 +22,7 @@ import ItemUser from "../components/ItemUser";
 import { NavigationProp, useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../navigation/types";
+import { LoggedUser } from "../models/auth";
 
 export default function CommunityScreen() {
   type NavigationProp = NativeStackNavigationProp<
@@ -35,7 +36,10 @@ export default function CommunityScreen() {
     firstName: "Chloé",
     lastName: "Marchegay",
     email: "chloe.marchegay@hyperion.com",
-    profileCategory: "admin",
+    profileCategory: ProfileCategory.ADMIN,
+    isActive: true,
+    createdAt: "2025-05-05",
+    updatedAt: "2025-05-05",
   };
 
   type EventType = {
@@ -56,39 +60,54 @@ export default function CommunityScreen() {
       firstName: "Chloé",
       lastName: "Marchegay",
       email: "chloe.marchegay@hyperion.com",
-      profileCategory: "admin",
+      profileCategory: ProfileCategory.ADMIN,
+      isActive: true,
+      createdAt: "2025-05-05",
+      updatedAt: "2025-05-05",
     },
     {
       id: 2,
       firstName: "Alexa",
       lastName: "Amazone",
       email: "a.a@exemple.com",
-      profileCategory: "sportsman",
+      profileCategory: ProfileCategory.SPORTSMAN,
+      isActive: true,
+      createdAt: "2025-05-05",
+      updatedAt: "2025-05-05",
     },
     {
       id: 3,
       firstName: "Danny",
       lastName: "Dan",
       email: "d.d@exemple.com",
-      profileCategory: "sportsman",
+      profileCategory: ProfileCategory.SPORTSMAN,
+      isActive: true,
+      createdAt: "2025-05-05",
+      updatedAt: "2025-05-05",
     },
     {
       id: 4,
       firstName: "Marc",
       lastName: "Cram",
       email: "m.c@exemple.com",
-      profileCategory: "coach",
+      profileCategory: ProfileCategory.COACH,
+      isActive: true,
+      createdAt: "2025-05-05",
+      updatedAt: "2025-05-05",
     },
     {
       id: 5,
       firstName: "Doke",
       lastName: "Theurc",
       email: "d.tc@exemple.com",
-      profileCategory: "medic",
+      profileCategory: ProfileCategory.MEDIC,
+      isActive: true,
+      createdAt: "2025-05-05",
+      updatedAt: "2025-05-05",
     },
   ];
 
-  type CommunityPageRenderer = (user: User) => JSX.Element;
+  type CommunityPageRenderer = (user: LoggedUser) => JSX.Element;
 
   const [activeTabIndex, setActiveTabIndex] = useState(0);
   const [addContactPopUpVisible, setAddContactPopUpVisible] = useState(false);
@@ -323,7 +342,7 @@ export default function CommunityScreen() {
         {addContactPopUpVisible && (
           <AddContacts
             visible={addContactPopUpVisible}
-            listOfUser={[tempAdminUser]}
+            token=""
             onClose={displayAddContactPopUp}
           />
         )}

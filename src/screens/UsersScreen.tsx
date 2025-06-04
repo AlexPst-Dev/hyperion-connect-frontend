@@ -10,7 +10,7 @@ import GlobalStyles, { Colors } from "../styles/styles";
 import AppText from "../components/AppText";
 import Input from "../components/Input";
 import ViewController from "../components/ViewController";
-import { User } from "../context/AuthContext";
+import { ProfileCategory, User } from "../models/user";
 import ItemUser from "../components/ItemUser";
 import AppButton from "../components/AppButton";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -32,28 +32,40 @@ export default function UsersScreen() {
       firstName: "Alexa",
       lastName: "Amazone",
       email: "a.a@exemple.com",
-      profileCategory: "sportsman",
+      profileCategory: ProfileCategory.SPORTSMAN,
+      isActive: true,
+      createdAt: "2025-05-05",
+      updatedAt: "2025-05-05",
     },
     {
       id: 3,
       firstName: "Danny",
       lastName: "Dan",
       email: "d.d@exemple.com",
-      profileCategory: "sportsman",
+      profileCategory: ProfileCategory.SPORTSMAN,
+      isActive: true,
+      createdAt: "2025-05-05",
+      updatedAt: "2025-05-05",
     },
     {
       id: 4,
       firstName: "Marc",
       lastName: "Cram",
       email: "m.c@exemple.com",
-      profileCategory: "coach",
+      profileCategory: ProfileCategory.COACH,
+      isActive: true,
+      createdAt: "2025-05-05",
+      updatedAt: "2025-05-05",
     },
     {
       id: 5,
       firstName: "Doke",
       lastName: "Theurc",
       email: "d.tc@exemple.com",
-      profileCategory: "medic",
+      profileCategory: ProfileCategory.MEDIC,
+      isActive: true,
+      createdAt: "2025-05-05",
+      updatedAt: "2025-05-05",
     },
   ];
   const tempListOfPartner: User[] = [
@@ -62,21 +74,30 @@ export default function UsersScreen() {
       firstName: "Nutrisport",
       lastName: "",
       email: "contact.nutrisport@exemple.com",
-      profileCategory: "partner",
+      profileCategory: ProfileCategory.PARTNER,
+      isActive: true,
+      createdAt: "2025-05-05",
+      updatedAt: "2025-05-05",
     },
     {
       id: 15,
       firstName: "Fitness Park",
       lastName: "",
       email: "contact.fp@exemple.com",
-      profileCategory: "partner",
+      profileCategory: ProfileCategory.PARTNER,
+      isActive: true,
+      createdAt: "2025-05-05",
+      updatedAt: "2025-05-05",
     },
     {
       id: 16,
       firstName: "Tonton Outdoor",
       lastName: "",
       email: "contact.tt@exemple.com",
-      profileCategory: "partner",
+      profileCategory: ProfileCategory.SPORTSMAN,
+      isActive: true,
+      createdAt: "2025-05-05",
+      updatedAt: "2025-05-05",
     },
   ];
 
@@ -469,15 +490,7 @@ export default function UsersScreen() {
         {addContactPopUpVisible && (
           <AddContacts
             visible={addContactPopUpVisible}
-            listOfUser={[
-              {
-                id: 1,
-                firstName: "Alex",
-                lastName: "Martin",
-                email: "alex.martin@mail.com",
-                profileCategory: "coach",
-              },
-            ]}
+            token=""
             onClose={handleContactPopUpVisible}
           />
         )}
@@ -552,15 +565,7 @@ export default function UsersScreen() {
         {addContactPopUpVisible && (
           <AddContacts
             visible={addContactPopUpVisible}
-            listOfUser={[
-              {
-                id: 1,
-                firstName: "Alex",
-                lastName: "Martin",
-                email: "alex.martin@mail.com",
-                profileCategory: "coach",
-              },
-            ]}
+            token=""
             onClose={handleContactPopUpVisible}
           />
         )}

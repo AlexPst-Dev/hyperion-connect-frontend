@@ -16,7 +16,7 @@ import GlobalStyles, { Colors } from "../styles/styles";
 import UserCard from "../components/UserCard";
 import AppText from "../components/AppText";
 import ViewController from "../components/ViewController";
-import { User } from "../context/AuthContext";
+import { User } from "../models/user";
 import { useAuth } from "../hooks/useAuth";
 import Icon from "../components/Icon";
 import AppButton from "../components/AppButton";
@@ -31,6 +31,7 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import PopUp from "../components/PopUp";
 import Input from "../components/Input";
 import ProgressGraph from "../components/ProgressGraph";
+import { LoggedUser } from "../models/auth";
 
 type ClientDetailRouteProp = RouteProp<RootStackParamList, "ClientDetail">;
 
@@ -38,7 +39,7 @@ export default function ClientDetailScreen() {
   const route = useRoute<ClientDetailRouteProp>();
   const { client } = route.params;
 
-  type ClientDetailPageRenderer = (user: User) => JSX.Element;
+  type ClientDetailPageRenderer = (user: LoggedUser) => JSX.Element;
 
   const { user } = useAuth();
 

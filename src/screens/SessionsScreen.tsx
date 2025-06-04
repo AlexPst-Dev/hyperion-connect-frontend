@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import GlobalStyles, { Colors, shadowStyles } from "../styles/styles";
 import AppText from "../components/AppText";
-import { User } from "../context/AuthContext";
+import { User } from "../models/user";
 import { useAuth } from "../hooks/useAuth";
 import Objective from "../components/Objective";
 import ViewController from "../components/ViewController";
@@ -29,9 +29,10 @@ import AddSessions, {
 import * as DocumentPicker from "expo-document-picker";
 import { BlurView } from "expo-blur";
 import ProgressGraph from "../components/ProgressGraph";
+import { LoggedUser } from "../models/auth";
 
 export default function SessionsScreen() {
-  type SessionPageRenderer = (user: User) => JSX.Element;
+  type SessionPageRenderer = (user: LoggedUser) => JSX.Element;
 
   type NavigationProp = NativeStackNavigationProp<
     RootStackParamList,

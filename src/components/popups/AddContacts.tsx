@@ -2,28 +2,43 @@ import React, { useState, useEffect } from "react";
 import { StyleSheet, View, Pressable, Modal } from "react-native";
 import PopUp from "../PopUp";
 import Input from "../Input";
-import { User } from "@/src/context/AuthContext";
+import { User } from "@/src/models/user";
 import { ScrollView } from "react-native-gesture-handler";
 import ItemUser from "../ItemUser";
 import AppButton from "../AppButton";
 import AppText from "../AppText";
+import { UserService } from "@/src/services/api/user-service";
 
 interface Props {
   visible: boolean;
-  listOfUser: User[];
+  token: string;
   onClose: () => void;
   onSubmit?: (selectedUsers: User[]) => void;
 }
 
 export default function AddContacts({
   visible,
-  listOfUser,
+  token,
   onClose,
   onSubmit,
 }: Props) {
   const [selectedUserIds, setSelectedUserIds] = useState<number[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
+
+  const [limit] = useState(20);
+  const [offset, setOffset] = useState(0);
+  const [listOfUser, setListOfUser] = useState<User[]>([]);
+
+  useEffect(() => {
+    let isMounted = true;
+    UserService.getUsersPaginated(token, limit, offset).then((users) => {
+      if (isMounted) setListOfUser(users);
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, [token, limit, offset]);
 
   const filterCategories = Array.from(
     new Set(listOfUser.map((user) => user.profileCategory).filter(Boolean))

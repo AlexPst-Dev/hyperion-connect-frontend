@@ -9,7 +9,7 @@ import {
 import { BlurView } from "expo-blur";
 import GlobalStyles from "../styles/styles";
 import AppText from "../components/AppText";
-import { User } from "../context/AuthContext";
+import { LoggedUser } from "../models/auth";
 import { useAuth } from "../hooks/useAuth";
 import AppButton from "../components/AppButton";
 import Label from "../components/Label";
@@ -18,39 +18,51 @@ import Session from "../components/Session";
 import Kpi from "../components/Kpi";
 import ItemClient from "../components/ItemClient";
 import Objective from "../components/Objective";
+import { ProfileCategory, User } from "../models/user";
 
 export default function HomeScreen() {
   const tempCoachUser: User = {
     id: 1,
     firstName: "Alex",
     lastName: "Martin",
-    profileCategory: "coach",
+    profileCategory: ProfileCategory.COACH,
     email: "alex.martin@mail.com",
+    isActive: true,
+    createdAt: "2025-05-05",
+    updatedAt: "2025-05-05",
   };
   const tempAdminUser: User = {
     id: 2,
     firstName: "Chloé",
     lastName: "Marchegay",
-    profileCategory: "admin",
+    profileCategory: ProfileCategory.ADMIN,
+    isActive: true,
+    createdAt: "2025-05-05",
+    updatedAt: "2025-05-05",
     email: "chloé.marchegay@mail.com",
   };
   const tempSporstmanUser1: User = {
     id: 3,
     firstName: "Antoine",
     lastName: "Martin",
-    profileCategory: "sportsman",
     email: "antoine.martin@mail.com",
-    imageUrl: "users/img-profil-1",
+    profileCategory: ProfileCategory.SPORTSMAN,
+    isActive: true,
+    createdAt: "2025-05-05",
+    updatedAt: "2025-05-05",
   };
   const tempSporstmanUser2: User = {
     id: 4,
     firstName: "Lisa",
     lastName: "Dupont",
-    profileCategory: "sportsman",
+    profileCategory: ProfileCategory.SPORTSMAN,
     email: "lisa.dupont@mail.com",
+    isActive: true,
+    createdAt: "2025-05-05",
+    updatedAt: "2025-05-05",
   };
 
-  type HomePageRenderer = (user: User) => JSX.Element;
+  type HomePageRenderer = (user: LoggedUser) => JSX.Element;
 
   function BlurredSessionWrapper({ children }: { children: React.ReactNode }) {
     return (

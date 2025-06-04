@@ -4,7 +4,7 @@ import AppText from "../components/AppText";
 import GlobalStyles from "../styles/styles";
 import ViewController from "../components/ViewController";
 import Event from "../components/Event";
-import { User } from "../context/AuthContext";
+import { ProfileCategory, User } from "../models/user";
 import Icon from "../components/Icon";
 import ItemUser from "../components/ItemUser";
 
@@ -14,7 +14,10 @@ export default function HealthScreen() {
     firstName: "Sophie",
     lastName: "Lemoine",
     email: "s.l@mail.com",
-    profileCategory: "medic",
+    profileCategory: ProfileCategory.MEDIC,
+    isActive: true,
+    createdAt: "2025-05-05",
+    updatedAt: "2025-05-05",
   };
 
   const [activeTabIndex, setActiveTabIndex] = useState(0);

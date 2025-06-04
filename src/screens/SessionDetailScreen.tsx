@@ -478,22 +478,7 @@ export default function SessionDetailScreen() {
         <AddContacts
           visible={addContactPopUpVisible}
           onClose={handleAddContactPopUpVisible}
-          listOfUser={[
-            {
-              id: 1,
-              firstName: "John",
-              lastName: "Doe",
-              email: "john.doe@exemple.com",
-              profileCategory: "sportsman",
-            },
-            {
-              id: 2,
-              firstName: "Antoine",
-              lastName: "Dupont",
-              email: "a.d@exemple.com",
-              profileCategory: "sportsman",
-            },
-          ]}
+          token=""
         />
       </ScrollView>
     </KeyboardAvoidingView>

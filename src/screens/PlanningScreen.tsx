@@ -10,7 +10,7 @@ import {
 import GlobalStyles, { Colors } from "../styles/styles";
 import AppText from "../components/AppText";
 import Event from "../components/Event";
-import { User } from "../context/AuthContext";
+import { ProfileCategory, User } from "../models/user";
 import { useAuth } from "../hooks/useAuth";
 import AppButton from "../components/AppButton";
 import PopUp from "../components/PopUp";
@@ -21,16 +21,20 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useNavigation } from "expo-router";
 import { RootStackParamList } from "../navigation/types";
 import ViewController from "../components/ViewController";
+import { LoggedUser } from "../models/auth";
 
 export default function PlanningScreen() {
-  type PlanningPageRenderer = (user: User) => JSX.Element;
+  type PlanningPageRenderer = (user: LoggedUser) => JSX.Element;
 
   const tempAdminUser: User = {
     id: 1,
     firstName: "Chloé",
     lastName: "Marchegay",
     email: "chloe.marchegay@hyperion.com",
-    profileCategory: "admin",
+    profileCategory: ProfileCategory.ADMIN,
+    isActive: true,
+    createdAt: "2025-05-05",
+    updatedAt: "2025-05-05",
   };
 
   type EventType = {
@@ -199,7 +203,7 @@ export default function PlanningScreen() {
           {addContactPopUpVisible && (
             <AddContacts
               visible={addContactPopUpVisible}
-              listOfUser={[tempAdminUser]}
+              token=""
               onClose={displayAddContactPopUp}
             />
           )}
@@ -358,7 +362,7 @@ export default function PlanningScreen() {
           {addContactPopUpVisible && (
             <AddContacts
               visible={addContactPopUpVisible}
-              listOfUser={[tempAdminUser]}
+              token=""
               onClose={displayAddContactPopUp}
             />
           )}
@@ -690,7 +694,7 @@ export default function PlanningScreen() {
           {addContactPopUpVisible && (
             <AddContacts
               visible={addContactPopUpVisible}
-              listOfUser={[tempAdminUser]}
+              token=""
               onClose={displayAddContactPopUp}
             />
           )}

@@ -9,7 +9,7 @@ import {
 import GlobalStyles from "../styles/styles";
 import AppText from "../components/AppText";
 import Event from "../components/Event";
-import { User } from "../context/AuthContext";
+import { ProfileCategory, User } from "../models/user";
 import { RouteProp, useRoute } from "@react-navigation/native";
 import { RootStackParamList } from "../navigation/types";
 
@@ -27,7 +27,10 @@ export default function PlanningHistoryScreen() {
     firstName: "Chloé",
     lastName: "Marchegay",
     email: "chloe.marchegay@hyperion.com",
-    profileCategory: "admin",
+    profileCategory: ProfileCategory.ADMIN,
+    isActive: true,
+    createdAt: "2025-05-05",
+    updatedAt: "2025-05-05",
   };
 
   return (

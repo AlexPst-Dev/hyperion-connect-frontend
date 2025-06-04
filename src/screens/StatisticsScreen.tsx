@@ -18,8 +18,9 @@ import { RootStackParamList } from "../navigation/types";
 import { useNavigation } from "@react-navigation/native";
 import OfferCard from "../components/OfferCard";
 import PopUp from "../components/PopUp";
-import { User } from "../context/AuthContext";
+import { User } from "../models/user";
 import ProgressGraph from "../components/ProgressGraph";
+import { LoggedUser } from "../models/auth";
 
 export default function StatisticsScreen() {
   const { user } = useAuth();
@@ -98,7 +99,7 @@ export default function StatisticsScreen() {
   const [askForNewOfferPopUpVisible, setAskForNewOfferPopUpVisible] =
     useState(false);
 
-  type StatisticsPageProfilePageRenderer = (user: User) => JSX.Element;
+  type StatisticsPageProfilePageRenderer = (user: LoggedUser) => JSX.Element;
 
   const StatisticsPageByProfile: Record<
     string,

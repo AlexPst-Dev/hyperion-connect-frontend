@@ -1,4 +1,4 @@
-import { User } from "../context/AuthContext";
+import { User } from "../models/user";
 
 export type RootStackParamList = {
   Login: undefined;
