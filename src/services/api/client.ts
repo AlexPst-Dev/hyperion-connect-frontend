@@ -88,6 +88,14 @@ class ApiClient {
     });
   }
 
+  async patch<T>(endpoint: string, data?: any, token?: string): Promise<T> {
+    return this.request<T>(endpoint, {
+      method: "PATCH",
+      body: data ? JSON.stringify(data) : undefined,
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+  }
+
   async delete<T>(endpoint: string, token?: string): Promise<T> {
     return this.request<T>(endpoint, {
       method: "DELETE",
