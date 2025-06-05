@@ -29,6 +29,14 @@ import {
 import { NotificationCategory, Notification } from "../models/notification";
 import Input from "../components/Input";
 import PopUp from "../components/PopUp";
+import {
+  EventCategory,
+  EventCompleteResponse,
+  parseIds,
+} from "../models/event";
+import { eventService } from "../services/api/event-service";
+import { UserService } from "../services/api/user-service";
+import DisplayEvent from "../components/popups/DisplayEvent";
 
 export default function HomeScreen() {
   const tempCoachUser: User = {
@@ -43,7 +51,7 @@ export default function HomeScreen() {
   };
   const tempAdminUser: User = {
     id: 2,
-    firstName: "Chloé",
+    firstName: "k",
     lastName: "Marchegay",
     profileCategory: ProfileCategory.ADMIN,
     isActive: true,
@@ -78,9 +86,16 @@ export default function HomeScreen() {
   const [editNewsVisible, setEditNewsVisible] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  const { user, token } = useAuth();
+  /*
+   * Fetching the next event for admin profile
+   */
+  const [userEvents, setUserEvents] = useState<EventCompleteResponse[]>([]);
+  const [closestEvent, setClosestEvent] =
+    useState<EventCompleteResponse | null>(null);
+  const [eventUsers, setEventUsers] = useState<User[]>([]);
+  const [eventPopupVisible, setEventPopupVisible] = useState(false);
 
-  if (!user) return null;
+  const { user, token } = useAuth();
 
   // Fetch the latest notification
   useEffect(() => {
@@ -102,6 +117,67 @@ export default function HomeScreen() {
     }
     fetchNotification();
   }, [token]);
+
+  useEffect(() => {
+    if (!user || !token) return;
+    async function fetchUserEvents() {
+      if (!user) return;
+      try {
+        const { events } = await eventService.getEventsByUserId(
+          user.id as number,
+          token as string
+        );
+        setUserEvents(events);
+
+        // Find the event with the closest future date
+        const now = new Date();
+        const sorted = events
+          .filter((e) => e.date && new Date(e.date) >= now)
+          .sort(
+            (a, b) => new Date(a.date!).getTime() - new Date(b.date!).getTime()
+          );
+        setClosestEvent(sorted[0] || null);
+      } catch (error) {
+        console.error("Error fetching user events:", error);
+      }
+    }
+    fetchUserEvents();
+  }, [user, token]);
+
+  useEffect(() => {
+    // Fetch users for the closest event
+    async function fetchEventUsers() {
+      let idsToParse: string = "";
+      if (
+        closestEvent &&
+        (closestEvent.eventCategory === EventCategory.HYPERION ||
+          closestEvent.eventCategory === EventCategory.HYPERLINK)
+      ) {
+        idsToParse = closestEvent.responsibleIds as string;
+      } else {
+        idsToParse = closestEvent?.personOngoingIds as string;
+      }
+      if (!closestEvent || idsToParse === "" || !token) {
+        setEventUsers([]);
+        return;
+      }
+      const ids = parseIds(idsToParse);
+      try {
+        const users = await Promise.all(
+          ids.map((id) =>
+            UserService.getUserById(id, token).then((res) => res.user)
+          )
+        );
+        setEventUsers(users);
+      } catch (error) {
+        console.error("Error fetching event users:", error);
+        setEventUsers([]);
+      }
+    }
+    fetchEventUsers();
+  }, [closestEvent, token]);
+
+  if (!user) return null;
 
   // Function to update the latest notification
   const handleUpdateNotification = async (title: string, text: string) => {
@@ -191,7 +267,7 @@ export default function HomeScreen() {
           </View>
           <Event
             title="Séance de fractionné"
-            type="session"
+            type={EventCategory.COACHING}
             personsInvolved={tempCoachUser}
             location="Parc de Vannes"
             date={new Date("2025-05-17")}
@@ -286,7 +362,7 @@ export default function HomeScreen() {
           </View>
           <Event
             title="Séance de fractionné"
-            type="session"
+            type={EventCategory.COACHING}
             personsInvolved={tempSporstmanUser1}
             location="Parc de Vannes"
             date={new Date("2025-05-17")}
@@ -365,7 +441,7 @@ export default function HomeScreen() {
           </View>
           <Event
             title="Analyse sanguine"
-            type="medical"
+            type={EventCategory.MEDICAL}
             personsInvolved={tempSporstmanUser2}
             location="Centre d'analyse de Vannes"
             date={new Date("2025-05-17")}
@@ -391,7 +467,7 @@ export default function HomeScreen() {
           </View>
           <Event
             title="Évenement Hyperion Vannes"
-            type="hyperion"
+            type={EventCategory.HYPERION}
             personsInvolved={tempAdminUser}
             location="Parc de Vannes"
             date={new Date("2025-05-08")}
@@ -488,7 +564,7 @@ export default function HomeScreen() {
           <View style={{ flexDirection: "column", gap: 8 }}>
             <Event
               title="Evenement Hyperlink Vannes"
-              type="hyperlink"
+              type={EventCategory.HYPERLINK}
               personsInvolved={tempAdminUser}
               location="Parc de Vannes"
               date={new Date("2025-05-17")}
@@ -499,7 +575,7 @@ export default function HomeScreen() {
             />
             <Event
               title="Evenement Hyperion Vannes"
-              type="hyperion"
+              type={EventCategory.HYPERION}
               personsInvolved={tempAdminUser}
               location="Parc de Vannes"
               date={new Date("2025-05-23")}
@@ -511,85 +587,123 @@ export default function HomeScreen() {
         </View>
       </View>
     ),
-    admin: (user) => (
-      <View style={{ flexDirection: "column", gap: 24 }}>
-        <View style={{ flexDirection: "column", gap: 16 }}>
-          <View
-            style={{
-              flexDirection: "row",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-          >
-            <AppText style={GlobalStyles.h3}>PROCHAIN ÉVÉNEMENT</AppText>
-            <AppButton type="linkSmall" title="Voir plus" iconName="eye" />
+    admin: (user) => {
+      const refreshClosestEvent = async () => {
+        if (!closestEvent || !token) return;
+        try {
+          const { event } = await eventService.getEventById(
+            closestEvent.id,
+            token
+          );
+          setClosestEvent(event); // This will trigger a re-render and update DisplayEvent
+        } catch (error) {
+          console.error("Error refreshing event:", error);
+        }
+      };
+
+      return (
+        <View style={{ flexDirection: "column", gap: 24 }}>
+          <View style={{ flexDirection: "column", gap: 16 }}>
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <AppText style={GlobalStyles.h3}>PROCHAIN ÉVÉNEMENT</AppText>
+              <AppButton type="linkSmall" title="Voir plus" iconName="eye" />
+            </View>
+            {closestEvent && (
+              <>
+                <Event
+                  title={closestEvent.title || "Événement"}
+                  type={closestEvent.eventCategory as EventCategory}
+                  personsInvolved={eventUsers}
+                  location={closestEvent.location || ""}
+                  date={
+                    closestEvent.date ? new Date(closestEvent.date) : new Date()
+                  }
+                  hour={closestEvent.time || ""}
+                  isInPerson={true}
+                  infoDescription={closestEvent.description || ""}
+                  onPress={() => setEventPopupVisible(true)}
+                />
+                {eventPopupVisible && (
+                  <DisplayEvent
+                    visible={eventPopupVisible}
+                    event={closestEvent}
+                    hyperlinkProps={
+                      closestEvent.eventCategory === EventCategory.HYPERLINK
+                        ? closestEvent.hyperlinkDetails
+                        : undefined
+                    }
+                    userConnected={user}
+                    token={token as string}
+                    listOfUser={eventUsers}
+                    onClose={() => setEventPopupVisible(false)}
+                    onSubmit={refreshClosestEvent}
+                  />
+                )}
+              </>
+            )}
           </View>
-          <Event
-            title="Evenement Hyperion Vannes"
-            type="hyperion"
-            personsInvolved={tempAdminUser}
-            location="Parc de Vannes"
-            date={new Date("2025-05-17")}
-            hour="14h00"
-            isInPerson
-            infoDescription="Lorem ipsum dolore sit amet"
-          />
-        </View>
-        <View style={{ flexDirection: "column", gap: 16 }}>
-          <AppText>
-            Retrouvez ici les statistiques globales de l'application.
-          </AppText>
-          <View
-            style={{
-              flexDirection: "row",
-              gap: 8,
-            }}
-          >
-            <View style={{ flex: 1 }}>
-              <Kpi
-                title="Title of the KPI"
-                iconName="run"
-                value="XXX"
-                unit="yyy"
-                fillIcon
+          <View style={{ flexDirection: "column", gap: 16 }}>
+            <AppText>
+              Retrouvez ici les statistiques globales de l'application.
+            </AppText>
+            <View
+              style={{
+                flexDirection: "row",
+                gap: 8,
+              }}
+            >
+              <View style={{ flex: 1 }}>
+                <Kpi
+                  title="Title of the KPI"
+                  iconName="run"
+                  value="XXX"
+                  unit="yyy"
+                  fillIcon
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Kpi
+                  title="Title of the KPI"
+                  iconName="run"
+                  value="XXX"
+                  unit="yyy"
+                  fillIcon
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Kpi
+                  title="Title of the KPI"
+                  iconName="run"
+                  value="XXX"
+                  unit="yyy"
+                  fillIcon
+                />
+              </View>
+            </View>
+          </View>
+          <View style={{ flexDirection: "column", gap: 8 }}>
+            <AppText style={{ fontWeight: "bold" }}>
+              {notification?.title}
+            </AppText>
+            <AppText>{notification?.text}</AppText>
+            <View style={{ flexDirection: "row", alignSelf: "flex-end" }}>
+              <AppButton
+                type="primary"
+                title="Modifier"
+                iconName="pencil"
+                onPress={() => setEditNewsVisible(true)}
               />
             </View>
-            <View style={{ flex: 1 }}>
-              <Kpi
-                title="Title of the KPI"
-                iconName="run"
-                value="XXX"
-                unit="yyy"
-                fillIcon
-              />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Kpi
-                title="Title of the KPI"
-                iconName="run"
-                value="XXX"
-                unit="yyy"
-                fillIcon
-              />
-            </View>
           </View>
         </View>
-        <View style={{ flexDirection: "column", gap: 8 }}>
-          <AppText style={{ fontWeight: "bold" }}>
-            {notification?.title}
-          </AppText>
-          <AppText>{notification?.text}</AppText>
-          <View style={{ flexDirection: "row", alignSelf: "flex-end" }}>
-            <AppButton
-              type="primary"
-              title="Modifier"
-              iconName="pencil"
-              onPress={() => setEditNewsVisible(true)}
-            />
-          </View>
-        </View>
-      </View>
-    ),
+      );
+    },
   };
 
   const RenderProfileComponents = HomePageByProfile[user.profileCategory];

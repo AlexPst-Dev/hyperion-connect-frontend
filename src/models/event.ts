@@ -13,6 +13,7 @@ export interface Event {
   eventCategory: EventCategory;
   responsibleIds: string | null;
   personOngoingIds: string | null;
+  title: string | null;
   location: string | null;
   date: string | null;
   time: string | null;
@@ -69,6 +70,7 @@ export interface CreateEvent {
   responsibleIds?: string;
   personOngoingIds?: string;
   location?: string;
+  title?: string;
   date?: string;
   time?: string;
   description?: string;
@@ -134,16 +136,16 @@ export type CreateEventComplete =
   | CreateEventWithSportingActivity;
 
 export interface UpdateEvent {
-  id: number;
-  eventCategory?: EventCategory;
   responsibleIds?: string | null;
   personOngoingIds?: string | null;
+  title?: string;
   location?: string | null;
   date?: string | null;
   time?: string | null;
   description?: string | null;
   link?: string | null;
   isActive?: boolean;
+  theme?: string | null;
 }
 
 export interface UpdateHyperionEvent {
@@ -181,6 +183,7 @@ export interface EventResponse {
   eventCategory: EventCategory;
   responsibleIds: string | null;
   personOngoingIds: string | null;
+  title: string | null;
   location: string | null;
   date: string | null;
   time: string | null;
@@ -256,6 +259,7 @@ export const mapEventResponse = (response: EventResponse): Event => ({
   eventCategory: response.eventCategory,
   responsibleIds: response.responsibleIds,
   personOngoingIds: response.personOngoingIds,
+  title: response.title,
   location: response.location,
   date: response.date ? new Date(response.date).toString() : null,
   time: response.time,
@@ -357,7 +361,7 @@ export const parseIds = (ids: string | null): number[] => {
     return JSON.parse(ids);
   } catch {
     return ids
-      .split(",")
+      .split(";")
       .map((id) => parseInt(id.trim()))
       .filter((id) => !isNaN(id));
   }

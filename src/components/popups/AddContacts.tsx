@@ -14,6 +14,7 @@ interface Props {
   token: string;
   onClose: () => void;
   onSubmit?: (selectedUsers: User[]) => void;
+  initialSelectedUserIds?: number[];
 }
 
 export default function AddContacts({
@@ -21,8 +22,11 @@ export default function AddContacts({
   token,
   onClose,
   onSubmit,
+  initialSelectedUserIds,
 }: Props) {
-  const [selectedUserIds, setSelectedUserIds] = useState<number[]>([]);
+  const [selectedUserIds, setSelectedUserIds] = useState<number[]>(
+    initialSelectedUserIds as number[]
+  );
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
 
@@ -30,6 +34,12 @@ export default function AddContacts({
   const [visibleUsers, setVisibleUsers] = useState<User[]>([]);
   const [limit] = useState(4);
   const [offset, setOffset] = useState(0);
+
+  useEffect(() => {
+    if (visible) {
+      setSelectedUserIds(initialSelectedUserIds as number[]);
+    }
+  }, [visible, initialSelectedUserIds]);
 
   // Fetch all users once for filtering and filter options
   useEffect(() => {

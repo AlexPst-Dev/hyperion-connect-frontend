@@ -33,6 +33,16 @@ export const eventService = {
     );
   },
 
+  async getEventsByUserId(
+    userId: number,
+    token: string
+  ): Promise<{ events: EventCompleteResponse[] }> {
+    return apiClient.get<{ events: EventCompleteResponse[] }>(
+      `/events/user/${userId}`,
+      token
+    );
+  },
+
   async createEvent(
     data: CreateEventComplete,
     token: string
@@ -49,7 +59,7 @@ export const eventService = {
     data: Omit<UpdateEvent, "id"> & Record<string, any>,
     token: string
   ): Promise<{ message: string }> {
-    return apiClient.put<{ message: string }>(`/events/${id}`, data, token);
+    return apiClient.patch<{ message: string }>(`/events/${id}`, data, token);
   },
 
   async deleteEvent(id: number, token: string): Promise<{ message: string }> {

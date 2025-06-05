@@ -4,10 +4,11 @@ import GlobalStyles, { Colors, shadowStyles } from "../styles/styles";
 import { User } from "../models/user";
 import AppButton from "./AppButton";
 import AppText from "./AppText";
+import { EventCategory } from "../models/event";
 
 interface Props {
   title: string;
-  type: "medical" | "hyperlink" | "hyperion" | "session" | "sportingActivity";
+  type: EventCategory;
   personsInvolved: User | User[];
   location: string;
   date: Date;
@@ -67,15 +68,15 @@ export default function Event({
                 { color: Colors.grey, flex: 1, minWidth: 0 },
               ]}
             >
-              {type === "medical"
+              {type === EventCategory.MEDICAL
                 ? "Soignant : "
-                : type === "sportingActivity"
+                : type === EventCategory.SPORTING_ACTIVITY
                 ? "Sportif : "
                 : "Intervenants : "}
               {[...userList].join("")}
             </AppText>
           </View>
-          {type === "hyperlink" && theme && (
+          {type === EventCategory.HYPERLINK && theme && (
             <AppText style={[GlobalStyles.span, { color: Colors.grey }]}>
               {theme}
             </AppText>
@@ -84,7 +85,7 @@ export default function Event({
             {location}
           </AppText>
           <AppText style={[GlobalStyles.span, { color: Colors.grey }]}>
-            {date.toLocaleDateString("fr-Fr")} - {hour}
+            {date.toLocaleDateString("fr-Fr")} - {hour.slice(0, 5)}
           </AppText>
           {isInPerson && (
             <AppText style={[GlobalStyles.span, { color: Colors.grey }]}>
