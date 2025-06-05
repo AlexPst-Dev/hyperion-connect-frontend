@@ -1,13 +1,16 @@
-import React, { JSX } from "react";
+import React, { JSX, useEffect, useState } from "react";
 import {
   KeyboardAvoidingView,
   ScrollView,
   Platform,
   View,
   StyleSheet,
+  ActivityIndicator,
+  Modal,
+  Pressable,
 } from "react-native";
 import { BlurView } from "expo-blur";
-import GlobalStyles from "../styles/styles";
+import GlobalStyles, { Colors } from "../styles/styles";
 import AppText from "../components/AppText";
 import { LoggedUser } from "../models/auth";
 import { useAuth } from "../hooks/useAuth";
@@ -19,6 +22,13 @@ import Kpi from "../components/Kpi";
 import ItemClient from "../components/ItemClient";
 import Objective from "../components/Objective";
 import { ProfileCategory, User } from "../models/user";
+import {
+  getNotificationsByCategory,
+  updateNotification,
+} from "../services/api/notification-service";
+import { NotificationCategory, Notification } from "../models/notification";
+import Input from "../components/Input";
+import PopUp from "../components/PopUp";
 
 export default function HomeScreen() {
   const tempCoachUser: User = {
@@ -61,6 +71,68 @@ export default function HomeScreen() {
     createdAt: "2025-05-05",
     updatedAt: "2025-05-05",
   };
+
+  const [newsTitle, setNewsTitle] = useState("");
+  const [newsText, setNewsText] = useState("");
+  const [notification, setNotification] = useState<Notification | null>(null);
+  const [editNewsVisible, setEditNewsVisible] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  const { user, token } = useAuth();
+
+  if (!user) return null;
+
+  // Fetch the latest notification
+  useEffect(() => {
+    if (!token) return;
+    async function fetchNotification() {
+      try {
+        const notifications = await getNotificationsByCategory(
+          NotificationCategory.NEWS,
+          token as string
+        );
+        if (notifications && notifications.length > 0) {
+          setNotification(notifications[notifications.length - 1]);
+        }
+      } catch (error) {
+        console.error("Error fetching notifications:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchNotification();
+  }, [token]);
+
+  // Function to update the latest notification
+  const handleUpdateNotification = async (title: string, text: string) => {
+    if (!notification || !token) return;
+    try {
+      await updateNotification(
+        notification.id, // Use the id of the latest notification
+        {
+          title,
+          text,
+          notificationCategory: NotificationCategory.NEWS,
+        },
+        token
+      );
+      // Optionally, refetch or update local state
+      setNotification({
+        ...notification,
+        title,
+        text,
+      });
+      setNewsTitle(title);
+      setNewsText(text);
+      setEditNewsVisible(false);
+    } catch (error) {
+      console.error("Error updating notification:", error);
+    }
+  };
+
+  if (loading) {
+    return <ActivityIndicator color={Colors.orange} />;
+  }
 
   type HomePageRenderer = (user: LoggedUser) => JSX.Element;
 
@@ -129,12 +201,10 @@ export default function HomeScreen() {
           />
         </View>
         <View style={{ flexDirection: "column", gap: 8 }}>
-          <AppText style={{ fontWeight: "bold" }}>À la une</AppText>
-          <AppText>
-            Conseil sommeil : Veillez à dormir au moins 8h par nuit et n'hésitez
-            pas à mesurer la qualité de votre sommeil avec une montre connecté
-            pour faire un retour à nos spécialiste disponible pour vous.
+          <AppText style={{ fontWeight: "bold" }}>
+            {notification?.title}
           </AppText>
+          <AppText>{notification?.text}</AppText>
         </View>
       </View>
     ),
@@ -395,12 +465,10 @@ export default function HomeScreen() {
           </View>
         </View>
         <View style={{ flexDirection: "column", gap: 8 }}>
-          <AppText style={{ fontWeight: "bold" }}>À la une</AppText>
-          <AppText>
-            Conseil sommeil : Veillez à dormir au moins 8h par nuit et n'hésitez
-            pas à mesurer la qualité de votre sommeil avec une montre connecté
-            pour faire un retour à nos spécialiste disponible pour vous.
+          <AppText style={{ fontWeight: "bold" }}>
+            {notification?.title}
           </AppText>
+          <AppText>{notification?.text}</AppText>
         </View>
       </View>
     ),
@@ -507,23 +575,22 @@ export default function HomeScreen() {
           </View>
         </View>
         <View style={{ flexDirection: "column", gap: 8 }}>
-          <AppText style={{ fontWeight: "bold" }}>À la une</AppText>
-          <AppText>
-            Conseil sommeil : Veillez à dormir au moins 8h par nuit et n'hésitez
-            pas à mesurer la qualité de votre sommeil avec une montre connecté
-            pour faire un retour à nos spécialiste disponible pour vous.
+          <AppText style={{ fontWeight: "bold" }}>
+            {notification?.title}
           </AppText>
+          <AppText>{notification?.text}</AppText>
           <View style={{ flexDirection: "row", alignSelf: "flex-end" }}>
-            <AppButton type="primary" title="Modifier" iconName="pencil" />
+            <AppButton
+              type="primary"
+              title="Modifier"
+              iconName="pencil"
+              onPress={() => setEditNewsVisible(true)}
+            />
           </View>
         </View>
       </View>
     ),
   };
-
-  const { user } = useAuth();
-
-  if (!user) return null;
 
   const RenderProfileComponents = HomePageByProfile[user.profileCategory];
 
@@ -538,6 +605,53 @@ export default function HomeScreen() {
         showsVerticalScrollIndicator={false}
       >
         {RenderProfileComponents ? RenderProfileComponents(user) : null}
+        {(user.profileCategory === "admin" ||
+          user.profileCategory === "free" ||
+          user.profileCategory === "sporstman") && (
+          <Modal
+            visible={editNewsVisible}
+            transparent
+            onRequestClose={() => setEditNewsVisible(!editNewsVisible)}
+          >
+            <Pressable
+              onPress={() => setEditNewsVisible(!editNewsVisible)}
+              style={{
+                flex: 1,
+                backgroundColor: "rgba(0,0,0,0.5)",
+                justifyContent: "center",
+                padding: 24,
+              }}
+            >
+              <PopUp
+                title="Editer la notification"
+                onClose={() => setEditNewsVisible(!editNewsVisible)}
+                inputs={
+                  <>
+                    <Input
+                      type="text"
+                      label="Titre"
+                      placeholder="ex : A la une"
+                      value={newsTitle}
+                      onChangeText={setNewsTitle}
+                    />
+                    <Input
+                      type="text"
+                      label="Message"
+                      placeholder="Contenu du message"
+                      value={newsText}
+                      onChangeText={setNewsText}
+                    />
+                  </>
+                }
+                onSubmit={() => handleUpdateNotification(newsTitle, newsText)}
+                btnText="Modifier"
+                iconName="pencil"
+                btnType="primary"
+                closeText="Annuler"
+              />
+            </Pressable>
+          </Modal>
+        )}
       </ScrollView>
     </KeyboardAvoidingView>
   );

@@ -78,8 +78,7 @@ export default function AppHeader({
   const [notification, setNotification] = useState<Notification | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const { token } = useAuth();
-  const { user } = useAuth();
+  const { token, user } = useAuth();
 
   const [newsTitle, setNewsTitle] = useState("");
   const [newsText, setNewsText] = useState("");
