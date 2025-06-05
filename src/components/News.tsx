@@ -1,19 +1,23 @@
-import React from "react";
-import { View, StyleSheet, Pressable } from "react-native";
+import React, { useEffect, useState } from "react";
+import { View, StyleSheet, Pressable, ActivityIndicator } from "react-native";
 import GlobalStyles, { Colors } from "../styles/styles";
 import AppText from "./AppText";
 import Icon from "./Icon";
+import { getNotificationsByCategory } from "../services/api/notification-service";
+import { useAuth } from "../hooks/useAuth";
+import { NotificationCategory, Notification } from "../models/notification";
 
 interface Props {
+  onPress: () => void;
+  onClose: () => void;
   title: string;
   text: string;
-  onPress: () => void;
 }
 
-export default function News({ title, text, onPress }: Props) {
+export default function News({ onPress, onClose, title, text }: Props) {
   return (
-    <View style={styles.newsContainer}>
-      <Pressable style={styles.closeBtn} onPress={onPress}>
+    <Pressable style={styles.newsContainer} onPress={onPress}>
+      <Pressable style={styles.closeBtn} onPress={onClose}>
         <Icon
           name="close"
           fillColor="transparent"
@@ -39,7 +43,7 @@ export default function News({ title, text, onPress }: Props) {
       <View>
         <AppText style={GlobalStyles.p}>{text}</AppText>
       </View>
-    </View>
+    </Pressable>
   );
 }
 

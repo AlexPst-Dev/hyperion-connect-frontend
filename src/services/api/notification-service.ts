@@ -2,6 +2,7 @@ import {
   CreateNotificationDto,
   NotificationCategory,
   UpdateNotificationDto,
+  Notification,
 } from "@/src/models/notification";
 import { apiClient } from "./client";
 
@@ -15,21 +16,21 @@ export class NotificationService {
     data: CreateNotificationDto,
     token: string
   ): Promise<Notification> {
-    return apiClient.post<Notification>(this.BASE_ENDPOINT, data, token);
+    return apiClient.post<Notification>("/notifications", data, token);
   }
 
   /**
    * Retrieves all notifications
    */
   static async getAllNotifications(): Promise<Notification[]> {
-    return apiClient.get<Notification[]>(this.BASE_ENDPOINT);
+    return apiClient.get<Notification[]>("/notifications");
   }
 
   /**
    * Retrieves a notification by its ID
    */
   static async getNotificationById(id: number): Promise<Notification> {
-    return apiClient.get<Notification>(`${this.BASE_ENDPOINT}/${id}`);
+    return apiClient.get<Notification>(`/notifications/${id}`);
   }
 
   /**
@@ -40,7 +41,7 @@ export class NotificationService {
     token: string
   ): Promise<Notification[]> {
     return apiClient.get<Notification[]>(
-      `${this.BASE_ENDPOINT}/category/${category}`,
+      `/notifications/category/${category}`,
       token
     );
   }
@@ -53,11 +54,7 @@ export class NotificationService {
     data: UpdateNotificationDto,
     token: string
   ): Promise<Notification> {
-    return apiClient.put<Notification>(
-      `${this.BASE_ENDPOINT}/${id}`,
-      data,
-      token
-    );
+    return apiClient.patch<Notification>(`/notifications/${id}`, data, token);
   }
 
   /**
@@ -67,10 +64,7 @@ export class NotificationService {
     id: number,
     token: string
   ): Promise<{ message: string }> {
-    return apiClient.delete<{ message: string }>(
-      `${this.BASE_ENDPOINT}/${id}`,
-      token
-    );
+    return apiClient.delete<{ message: string }>(`/notifications/${id}`, token);
   }
 }
 

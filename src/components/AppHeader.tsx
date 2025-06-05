@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   StyleSheet,
   View,
@@ -6,6 +6,8 @@ import {
   StatusBar,
   Platform,
   Pressable,
+  Modal,
+  ActivityIndicator,
 } from "react-native";
 import HeaderNav from "./HeaderNav";
 import GlobalStyles, { Colors } from "../styles/styles";
@@ -13,6 +15,14 @@ import Icon from "./Icon";
 import { SafeAreaView } from "react-native-safe-area-context";
 import News from "./News";
 import AppText from "./AppText";
+import PopUp from "./PopUp";
+import Input from "./Input";
+import { useAuth } from "../hooks/useAuth";
+import {
+  getNotificationsByCategory,
+  updateNotification,
+} from "../services/api/notification-service";
+import { NotificationCategory, Notification } from "../models/notification";
 
 interface Props {
   profilePictureUrl?: string;
@@ -63,6 +73,68 @@ export default function AppHeader({
   hasNewsComponent,
 }: Props) {
   const [newsVisible, setNewsVisible] = useState(true);
+  const [editNewsVisible, setEditNewsVisible] = useState(false);
+
+  const [notification, setNotification] = useState<Notification | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const { token } = useAuth();
+  const { user } = useAuth();
+
+  const [newsTitle, setNewsTitle] = useState("");
+  const [newsText, setNewsText] = useState("");
+
+  // Fetch the latest notification
+  useEffect(() => {
+    if (!token) return;
+    async function fetchNotification() {
+      try {
+        const notifications = await getNotificationsByCategory(
+          NotificationCategory.HOME_POPUP,
+          token as string
+        );
+        if (notifications && notifications.length > 0) {
+          setNotification(notifications[notifications.length - 1]);
+        }
+      } catch (error) {
+        console.error("Error fetching notifications:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchNotification();
+  }, [token]);
+
+  // Function to update the latest notification
+  const handleUpdateNotification = async (title: string, text: string) => {
+    if (!notification || !token) return;
+    try {
+      await updateNotification(
+        notification.id, // Use the id of the latest notification
+        {
+          title,
+          text,
+          notificationCategory: NotificationCategory.HOME_POPUP,
+        },
+        token
+      );
+      // Optionally, refetch or update local state
+      setNotification({
+        ...notification,
+        title,
+        text,
+      });
+      setNewsTitle(title);
+      setNewsText(text);
+      setEditNewsVisible(false);
+    } catch (error) {
+      console.error("Error updating notification:", error);
+    }
+  };
+
+  if (loading) {
+    return <ActivityIndicator color={Colors.orange} />;
+  }
 
   return (
     <SafeAreaView style={{ backgroundColor: Colors.deepBlue }}>
@@ -88,22 +160,72 @@ export default function AppHeader({
           </View>
         )}
         {hasNewsComponent && newsVisible && (
-          <View
-            style={{
-              position: "absolute",
-              bottom: Platform.OS === "web" ? -24 : -64,
-              left: 16,
-              width: Platform.OS === "web" ? "92%" : "100%",
-            }}
-          >
-            <News
-              title="Message de l'équipe Hyperion :"
-              text="N'hésitez pas à donner un avis sur le Google Play Store ou l'Apple Store"
-              onPress={() => {
-                setNewsVisible(!newsVisible);
+          <>
+            <View
+              style={{
+                position: "absolute",
+                bottom: Platform.OS === "web" ? -24 : -64,
+                left: 16,
+                width: Platform.OS === "web" ? "92%" : "100%",
               }}
-            />
-          </View>
+            >
+              <News
+                onClose={() => {
+                  setNewsVisible(!newsVisible);
+                }}
+                onPress={() => {
+                  user?.profileCategory === "admin"
+                    ? setEditNewsVisible(!editNewsVisible)
+                    : {};
+                }}
+                title={notification?.title as string}
+                text={notification?.text as string}
+              />
+            </View>
+            <Modal
+              visible={editNewsVisible}
+              transparent
+              onRequestClose={() => setEditNewsVisible(!editNewsVisible)}
+            >
+              <Pressable
+                onPress={() => setEditNewsVisible(!editNewsVisible)}
+                style={{
+                  flex: 1,
+                  backgroundColor: "rgba(0,0,0,0.5)",
+                  justifyContent: "center",
+                  padding: 24,
+                }}
+              >
+                <PopUp
+                  title="Editer la notification"
+                  onClose={() => setEditNewsVisible(!editNewsVisible)}
+                  inputs={
+                    <>
+                      <Input
+                        type="text"
+                        label="Titre"
+                        placeholder="ex : Message de l'équipe Hyperion"
+                        value={newsTitle}
+                        onChangeText={setNewsTitle}
+                      />
+                      <Input
+                        type="text"
+                        label="Message"
+                        placeholder="Contenu du message"
+                        value={newsText}
+                        onChangeText={setNewsText}
+                      />
+                    </>
+                  }
+                  onSubmit={() => handleUpdateNotification(newsTitle, newsText)}
+                  btnText="Modifier"
+                  iconName="pencil"
+                  btnType="primary"
+                  closeText="Annuler"
+                />
+              </Pressable>
+            </Modal>
+          </>
         )}
       </View>
     </SafeAreaView>
