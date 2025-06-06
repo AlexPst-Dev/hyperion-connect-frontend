@@ -162,9 +162,7 @@ export default function AddContacts({
                         >
                           <ItemUser
                             isCompany={false}
-                            firstName={user.firstName}
-                            lastName={user.lastName}
-                            job={user.profileCategory}
+                            user={user}
                             iconName={isSelected ? "circleChecked" : "circle"}
                           />
                         </Pressable>

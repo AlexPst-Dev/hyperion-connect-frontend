@@ -1,4 +1,4 @@
-import React, { JSX, useState } from "react";
+import React, { JSX, useEffect, useState } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -10,7 +10,7 @@ import GlobalStyles, { Colors } from "../styles/styles";
 import AppText from "../components/AppText";
 import Input from "../components/Input";
 import ViewController from "../components/ViewController";
-import { ProfileCategory, User } from "../models/user";
+import { ProfileCategory, User, UserProfile } from "../models/user";
 import ItemUser from "../components/ItemUser";
 import AppButton from "../components/AppButton";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -19,6 +19,9 @@ import { useNavigation } from "@react-navigation/native";
 import Icon, { IconName } from "../components/Icon";
 import AddContacts from "../components/popups/AddContacts";
 import { useAuth } from "../hooks/useAuth";
+import { UserService } from "../services/api/user-service";
+import { Category, CategoryType } from "../models/category";
+import { categoryService } from "../services/api/category-service";
 
 export default function UsersScreen() {
   const [displayUsersList, setDisplayUsersList] = useState(true);
@@ -26,80 +29,210 @@ export default function UsersScreen() {
     setDisplayUsersList(!displayUsersList);
   };
 
-  const tempListOfUser: User[] = [
-    {
-      id: 2,
-      firstName: "Alexa",
-      lastName: "Amazone",
-      email: "a.a@exemple.com",
-      profileCategory: ProfileCategory.SPORTSMAN,
-      isActive: true,
-      createdAt: "2025-05-05",
-      updatedAt: "2025-05-05",
-    },
-    {
-      id: 3,
-      firstName: "Danny",
-      lastName: "Dan",
-      email: "d.d@exemple.com",
-      profileCategory: ProfileCategory.SPORTSMAN,
-      isActive: true,
-      createdAt: "2025-05-05",
-      updatedAt: "2025-05-05",
-    },
-    {
-      id: 4,
-      firstName: "Marc",
-      lastName: "Cram",
-      email: "m.c@exemple.com",
-      profileCategory: ProfileCategory.COACH,
-      isActive: true,
-      createdAt: "2025-05-05",
-      updatedAt: "2025-05-05",
-    },
-    {
-      id: 5,
-      firstName: "Doke",
-      lastName: "Theurc",
-      email: "d.tc@exemple.com",
-      profileCategory: ProfileCategory.MEDIC,
-      isActive: true,
-      createdAt: "2025-05-05",
-      updatedAt: "2025-05-05",
-    },
-  ];
-  const tempListOfPartner: User[] = [
-    {
-      id: 14,
-      firstName: "Nutrisport",
-      lastName: "",
-      email: "contact.nutrisport@exemple.com",
-      profileCategory: ProfileCategory.PARTNER,
-      isActive: true,
-      createdAt: "2025-05-05",
-      updatedAt: "2025-05-05",
-    },
-    {
-      id: 15,
-      firstName: "Fitness Park",
-      lastName: "",
-      email: "contact.fp@exemple.com",
-      profileCategory: ProfileCategory.PARTNER,
-      isActive: true,
-      createdAt: "2025-05-05",
-      updatedAt: "2025-05-05",
-    },
-    {
-      id: 16,
-      firstName: "Tonton Outdoor",
-      lastName: "",
-      email: "contact.tt@exemple.com",
-      profileCategory: ProfileCategory.SPORTSMAN,
-      isActive: true,
-      createdAt: "2025-05-05",
-      updatedAt: "2025-05-05",
-    },
-  ];
+  // const usersByCategory: User[] = [
+  //   {
+  //     id: 2,
+  //     firstName: "Alexa",
+  //     lastName: "Amazone",
+  //     email: "a.a@exemple.com",
+  //     profileCategory: ProfileCategory.SPORTSMAN,
+  //     isActive: true,
+  //     createdAt: "2025-05-05",
+  //     updatedAt: "2025-05-05",
+  //   },
+  //   {
+  //     id: 3,
+  //     firstName: "Danny",
+  //     lastName: "Dan",
+  //     email: "d.d@exemple.com",
+  //     profileCategory: ProfileCategory.SPORTSMAN,
+  //     isActive: true,
+  //     createdAt: "2025-05-05",
+  //     updatedAt: "2025-05-05",
+  //   },
+  //   {
+  //     id: 4,
+  //     firstName: "Marc",
+  //     lastName: "Cram",
+  //     email: "m.c@exemple.com",
+  //     profileCategory: ProfileCategory.COACH,
+  //     isActive: true,
+  //     createdAt: "2025-05-05",
+  //     updatedAt: "2025-05-05",
+  //   },
+  //   {
+  //     id: 5,
+  //     firstName: "Doke",
+  //     lastName: "Theurc",
+  //     email: "d.tc@exemple.com",
+  //     profileCategory: ProfileCategory.MEDIC,
+  //     isActive: true,
+  //     createdAt: "2025-05-05",
+  //     updatedAt: "2025-05-05",
+  //   },
+  // ];
+  // const tempListOfPartner: User[] = [
+  //   {
+  //     id: 14,
+  //     firstName: "Nutrisport",
+  //     lastName: "",
+  //     email: "contact.nutrisport@exemple.com",
+  //     profileCategory: ProfileCategory.PARTNER,
+  //     isActive: true,
+  //     createdAt: "2025-05-05",
+  //     updatedAt: "2025-05-05",
+  //   },
+  //   {
+  //     id: 15,
+  //     firstName: "Fitness Park",
+  //     lastName: "",
+  //     email: "contact.fp@exemple.com",
+  //     profileCategory: ProfileCategory.PARTNER,
+  //     isActive: true,
+  //     createdAt: "2025-05-05",
+  //     updatedAt: "2025-05-05",
+  //   },
+  //   {
+  //     id: 16,
+  //     firstName: "Tonton Outdoor",
+  //     lastName: "",
+  //     email: "contact.tt@exemple.com",
+  //     profileCategory: ProfileCategory.SPORTSMAN,
+  //     isActive: true,
+  //     createdAt: "2025-05-05",
+  //     updatedAt: "2025-05-05",
+  //   },
+  // ];
+
+  const [allUsersByCategory, setAllUsersByCategory] = useState<User[]>([]);
+  const [usersByCategory, setUsersByCategory] = useState<User[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
+  const [displayLimit, setDisplayLimit] = useState(20);
+
+  const [activeTabIndex, setActiveTabIndex] = useState(0);
+  let [stepNewUserView, setStepNewUserView] = useState(0);
+  let [newUserType, setNewUserType] = useState("");
+
+  const [addContactPopUpVisible, setAddContactPopUpVisible] = useState(false);
+
+  const [isNewUserAProfesional, setIsNewUserAProfesional] = useState(false);
+
+  const [sportCategories, setSportCategories] = useState<Category[]>([]);
+  const [medicCategories, setMedicCategories] = useState<Category[]>([]);
+
+  const { token } = useAuth();
+
+  useEffect(() => {
+    async function fetchCategories() {
+      try {
+        const sports = await categoryService.getCategoriesByType(
+          CategoryType.SPORT,
+          token ?? ""
+        );
+        setSportCategories(sports);
+        const medics = await categoryService.getCategoriesByType(
+          CategoryType.MEDICAL,
+          token ?? ""
+        );
+        setMedicCategories(medics);
+      } catch (e) {
+        setSportCategories([]);
+        setMedicCategories([]);
+      }
+    }
+    fetchCategories();
+  }, [token]);
+
+  const fetchUsersByCategories = async (category: ProfileCategory) => {
+    try {
+      const response = await UserService.getUsersByProfileCategory(
+        category,
+        token ?? undefined,
+        1000,
+        0
+      );
+      const users: User[] = response.users
+        .map((item) => {
+          if (!item.profile) return null;
+
+          // Sportsman or Coach: attach sport category
+          if (
+            (item.profile.user.profileCategory === ProfileCategory.SPORTSMAN ||
+              item.profile.user.profileCategory === ProfileCategory.COACH) &&
+            typeof (item.profile as any).sportCategoryId !== "undefined" &&
+            (item.profile as any).sportCategoryId
+          ) {
+            const sportCategoryId = (item.profile as any).sportCategoryId;
+            const cat = sportCategories.find((c) => c.id === sportCategoryId);
+            return {
+              ...item.profile.user,
+              profile: {
+                ...item.profile,
+                sportCategory: cat,
+              },
+            };
+          }
+
+          // Medic: attach medical category
+          if (
+            item.profile.user.profileCategory === ProfileCategory.MEDIC &&
+            typeof (item.profile as any).medicCategoryId !== "undefined" &&
+            (item.profile as any).medicCategoryId
+          ) {
+            const medicCategoryId = (item.profile as any).medicCategoryId;
+            const cat = medicCategories.find((c) => c.id === medicCategoryId);
+            return {
+              ...item.profile.user,
+              profile: {
+                ...item.profile,
+                medicCategory: cat,
+              },
+            };
+          }
+
+          // Default: just return the user
+          return item.profile.user;
+        })
+        .filter((user): user is User => !!user);
+      setAllUsersByCategory(users);
+      setUsersByCategory(users.slice(0, displayLimit));
+      const categories = Array.from(
+        new Set(users.map((u) => u.profileCategory))
+      );
+      setSelectedFilters(categories);
+    } catch (error) {
+      setAllUsersByCategory([]);
+      setUsersByCategory([]);
+    }
+  };
+
+  useEffect(() => {
+    let filtered = allUsersByCategory;
+    // Filter by selectedFilters
+    if (selectedFilters.length > 0) {
+      filtered = filtered.filter((user) =>
+        selectedFilters.includes(user.profileCategory)
+      );
+    }
+    // Filter by searchTerm
+    if (searchTerm.length >= 3) {
+      const term = searchTerm.toLowerCase();
+      filtered = filtered.filter(
+        (user) =>
+          user.firstName.toLowerCase().includes(term) ||
+          user.lastName.toLowerCase().includes(term) ||
+          (user.email && user.email.toLowerCase().includes(term))
+      );
+    }
+    setUsersByCategory(filtered.slice(0, displayLimit));
+  }, [allUsersByCategory, searchTerm, selectedFilters, displayLimit]);
+
+  useEffect(() => {
+    if (sportCategories.length > 0) {
+      fetchUsersByCategories(ProfileCategory.SPORTSMAN);
+    }
+  }, [token, sportCategories]);
 
   type NavigationProp = NativeStackNavigationProp<
     RootStackParamList,
@@ -107,7 +240,6 @@ export default function UsersScreen() {
   >;
   const navigation = useNavigation<NavigationProp>();
 
-  const [activeTabIndex, setActiveTabIndex] = useState(0);
   const tabViews: JSX.Element[] = [
     <View key="sportsman" style={{ flexDirection: "column", gap: 24 }}>
       <View style={{ flexDirection: "column", gap: 16 }}>
@@ -115,11 +247,8 @@ export default function UsersScreen() {
           type="text"
           label="Rechercher"
           placeholder="nom, prénom, email..."
-        />
-        <Input
-          type="multiSelector"
-          label="Filtrer"
-          placeholder="Running, paimement en attente..."
+          value={searchTerm}
+          onChangeText={setSearchTerm}
         />
       </View>
       <View style={{ flex: 1 }}>
@@ -135,22 +264,17 @@ export default function UsersScreen() {
               flexDirection: "column",
             }}
           >
-            {tempListOfUser.map((user, index) => (
+            {usersByCategory.map((user, index) => (
               <Pressable
                 onPress={() => {
                   navigation.navigate("ClientDetail", { client: user });
                 }}
                 key={user.id}
                 style={{
-                  marginBottom: index === tempListOfUser.length - 1 ? 0 : 12,
+                  marginBottom: index === usersByCategory.length - 1 ? 0 : 12,
                 }}
               >
-                <ItemUser
-                  firstName={user.firstName}
-                  lastName={user.lastName}
-                  isCompany={false}
-                  iconName="send"
-                />
+                <ItemUser user={user} isCompany={false} iconName="send" />
               </Pressable>
             ))}
           </View>
@@ -163,11 +287,8 @@ export default function UsersScreen() {
           type="text"
           label="Rechercher"
           placeholder="nom, prénom, email..."
-        />
-        <Input
-          type="multiSelector"
-          label="Filtrer"
-          placeholder="Running, paimement en attente..."
+          value={searchTerm}
+          onChangeText={setSearchTerm}
         />
       </View>
       <View style={{ flex: 1 }}>
@@ -183,20 +304,15 @@ export default function UsersScreen() {
               flexDirection: "column",
             }}
           >
-            {tempListOfUser.map((user, index) => (
+            {usersByCategory.map((user, index) => (
               <Pressable
                 onPress={() => {}}
                 key={user.id}
                 style={{
-                  marginBottom: index === tempListOfUser.length - 1 ? 0 : 12,
+                  marginBottom: index === usersByCategory.length - 1 ? 0 : 12,
                 }}
               >
-                <ItemUser
-                  firstName={user.firstName}
-                  lastName={user.lastName}
-                  isCompany={false}
-                  iconName="send"
-                />
+                <ItemUser user={user} isCompany={false} iconName="send" />
               </Pressable>
             ))}
           </View>
@@ -209,11 +325,8 @@ export default function UsersScreen() {
           type="text"
           label="Rechercher"
           placeholder="nom, prénom, email..."
-        />
-        <Input
-          type="multiSelector"
-          label="Filtrer"
-          placeholder="Running, paimement en attente..."
+          value={searchTerm}
+          onChangeText={setSearchTerm}
         />
       </View>
       <View style={{ flex: 1 }}>
@@ -229,20 +342,15 @@ export default function UsersScreen() {
               flexDirection: "column",
             }}
           >
-            {tempListOfUser.map((user, index) => (
+            {usersByCategory.map((user, index) => (
               <Pressable
                 onPress={() => {}}
                 key={user.id}
                 style={{
-                  marginBottom: index === tempListOfUser.length - 1 ? 0 : 12,
+                  marginBottom: index === usersByCategory.length - 1 ? 0 : 12,
                 }}
               >
-                <ItemUser
-                  firstName={user.firstName}
-                  lastName={user.lastName}
-                  isCompany={false}
-                  iconName="send"
-                />
+                <ItemUser user={user} isCompany={false} iconName="send" />
               </Pressable>
             ))}
           </View>
@@ -255,11 +363,8 @@ export default function UsersScreen() {
           type="text"
           label="Rechercher"
           placeholder="nom, prénom, email..."
-        />
-        <Input
-          type="multiSelector"
-          label="Filtrer"
-          placeholder="Running, paimement en attente..."
+          value={searchTerm}
+          onChangeText={setSearchTerm}
         />
       </View>
       <View style={{ flex: 1 }}>
@@ -275,21 +380,17 @@ export default function UsersScreen() {
               flexDirection: "column",
             }}
           >
-            {tempListOfPartner.map((user, index) => (
+            {usersByCategory.map((user, index) => (
               <Pressable
                 onPress={() => {
                   navigation.navigate("ClientDetail", { client: user });
                 }}
                 key={user.id}
                 style={{
-                  marginBottom: index === tempListOfUser.length - 1 ? 0 : 12,
+                  marginBottom: index === usersByCategory.length - 1 ? 0 : 12,
                 }}
               >
-                <ItemUser
-                  companyName={user.firstName}
-                  isCompany
-                  iconName="eye"
-                />
+                <ItemUser user={user} isCompany={false} iconName="send" />
               </Pressable>
             ))}
           </View>
@@ -298,16 +399,30 @@ export default function UsersScreen() {
     </View>,
   ];
 
-  let [stepNewUserView, setStepNewUserView] = useState(0);
-  let [newUserType, setNewUserType] = useState("");
+  const handleTabChange = (index: number) => {
+    setActiveTabIndex(index);
+    switch (index) {
+      case 0:
+        fetchUsersByCategories(ProfileCategory.SPORTSMAN);
+        break;
+      case 1:
+        fetchUsersByCategories(ProfileCategory.COACH);
+        break;
+      case 2:
+        fetchUsersByCategories(ProfileCategory.MEDIC);
+        break;
+      case 3:
+        fetchUsersByCategories(ProfileCategory.PARTNER);
+        break;
+      default:
+        break;
+    }
+  };
 
-  const [addContactPopUpVisible, setAddContactPopUpVisible] = useState(false);
   const handleContactPopUpVisible = () => {
     setAddContactPopUpVisible(!addContactPopUpVisible);
   };
-
-  const [isNewUserAProfesional, setIsNewUserAProfesional] = useState(false);
-
+  // Step views for creating a new user with form. Admin profile only
   const stepViews: JSX.Element[] = [
     <View
       key={"Informations personnelles"}
@@ -624,7 +739,7 @@ export default function UsersScreen() {
                   ? [{ title: "Parternaires", icon: "handshake" as IconName }]
                   : []),
               ]}
-              onTabChange={setActiveTabIndex}
+              onTabChange={handleTabChange}
             />
             {tabViews[activeTabIndex]}
             {user?.profileCategory === "admin" && (

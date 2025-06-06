@@ -46,12 +46,25 @@ export class UserService {
    */
   static async getUsersByProfileCategory(
     category: ProfileCategory,
-    token?: string
-  ): Promise<{ profile: UserProfile | null }[]> {
-    return apiClient.get<{ profile: UserProfile | null }[]>(
-      `/users/category/${category}`,
-      token
-    );
+    token?: string,
+    limit?: number,
+    offset?: number
+  ): Promise<{
+    users: { profile: UserProfile | null }[];
+    total: number;
+    limit: number;
+    offset: number;
+  }> {
+    let url = `/users/category/${category}`;
+    if (limit !== undefined && offset !== undefined) {
+      url += `?limit=${limit}&offset=${offset}`;
+    }
+    return apiClient.get<{
+      users: { profile: UserProfile | null }[];
+      total: number;
+      limit: number;
+      offset: number;
+    }>(url, token);
   }
 
   /**
@@ -142,7 +155,11 @@ export class UserService {
   static async getAllSportsmen(
     token?: string
   ): Promise<{ profile: UserProfile | null }[]> {
-    return this.getUsersByProfileCategory(ProfileCategory.SPORTSMAN, token);
+    const result = await this.getUsersByProfileCategory(
+      ProfileCategory.SPORTSMAN,
+      token
+    );
+    return result.users;
   }
 
   /**
@@ -151,7 +168,11 @@ export class UserService {
   static async getAllCoaches(
     token?: string
   ): Promise<{ profile: UserProfile | null }[]> {
-    return this.getUsersByProfileCategory(ProfileCategory.COACH, token);
+    const result = await this.getUsersByProfileCategory(
+      ProfileCategory.COACH,
+      token
+    );
+    return result.users;
   }
 
   /**
@@ -160,7 +181,11 @@ export class UserService {
   static async getAllMedics(
     token?: string
   ): Promise<{ profile: UserProfile | null }[]> {
-    return this.getUsersByProfileCategory(ProfileCategory.MEDIC, token);
+    const result = await this.getUsersByProfileCategory(
+      ProfileCategory.MEDIC,
+      token
+    );
+    return result.users;
   }
 
   /**
@@ -169,7 +194,11 @@ export class UserService {
   static async getAllFreeUsers(
     token?: string
   ): Promise<{ profile: UserProfile | null }[]> {
-    return this.getUsersByProfileCategory(ProfileCategory.FREE, token);
+    const result = await this.getUsersByProfileCategory(
+      ProfileCategory.FREE,
+      token
+    );
+    return result.users;
   }
 
   /**
@@ -178,7 +207,11 @@ export class UserService {
   static async getAllPartners(
     token?: string
   ): Promise<{ profile: UserProfile | null }[]> {
-    return this.getUsersByProfileCategory(ProfileCategory.PARTNER, token);
+    const result = await this.getUsersByProfileCategory(
+      ProfileCategory.PARTNER,
+      token
+    );
+    return result.users;
   }
 
   /**
@@ -187,7 +220,11 @@ export class UserService {
   static async getAllAdmins(
     token: string
   ): Promise<{ profile: UserProfile | null }[]> {
-    return this.getUsersByProfileCategory(ProfileCategory.ADMIN, token);
+    const result = await this.getUsersByProfileCategory(
+      ProfileCategory.ADMIN,
+      token
+    );
+    return result.users;
   }
 
   // Specific update methods
