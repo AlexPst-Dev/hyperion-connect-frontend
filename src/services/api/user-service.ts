@@ -138,7 +138,21 @@ export class UserService {
   }
 
   /**
-   * Deletes a user by their ID
+   * Create a a user by their ID
+   */
+  static async createUserProfile(
+    payload: any,
+    token: string
+  ): Promise<{ message: string; user: User }> {
+    return apiClient.post<{ message: string; user: User }>(
+      `/users/`,
+      payload,
+      token
+    );
+  }
+
+  /**
+   * Deletes a user by their id
    */
   static async deleteUserById(
     userId: number,

@@ -3,7 +3,7 @@ import { Billing } from "../../models/billing";
 
 export const billingService = {
   async createBilling(
-    data: Omit<Billing, "billingId" | "objective" | "createdAt" | "updatedAt">,
+    data: Omit<Billing, "objective" | "createdAt" | "updatedAt">,
     token: string
   ): Promise<{ message: string; billing: Billing }> {
     return apiClient.post<{ message: string; billing: Billing }>(

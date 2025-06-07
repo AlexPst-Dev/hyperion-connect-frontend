@@ -25,7 +25,7 @@ export default function AddContacts({
   initialSelectedUserIds,
 }: Props) {
   const [selectedUserIds, setSelectedUserIds] = useState<number[]>(
-    initialSelectedUserIds as number[]
+    initialSelectedUserIds ?? []
   );
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
@@ -37,7 +37,7 @@ export default function AddContacts({
 
   useEffect(() => {
     if (visible) {
-      setSelectedUserIds(initialSelectedUserIds as number[]);
+      setSelectedUserIds(initialSelectedUserIds ?? []);
     }
   }, [visible, initialSelectedUserIds]);
 

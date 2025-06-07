@@ -22,107 +22,83 @@ import { useAuth } from "../hooks/useAuth";
 import { UserService } from "../services/api/user-service";
 import { Category, CategoryType } from "../models/category";
 import { categoryService } from "../services/api/category-service";
+import { Company } from "../models/company";
+import { CompanyService } from "../services/api/company-service";
+import { ObjectivesApiService } from "../services/api/objective-service";
+import { billingService } from "../services/api/billing-service";
+
+// Interface pour le formulaire
+interface UserFormData {
+  // Données utilisateur de base
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone?: string;
+  street?: string;
+  city: string;
+  postalCode: string;
+  birthDate: string;
+
+  // Données spécifiques au profil
+  sportCategoryId?: number;
+  medicCategoryId?: number;
+  canImportSessions?: boolean;
+  availableDays?: string;
+  availableTime?: string;
+  listMedicsIds?: string;
+
+  // Données spécifiques aux sportifs
+  objectiveLabel?: string;
+  objectiveStartDate?: string;
+  objectiveEndDate?: string;
+  objectiveIsMonthly?: boolean;
+  billingMonthlyAmount?: string;
+  billingTotalAmount?: string;
+  subscriptionLabel?: string;
+
+  // Autres
+  companyId?: number;
+}
 
 export default function UsersScreen() {
   const [displayUsersList, setDisplayUsersList] = useState(true);
-  const handleDisplayUserList = () => {
-    setDisplayUsersList(!displayUsersList);
-  };
-
-  // const usersByCategory: User[] = [
-  //   {
-  //     id: 2,
-  //     firstName: "Alexa",
-  //     lastName: "Amazone",
-  //     email: "a.a@exemple.com",
-  //     profileCategory: ProfileCategory.SPORTSMAN,
-  //     isActive: true,
-  //     createdAt: "2025-05-05",
-  //     updatedAt: "2025-05-05",
-  //   },
-  //   {
-  //     id: 3,
-  //     firstName: "Danny",
-  //     lastName: "Dan",
-  //     email: "d.d@exemple.com",
-  //     profileCategory: ProfileCategory.SPORTSMAN,
-  //     isActive: true,
-  //     createdAt: "2025-05-05",
-  //     updatedAt: "2025-05-05",
-  //   },
-  //   {
-  //     id: 4,
-  //     firstName: "Marc",
-  //     lastName: "Cram",
-  //     email: "m.c@exemple.com",
-  //     profileCategory: ProfileCategory.COACH,
-  //     isActive: true,
-  //     createdAt: "2025-05-05",
-  //     updatedAt: "2025-05-05",
-  //   },
-  //   {
-  //     id: 5,
-  //     firstName: "Doke",
-  //     lastName: "Theurc",
-  //     email: "d.tc@exemple.com",
-  //     profileCategory: ProfileCategory.MEDIC,
-  //     isActive: true,
-  //     createdAt: "2025-05-05",
-  //     updatedAt: "2025-05-05",
-  //   },
-  // ];
-  // const tempListOfPartner: User[] = [
-  //   {
-  //     id: 14,
-  //     firstName: "Nutrisport",
-  //     lastName: "",
-  //     email: "contact.nutrisport@exemple.com",
-  //     profileCategory: ProfileCategory.PARTNER,
-  //     isActive: true,
-  //     createdAt: "2025-05-05",
-  //     updatedAt: "2025-05-05",
-  //   },
-  //   {
-  //     id: 15,
-  //     firstName: "Fitness Park",
-  //     lastName: "",
-  //     email: "contact.fp@exemple.com",
-  //     profileCategory: ProfileCategory.PARTNER,
-  //     isActive: true,
-  //     createdAt: "2025-05-05",
-  //     updatedAt: "2025-05-05",
-  //   },
-  //   {
-  //     id: 16,
-  //     firstName: "Tonton Outdoor",
-  //     lastName: "",
-  //     email: "contact.tt@exemple.com",
-  //     profileCategory: ProfileCategory.SPORTSMAN,
-  //     isActive: true,
-  //     createdAt: "2025-05-05",
-  //     updatedAt: "2025-05-05",
-  //   },
-  // ];
-
   const [allUsersByCategory, setAllUsersByCategory] = useState<User[]>([]);
   const [usersByCategory, setUsersByCategory] = useState<User[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
   const [displayLimit, setDisplayLimit] = useState(20);
-
   const [activeTabIndex, setActiveTabIndex] = useState(0);
+
+  // États pour le formulaire de création
   let [stepNewUserView, setStepNewUserView] = useState(0);
-  let [newUserType, setNewUserType] = useState("");
-
-  const [addContactPopUpVisible, setAddContactPopUpVisible] = useState(false);
-
-  const [isNewUserAProfesional, setIsNewUserAProfesional] = useState(false);
+  const [newUserType, setNewUserType] = useState<ProfileCategory | "">("");
+  const [formData, setFormData] = useState<UserFormData>({
+    firstName: "",
+    lastName: "",
+    email: "",
+    city: "",
+    postalCode: "",
+    birthDate: "",
+  });
+  const [isLoading, setIsLoading] = useState(false);
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
   const [sportCategories, setSportCategories] = useState<Category[]>([]);
   const [medicCategories, setMedicCategories] = useState<Category[]>([]);
+  const [companies, setCompanies] = useState<Company[]>([]);
 
-  const { token } = useAuth();
+  const [addContactPopUpVisible, setAddContactPopUpVisible] = useState(false);
+  const [selectedUsers, setSelectedUser] = useState<User[] | []>([]);
 
+  const handleAddContactsSubmit = (selectedUsers: User[]) => {
+    console.log("Selected users:", selectedUsers);
+    setSelectedUser(selectedUsers);
+    setAddContactPopUpVisible(false);
+  };
+
+  const { token, user } = useAuth();
+
+  // Récupération des catégories
   useEffect(() => {
     async function fetchCategories() {
       try {
@@ -143,7 +119,19 @@ export default function UsersScreen() {
     }
     fetchCategories();
   }, [token]);
+  useEffect(() => {
+    async function fetchCompanies() {
+      try {
+        const companies = await CompanyService.getAllCompanies(token ?? "");
+        setCompanies(companies);
+      } catch (e) {
+        setCompanies([]);
+      }
+    }
+    fetchCompanies();
+  }, [token]);
 
+  // Récupération des utilisateurs par catégorie
   const fetchUsersByCategories = async (category: ProfileCategory) => {
     try {
       const response = await UserService.getUsersByProfileCategory(
@@ -191,10 +179,10 @@ export default function UsersScreen() {
             };
           }
 
-          // Default: just return the user
           return item.profile.user;
         })
         .filter((user): user is User => !!user);
+
       setAllUsersByCategory(users);
       setUsersByCategory(users.slice(0, displayLimit));
       const categories = Array.from(
@@ -202,20 +190,20 @@ export default function UsersScreen() {
       );
       setSelectedFilters(categories);
     } catch (error) {
+      console.error("Erreur lors de la récupération des utilisateurs:", error);
       setAllUsersByCategory([]);
       setUsersByCategory([]);
     }
   };
 
+  // Filtrage des utilisateurs
   useEffect(() => {
     let filtered = allUsersByCategory;
-    // Filter by selectedFilters
     if (selectedFilters.length > 0) {
       filtered = filtered.filter((user) =>
         selectedFilters.includes(user.profileCategory)
       );
     }
-    // Filter by searchTerm
     if (searchTerm.length >= 3) {
       const term = searchTerm.toLowerCase();
       filtered = filtered.filter(
@@ -240,6 +228,295 @@ export default function UsersScreen() {
   >;
   const navigation = useNavigation<NavigationProp>();
 
+  // Gestion des onglets
+  const handleTabChange = (index: number) => {
+    setActiveTabIndex(index);
+    switch (index) {
+      case 0:
+        fetchUsersByCategories(ProfileCategory.SPORTSMAN);
+        break;
+      case 1:
+        fetchUsersByCategories(ProfileCategory.COACH);
+        break;
+      case 2:
+        fetchUsersByCategories(ProfileCategory.MEDIC);
+        break;
+      case 3:
+        fetchUsersByCategories(ProfileCategory.PARTNER);
+        break;
+      default:
+        break;
+    }
+  };
+
+  // Gestion du formulaire
+  const handleDisplayUserList = () => {
+    setDisplayUsersList(!displayUsersList);
+    if (!displayUsersList) {
+      // Reset du formulaire quand on revient à la liste
+      resetForm();
+    }
+  };
+
+  const resetForm = () => {
+    setStepNewUserView(0);
+    setNewUserType("");
+    setFormData({
+      firstName: "",
+      lastName: "",
+      email: "",
+      city: "",
+      postalCode: "",
+      birthDate: "",
+    });
+    setFormErrors({});
+  };
+
+  const handleInputChange = (field: keyof UserFormData, value: any) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+    // Effacer l'erreur pour ce champ si elle existe
+    if (formErrors[field]) {
+      setFormErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[field];
+        return newErrors;
+      });
+    }
+  };
+
+  // Validation des étapes
+  const validateStep = (step: number): boolean => {
+    const errors: Record<string, string> = {};
+
+    switch (step) {
+      case 0: // Informations personnelles
+        if (!formData.firstName.trim())
+          errors.firstName = "Le prénom est requis";
+        if (!formData.lastName.trim()) errors.lastName = "Le nom est requis";
+        if (!formData.email.trim()) {
+          errors.email = "L'email est requis";
+        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+          errors.email = "Format d'email invalide";
+        }
+        if (!formData.birthDate)
+          errors.birthDate = "La date de naissance est requise";
+        if (!formData.city.trim()) errors.city = "La ville est requise";
+        if (!formData.postalCode.trim())
+          errors.postalCode = "Le code postal est requis";
+        break;
+
+      case 1: // Informations administratives
+        if (!newUserType) errors.profileCategory = "Le rôle est requis";
+        if (
+          newUserType === ProfileCategory.COACH &&
+          !formData.sportCategoryId
+        ) {
+          errors.sportCategoryId =
+            "La catégorie sport est requise pour un coach";
+        }
+        if (
+          newUserType === ProfileCategory.MEDIC &&
+          !formData.medicCategoryId
+        ) {
+          errors.medicCategoryId = "La profession est requise pour un soignant";
+        }
+        break;
+
+      case 2: // Plans d'entraînement (sportifs uniquement)
+        if (newUserType === ProfileCategory.SPORTSMAN) {
+          if (!formData.objectiveLabel?.trim()) {
+            errors.objectiveLabel = "Le libellé de la prestation est requis";
+          }
+          if (!formData.objectiveStartDate) {
+            errors.objectiveStartDate = "La date de début est requise";
+          }
+          if (!formData.objectiveEndDate) {
+            errors.objectiveEndDate = "La date de fin est requise";
+          }
+        }
+        break;
+    }
+
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  // Navigation entre les étapes
+  const isSportsman = newUserType === ProfileCategory.SPORTSMAN;
+  const totalSteps = isSportsman ? 6 : 2; // 6 étapes pour sportif, 2 pour les autres
+
+  const getStepsForUserType = (): number[] => {
+    if (isSportsman) {
+      return [0, 1, 2, 3, 4, 5]; // Toutes les étapes
+    }
+    return [0, 1]; // Seulement les 2 premières étapes
+  };
+
+  const handleNextStep = () => {
+    if (!validateStep(stepNewUserView)) {
+      return;
+    }
+
+    const steps = getStepsForUserType();
+    const currentIndex = steps.indexOf(stepNewUserView);
+
+    if (currentIndex < steps.length - 1) {
+      setStepNewUserView(steps[currentIndex + 1]);
+    }
+  };
+
+  const handlePrevStep = () => {
+    const steps = getStepsForUserType();
+    const currentIndex = steps.indexOf(stepNewUserView);
+
+    if (currentIndex > 0) {
+      setStepNewUserView(steps[currentIndex - 1]);
+    }
+  };
+
+  const isLastStep = () => {
+    const steps = getStepsForUserType();
+    return stepNewUserView === steps[steps.length - 1];
+  };
+
+  // Création de l'utilisateur
+  const handleCreateUser = async () => {
+    if (!validateStep(stepNewUserView)) {
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      if (!token) {
+        throw new Error("Token manquant");
+      }
+
+      // Construction du payload selon la structure attendue par le backend
+      const baseUserData = {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        phone: formData.phone || null,
+        street: formData.street || null,
+        city: formData.city,
+        postalCode: formData.postalCode,
+        birthDate: formData.birthDate,
+        isActive: true,
+        profileCategory: newUserType,
+      };
+
+      // Construction des données de profil selon le type
+      let profileData: any = {};
+
+      switch (newUserType) {
+        case ProfileCategory.SPORTSMAN:
+          profileData = {
+            sportCategoryId: formData.sportCategoryId || null,
+            availableDays: formData.availableDays || null,
+            availableTime: formData.availableTime || null,
+            listMedicsIds: selectedUsers.map((u) => u.id).join(";") || null,
+          };
+          break;
+
+        case ProfileCategory.COACH:
+          profileData = {
+            sportCategoryId: formData.sportCategoryId || null,
+            canImportSessions: formData.canImportSessions || false,
+          };
+          break;
+
+        case ProfileCategory.MEDIC:
+          profileData = {
+            medicCategoryId: formData.medicCategoryId || null,
+            canImportSessions: formData.canImportSessions || false,
+          };
+          break;
+
+        case ProfileCategory.PARTNER:
+          profileData = {
+            companyId: formData.companyId || null,
+          };
+          break;
+
+        case ProfileCategory.FREE:
+        case ProfileCategory.ADMIN:
+        default:
+          // Pas de données spécifiques pour ces profils
+          break;
+      }
+
+      const payload = {
+        ...baseUserData,
+        profile: profileData,
+      };
+
+      console.log("Payload envoyé:", payload);
+
+      // 1. Create user and get the new user ID
+      const userResponse = await UserService.createUserProfile(payload, token);
+      const createdUser = await UserService.getUserById(
+        userResponse.user.id,
+        token
+      );
+
+      // 2. Create the objective (if sportsman)
+      let createdObjective;
+      if (newUserType === ProfileCategory.SPORTSMAN && createdUser) {
+        const objectivePayload = {
+          sportsmanId: userResponse.user.id,
+          label: formData.objectiveLabel || "",
+          responsibleId: selectedUsers[0]?.id,
+          startDate: formData.objectiveStartDate || "",
+          endDate: formData.objectiveEndDate || "",
+          isActive: true,
+        };
+        const objectiveRes = await ObjectivesApiService.createObjective(
+          objectivePayload,
+          token
+        );
+        createdObjective = objectiveRes.objective;
+      }
+
+      // 3. Create the billing (if sportsman and objective created)
+      if (newUserType === ProfileCategory.SPORTSMAN && createdObjective) {
+        await billingService.createBilling(
+          {
+            objectiveId: createdObjective.id,
+            billingId: createdObjective.id,
+            date: new Date().toISOString().slice(0, 10),
+            globalAmount: formData.objectiveIsMonthly
+              ? Number(formData.billingMonthlyAmount)
+              : Number(formData.billingTotalAmount),
+            isMonthly: !!formData.objectiveIsMonthly,
+            monthlyAmount: Number(formData.billingMonthlyAmount) || 0,
+            paymentReceived: false,
+            isActive: true,
+          },
+          token
+        );
+      }
+
+      // Succès - retour à la liste
+      setDisplayUsersList(true);
+      resetForm();
+
+      // Rafraîchir la liste des utilisateurs
+      if (newUserType) {
+        fetchUsersByCategories(newUserType as ProfileCategory);
+      }
+    } catch (error) {
+      console.error("Erreur lors de la création de l'utilisateur:", error);
+      // Vous pouvez ajouter ici une notification d'erreur pour l'utilisateur
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleContactPopUpVisible = () => {
+    setAddContactPopUpVisible(!addContactPopUpVisible);
+  };
+
+  // Vues des onglets (reste identique)
   const tabViews: JSX.Element[] = [
     <View key="sportsman" style={{ flexDirection: "column", gap: 24 }}>
       <View style={{ flexDirection: "column", gap: 16 }}>
@@ -253,17 +530,11 @@ export default function UsersScreen() {
       </View>
       <View style={{ flex: 1 }}>
         <ScrollView
-          style={{
-            height: 300,
-          }}
+          style={{ height: 300 }}
           scrollEnabled
           nestedScrollEnabled={true}
         >
-          <View
-            style={{
-              flexDirection: "column",
-            }}
-          >
+          <View style={{ flexDirection: "column" }}>
             {usersByCategory.map((user, index) => (
               <Pressable
                 onPress={() => {
@@ -293,17 +564,11 @@ export default function UsersScreen() {
       </View>
       <View style={{ flex: 1 }}>
         <ScrollView
-          style={{
-            height: 300,
-          }}
+          style={{ height: 300 }}
           scrollEnabled
           nestedScrollEnabled={true}
         >
-          <View
-            style={{
-              flexDirection: "column",
-            }}
-          >
+          <View style={{ flexDirection: "column" }}>
             {usersByCategory.map((user, index) => (
               <Pressable
                 onPress={() => {}}
@@ -331,17 +596,11 @@ export default function UsersScreen() {
       </View>
       <View style={{ flex: 1 }}>
         <ScrollView
-          style={{
-            height: 300,
-          }}
+          style={{ height: 300 }}
           scrollEnabled
           nestedScrollEnabled={true}
         >
-          <View
-            style={{
-              flexDirection: "column",
-            }}
-          >
+          <View style={{ flexDirection: "column" }}>
             {usersByCategory.map((user, index) => (
               <Pressable
                 onPress={() => {}}
@@ -369,17 +628,11 @@ export default function UsersScreen() {
       </View>
       <View style={{ flex: 1 }}>
         <ScrollView
-          style={{
-            height: 300,
-          }}
+          style={{ height: 300 }}
           scrollEnabled
           nestedScrollEnabled={true}
         >
-          <View
-            style={{
-              flexDirection: "column",
-            }}
-          >
+          <View style={{ flexDirection: "column" }}>
             {usersByCategory.map((user, index) => (
               <Pressable
                 onPress={() => {
@@ -399,323 +652,18 @@ export default function UsersScreen() {
     </View>,
   ];
 
-  const handleTabChange = (index: number) => {
-    setActiveTabIndex(index);
-    switch (index) {
-      case 0:
-        fetchUsersByCategories(ProfileCategory.SPORTSMAN);
-        break;
-      case 1:
-        fetchUsersByCategories(ProfileCategory.COACH);
-        break;
-      case 2:
-        fetchUsersByCategories(ProfileCategory.MEDIC);
-        break;
-      case 3:
-        fetchUsersByCategories(ProfileCategory.PARTNER);
-        break;
-      default:
-        break;
-    }
+  // Fonction utilitaire pour obtenir le titre de l'étape
+  const getStepTitle = (step: number): string => {
+    const titles = [
+      "Informations personnelles",
+      "Informations administratives",
+      "Plans d'entraînements",
+      "Disponibilités",
+      "Soignants à affecter",
+      "Offre d'abonnement",
+    ];
+    return titles[step] || "Étape inconnue";
   };
-
-  const handleContactPopUpVisible = () => {
-    setAddContactPopUpVisible(!addContactPopUpVisible);
-  };
-  // Step views for creating a new user with form. Admin profile only
-  const stepViews: JSX.Element[] = [
-    <View
-      key={"Informations personnelles"}
-      style={{ flexDirection: "column", gap: 16 }}
-    >
-      <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-        <View style={{ width: "48%" }}>
-          <Input type="text" label="Nom" placeholder="DOE" />
-        </View>
-        <View style={{ width: "48%" }}>
-          <Input type="text" label="Prénom" placeholder="John" />
-        </View>
-      </View>
-      <Input type="text" label="Téléphone" placeholder="XXXXXXXXXX" />
-      <Input type="email" label="Email" placeholder="exemple@mail.com" />
-      <Input type="date" label="Date de naissance" placeholder="XX/XX/XXXX" />
-      <Input type="text" label="Adresse" placeholder="Rue" />
-      <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-        <View style={{ width: "48%" }}>
-          <Input type="text" label="Ville" placeholder="Vannes" />
-        </View>
-        <View style={{ width: "48%" }}>
-          <Input type="text" label="Code postal" placeholder="56000" />
-        </View>
-      </View>
-    </View>,
-    <View
-      key={"Informations administratives"}
-      style={{ flexDirection: "column", gap: 16 }}
-    >
-      <Input
-        type="selector"
-        label="Rôle"
-        options={[
-          {
-            label: "Sportif",
-            value: "sportsman",
-          },
-          {
-            label: "Soignant",
-            value: "medic",
-          },
-          {
-            label: "Coach",
-            value: "coach",
-          },
-          {
-            label: "Partenaire",
-            value: "partner",
-          },
-        ]}
-        onChangeText={(value) => setNewUserType(value)}
-        onChange={() => setIsNewUserAProfesional(!isNewUserAProfesional)}
-      />
-      {(newUserType === "medic" || newUserType === "coach") && (
-        <Input
-          type="checkbox"
-          label="Peut créer / importer des entrainements et des exercices"
-        />
-      )}
-      {newUserType === "medic" && (
-        <Input
-          type="selector"
-          label="Profression"
-          options={[
-            {
-              label: "Kinésithérapeute",
-              value: "kine",
-            },
-            {
-              label: "Podologue",
-              value: "podologue",
-            },
-            {
-              label: "Osthéopathe",
-              value: "ostheo",
-            },
-          ]}
-        />
-      )}
-      {newUserType === "coach" && (
-        <Input
-          type="selector"
-          label="Sport"
-          options={[
-            {
-              label: "Running",
-              value: "running",
-            },
-            {
-              label: "Natation",
-              value: "natation",
-            },
-            {
-              label: "Musculation",
-              value: "musculation",
-            },
-          ]}
-        />
-      )}
-    </View>,
-    <View
-      key={"Plans d'entrainements"}
-      style={{ flexDirection: "column", gap: 32 }}
-    >
-      <View style={{ flexDirection: "column", gap: 16 }}>
-        <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-          <View style={{ flexDirection: "column" }}>
-            <AppText style={{ color: Colors.deepBlue, fontWeight: "bold" }}>
-              Suivi par un coach sportif de running
-            </AppText>
-            <AppText>Du DD/MM/YYYY au DD/MM/YYYY</AppText>
-          </View>
-          <Icon
-            name="trash"
-            strokeColor={Colors.lightRed}
-            fillColor="transparent"
-            strokeWidth={2}
-            width={24}
-            height={24}
-          />
-        </View>
-        <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-          <View style={{ flexDirection: "column" }}>
-            <AppText style={{ color: Colors.deepBlue, fontWeight: "bold" }}>
-              Suivi par un coach sportif de running
-            </AppText>
-            <AppText>Du DD/MM/YYYY au DD/MM/YYYY</AppText>
-          </View>
-          <Icon
-            name="trash"
-            strokeColor={Colors.lightRed}
-            fillColor="transparent"
-            strokeWidth={2}
-            width={24}
-            height={24}
-          />
-        </View>
-        <View
-          style={{
-            flexDirection: "row",
-            flex: 1,
-            height: 1,
-            backgroundColor: "black",
-            shadowColor: "#000",
-            shadowOffset: { width: 4, height: 4 },
-            shadowOpacity: 0.2,
-            shadowRadius: 4,
-            elevation: 4,
-          }}
-        />
-      </View>
-      <View style={{ flexDirection: "column", gap: 16 }}>
-        <Input
-          type="text"
-          label="Libellé de la prestation"
-          placeholder="Libellé"
-        />
-        <Input type="date" label="Date de début" placeholder="XX/XX/XXXX" />
-        <Input type="date" label="Date de fin" placeholder="XX/XX/XXXX" />
-        <View style={{ flexDirection: "column", gap: 8 }}>
-          <AppText>Tarification complète par défaut</AppText>
-          <Input type="checkbox" label="Passer en tarification par mois" />
-        </View>
-        <Input type="text" label="Tarification" placeholder="XX/mois" />
-        <Pressable
-          style={{
-            borderRadius: 8,
-            borderColor: Colors.deepBlue,
-            borderWidth: 1,
-            paddingVertical: 6,
-            paddingHorizontal: 8,
-          }}
-          onPress={handleContactPopUpVisible}
-        >
-          <AppText>
-            Sélectionner une personne à ajouter au plan d'entrainement
-          </AppText>
-        </Pressable>
-        {addContactPopUpVisible && (
-          <AddContacts
-            visible={addContactPopUpVisible}
-            token=""
-            onClose={handleContactPopUpVisible}
-          />
-        )}
-      </View>
-    </View>,
-    <View
-      key={"Soignants à affecter"}
-      style={{ flexDirection: "column", gap: 32 }}
-    >
-      <View style={{ flexDirection: "column", gap: 16 }}>
-        <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-          <View style={{ flexDirection: "column" }}>
-            <AppText style={{ color: Colors.deepBlue, fontWeight: "bold" }}>
-              Dr. Sophie Lemoine
-            </AppText>
-            <AppText>Médecin du sport</AppText>
-          </View>
-          <Icon
-            name="trash"
-            strokeColor={Colors.lightRed}
-            fillColor="transparent"
-            strokeWidth={2}
-            width={24}
-            height={24}
-          />
-        </View>
-        <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-          <View style={{ flexDirection: "column" }}>
-            <AppText style={{ color: Colors.deepBlue, fontWeight: "bold" }}>
-              Jean Dupuis
-            </AppText>
-            <AppText>Kinésithérapeute</AppText>
-          </View>
-          <Icon
-            name="trash"
-            strokeColor={Colors.lightRed}
-            fillColor="transparent"
-            strokeWidth={2}
-            width={24}
-            height={24}
-          />
-        </View>
-        <View
-          style={{
-            flexDirection: "row",
-            flex: 1,
-            height: 1,
-            backgroundColor: "black",
-            shadowColor: "#000",
-            shadowOffset: { width: 4, height: 4 },
-            shadowOpacity: 0.2,
-            shadowRadius: 4,
-            elevation: 4,
-          }}
-        />
-      </View>
-      <View style={{ flexDirection: "column", gap: 16 }}>
-        <Pressable
-          style={{
-            borderRadius: 8,
-            borderColor: Colors.deepBlue,
-            borderWidth: 1,
-            paddingVertical: 6,
-            paddingHorizontal: 8,
-          }}
-          onPress={handleContactPopUpVisible}
-        >
-          <AppText>
-            Sélectionner une personne à ajouter à la liste des soignants
-          </AppText>
-        </Pressable>
-        {addContactPopUpVisible && (
-          <AddContacts
-            visible={addContactPopUpVisible}
-            token=""
-            onClose={handleContactPopUpVisible}
-          />
-        )}
-      </View>
-    </View>,
-    <View
-      key={"Offre d'abonnement"}
-      style={{ flexDirection: "column", gap: 32 }}
-    >
-      <AppText>Importez le contrat d'offre d'abonnement ici</AppText>
-      <View style={{ flexDirection: "row", justifyContent: "flex-end" }}>
-        <AppButton
-          type="secondary"
-          title="Sélectionnez le fichier"
-          iconName="download"
-        />
-      </View>
-      <Input
-        type="selector"
-        label="Sélectionnez le libellé de l'offre d'abonnement correspondante"
-        options={[
-          {
-            label: "Gold",
-            value: "gold",
-          },
-          {
-            label: "Silver",
-            value: "silver",
-          },
-        ]}
-      />
-    </View>,
-  ];
-
-  const { user } = useAuth();
 
   return (
     <KeyboardAvoidingView
@@ -753,42 +701,536 @@ export default function UsersScreen() {
             )}
           </View>
         )}
+
         {!displayUsersList && (
           <View style={{ flexDirection: "column", gap: 24 }}>
             <AppText>
               Suivez ces étapes pour ajouter un nouvel utilisateur :
             </AppText>
+
             <View style={{ flexDirection: "column", gap: 16 }}>
               <AppText style={{ fontWeight: "bold" }}>
-                Etape {stepNewUserView + 1} / {stepViews.length}
+                Étape {stepNewUserView + 1} / {getStepsForUserType().length}
               </AppText>
 
               <View style={{ flexDirection: "row", gap: 8 }}>
-                {stepViews.map((_, index) => (
+                {getStepsForUserType().map((stepIndex, index) => (
                   <View
-                    key={index}
+                    key={stepIndex}
                     style={{
                       flex: 1,
                       height: 12,
                       borderRadius: 8,
                       backgroundColor:
-                        index <= stepNewUserView ? "#2563EB" : "#D9D9D9",
+                        stepIndex <= stepNewUserView ? "#2563EB" : "#D9D9D9",
                     }}
                   />
                 ))}
               </View>
+
               <AppText style={{ fontWeight: "bold" }}>
-                {stepViews[stepNewUserView].key}
+                {getStepTitle(stepNewUserView)}
               </AppText>
             </View>
 
-            {stepViews[stepNewUserView]}
+            {/* Étape 0: Informations personnelles */}
+            {stepNewUserView === 0 && (
+              <View style={{ flexDirection: "column", gap: 16 }}>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    justifyContent: "space-between",
+                  }}
+                >
+                  <View style={{ width: "48%" }}>
+                    <Input
+                      type="text"
+                      label="Nom"
+                      placeholder="DOE"
+                      value={formData.lastName}
+                      onChangeText={(v) => handleInputChange("lastName", v)}
+                    />
+                    {formErrors.lastName && (
+                      <AppText style={{ color: Colors.lightRed, fontSize: 12 }}>
+                        {formErrors.lastName}
+                      </AppText>
+                    )}
+                  </View>
+                  <View style={{ width: "48%" }}>
+                    <Input
+                      type="text"
+                      label="Prénom"
+                      placeholder="John"
+                      value={formData.firstName}
+                      onChangeText={(v) => handleInputChange("firstName", v)}
+                    />
+                    {formErrors.firstName && (
+                      <AppText style={{ color: Colors.lightRed, fontSize: 12 }}>
+                        {formErrors.firstName}
+                      </AppText>
+                    )}
+                  </View>
+                </View>
+
+                <Input
+                  type="text"
+                  label="Téléphone"
+                  placeholder="XXXXXXXXXX"
+                  value={formData.phone || ""}
+                  onChangeText={(v) => handleInputChange("phone", v)}
+                />
+
+                <Input
+                  type="email"
+                  label="Email"
+                  placeholder="exemple@mail.com"
+                  value={formData.email}
+                  onChangeText={(v) => handleInputChange("email", v)}
+                />
+                {formErrors.email && (
+                  <AppText style={{ color: Colors.lightRed, fontSize: 12 }}>
+                    {formErrors.email}
+                  </AppText>
+                )}
+
+                <Input
+                  type="date"
+                  label="Date de naissance"
+                  placeholder="XX/XX/XXXX"
+                  value={formData.birthDate}
+                  onChangeText={(v) => handleInputChange("birthDate", v)}
+                />
+                {formErrors.birthDate && (
+                  <AppText style={{ color: Colors.lightRed, fontSize: 12 }}>
+                    {formErrors.birthDate}
+                  </AppText>
+                )}
+
+                <Input
+                  type="text"
+                  label="Adresse"
+                  placeholder="Rue"
+                  value={formData.street || ""}
+                  onChangeText={(v) => handleInputChange("street", v)}
+                />
+
+                <View
+                  style={{
+                    flexDirection: "row",
+                    justifyContent: "space-between",
+                  }}
+                >
+                  <View style={{ width: "48%" }}>
+                    <Input
+                      type="text"
+                      label="Ville"
+                      placeholder="Vannes"
+                      value={formData.city}
+                      onChangeText={(v) => handleInputChange("city", v)}
+                    />
+                    {formErrors.city && (
+                      <AppText style={{ color: Colors.lightRed, fontSize: 12 }}>
+                        {formErrors.city}
+                      </AppText>
+                    )}
+                  </View>
+                  <View style={{ width: "48%" }}>
+                    <Input
+                      type="text"
+                      label="Code postal"
+                      placeholder="56000"
+                      value={formData.postalCode}
+                      onChangeText={(v) => handleInputChange("postalCode", v)}
+                    />
+                    {formErrors.postalCode && (
+                      <AppText style={{ color: Colors.lightRed, fontSize: 12 }}>
+                        {formErrors.postalCode}
+                      </AppText>
+                    )}
+                  </View>
+                </View>
+              </View>
+            )}
+
+            {/* Étape 1: Informations administratives */}
+            {stepNewUserView === 1 && (
+              <View style={{ flexDirection: "column", gap: 16 }}>
+                <Input
+                  type="selector"
+                  label="Rôle"
+                  options={[
+                    { label: "Sportif", value: ProfileCategory.SPORTSMAN },
+                    { label: "Soignant", value: ProfileCategory.MEDIC },
+                    { label: "Coach", value: ProfileCategory.COACH },
+                    { label: "Partenaire", value: ProfileCategory.PARTNER },
+                    { label: "Compte free", value: ProfileCategory.FREE },
+                  ]}
+                  value={newUserType}
+                  onChangeText={(value) =>
+                    setNewUserType(value as ProfileCategory)
+                  }
+                />
+                {formErrors.profileCategory && (
+                  <AppText style={{ color: Colors.lightRed, fontSize: 12 }}>
+                    {formErrors.profileCategory}
+                  </AppText>
+                )}
+
+                {(newUserType === ProfileCategory.MEDIC ||
+                  newUserType === ProfileCategory.COACH) && (
+                  <Input
+                    type="checkbox"
+                    label="Peut créer / importer des entrainements et des exercices"
+                    value={formData.canImportSessions || false}
+                    onChange={(v) => handleInputChange("canImportSessions", v)}
+                  />
+                )}
+
+                {newUserType === ProfileCategory.MEDIC && (
+                  <>
+                    <Input
+                      type="selector"
+                      label="Profession"
+                      options={medicCategories.map((cat) => ({
+                        label: cat.label,
+                        value: cat.id.toString(),
+                      }))}
+                      value={formData.medicCategoryId?.toString() || ""}
+                      onChangeText={(v) =>
+                        handleInputChange("medicCategoryId", parseInt(v))
+                      }
+                    />
+                    {formErrors.medicCategoryId && (
+                      <AppText style={{ color: Colors.lightRed, fontSize: 12 }}>
+                        {formErrors.medicCategoryId}
+                      </AppText>
+                    )}
+                  </>
+                )}
+
+                {newUserType === ProfileCategory.COACH && (
+                  <>
+                    <Input
+                      type="selector"
+                      label="Sport"
+                      options={sportCategories.map((cat) => ({
+                        label: cat.label,
+                        value: cat.id.toString(),
+                      }))}
+                      value={formData.sportCategoryId?.toString() || ""}
+                      onChangeText={(v) =>
+                        handleInputChange("sportCategoryId", parseInt(v))
+                      }
+                    />
+                    {formErrors.sportCategoryId && (
+                      <AppText style={{ color: Colors.lightRed, fontSize: 12 }}>
+                        {formErrors.sportCategoryId}
+                      </AppText>
+                    )}
+                  </>
+                )}
+
+                {newUserType === ProfileCategory.SPORTSMAN && (
+                  <>
+                    <Input
+                      type="selector"
+                      label="Sport"
+                      options={sportCategories.map((cat) => ({
+                        label: cat.label,
+                        value: cat.id.toString(),
+                      }))}
+                      value={formData.sportCategoryId?.toString() || ""}
+                      onChangeText={(v) =>
+                        handleInputChange("sportCategoryId", parseInt(v))
+                      }
+                    />
+                    {formErrors.sportCategoryId && (
+                      <AppText style={{ color: Colors.lightRed, fontSize: 12 }}>
+                        {formErrors.sportCategoryId}
+                      </AppText>
+                    )}
+                  </>
+                )}
+              </View>
+            )}
+            {newUserType === ProfileCategory.PARTNER && (
+              <>
+                <Input
+                  type="selector"
+                  label="Entreprise"
+                  options={companies.map((company) => ({
+                    label: company.name,
+                    value: company.id.toString(),
+                  }))}
+                  value={formData.companyId?.toString() || ""}
+                  onChangeText={(v) =>
+                    handleInputChange("companyId", parseInt(v))
+                  }
+                />
+                {formErrors.companyId && (
+                  <AppText style={{ color: Colors.lightRed, fontSize: 12 }}>
+                    {formErrors.companyId}
+                  </AppText>
+                )}
+              </>
+            )}
+
+            {/* Étape 2: Plans d'entraînements (sportifs uniquement) */}
+            {stepNewUserView === 2 &&
+              newUserType === ProfileCategory.SPORTSMAN && (
+                <View style={{ flexDirection: "column", gap: 16 }}>
+                  <Input
+                    type="text"
+                    label="Libellé de la prestation"
+                    placeholder="Libellé"
+                    value={formData.objectiveLabel || ""}
+                    onChangeText={(v) => handleInputChange("objectiveLabel", v)}
+                  />
+                  {formErrors.objectiveLabel && (
+                    <AppText style={{ color: Colors.lightRed, fontSize: 12 }}>
+                      {formErrors.objectiveLabel}
+                    </AppText>
+                  )}
+
+                  <Input
+                    type="date"
+                    label="Date de début"
+                    placeholder="XX/XX/XXXX"
+                    value={formData.objectiveStartDate || ""}
+                    onChangeText={(v) =>
+                      handleInputChange("objectiveStartDate", v)
+                    }
+                  />
+                  {formErrors.objectiveStartDate && (
+                    <AppText style={{ color: Colors.lightRed, fontSize: 12 }}>
+                      {formErrors.objectiveStartDate}
+                    </AppText>
+                  )}
+
+                  <Input
+                    type="date"
+                    label="Date de fin"
+                    placeholder="XX/XX/XXXX"
+                    value={formData.objectiveEndDate || ""}
+                    onChangeText={(v) =>
+                      handleInputChange("objectiveEndDate", v)
+                    }
+                  />
+                  {formErrors.objectiveEndDate && (
+                    <AppText style={{ color: Colors.lightRed, fontSize: 12 }}>
+                      {formErrors.objectiveEndDate}
+                    </AppText>
+                  )}
+
+                  <View style={{ flexDirection: "column", gap: 8 }}>
+                    <AppText>Tarification complète par défaut</AppText>
+                    <Input
+                      type="checkbox"
+                      label="Passer en tarification par mois"
+                      value={formData.objectiveIsMonthly || false}
+                      onChange={(v) =>
+                        handleInputChange("objectiveIsMonthly", v)
+                      }
+                    />
+                  </View>
+
+                  <Input
+                    type="text"
+                    label={
+                      formData.objectiveIsMonthly
+                        ? "Tarification par mois"
+                        : "Tarification totale"
+                    }
+                    placeholder={
+                      formData.objectiveIsMonthly ? "XX€/mois" : "XX€"
+                    }
+                    value={
+                      formData.objectiveIsMonthly
+                        ? formData.billingMonthlyAmount || ""
+                        : formData.billingTotalAmount || ""
+                    }
+                    onChangeText={(v) =>
+                      handleInputChange(
+                        formData.objectiveIsMonthly
+                          ? "billingMonthlyAmount"
+                          : "billingTotalAmount",
+                        v
+                      )
+                    }
+                  />
+                </View>
+              )}
+
+            {/* Étape 3: Disponibilités (sportifs uniquement) */}
+            {stepNewUserView === 3 &&
+              newUserType === ProfileCategory.SPORTSMAN && (
+                <View style={{ flexDirection: "column", gap: 16 }}>
+                  <AppText style={{ fontWeight: "bold" }}>
+                    Définir les disponibilités
+                  </AppText>
+
+                  {/* Jours disponibles */}
+                  <Input
+                    type="multiSelector"
+                    label="Jours disponibles"
+                    placeholder="Sélectionnez les jours"
+                    options={[
+                      { label: "Lundi", value: "monday" },
+                      { label: "Mardi", value: "tuesday" },
+                      { label: "Mercredi", value: "wednesday" },
+                      { label: "Jeudi", value: "thursday" },
+                      { label: "Vendredi", value: "friday" },
+                      { label: "Samedi", value: "saturday" },
+                      { label: "Dimanche", value: "sunday" },
+                    ]}
+                    value={
+                      // Convert binary string to array of selected days
+                      (() => {
+                        const days = [
+                          "monday",
+                          "tuesday",
+                          "wednesday",
+                          "thursday",
+                          "friday",
+                          "saturday",
+                          "sunday",
+                        ];
+                        if (
+                          !formData.availableDays ||
+                          formData.availableDays.length !== 7
+                        )
+                          return [];
+                        return days.filter(
+                          (day, idx) => formData.availableDays![idx] === "1"
+                        );
+                      })()
+                    }
+                    onChangeText={(selected: string) => {
+                      // Convert selected days array to binary string
+                      const days = [
+                        "monday",
+                        "tuesday",
+                        "wednesday",
+                        "thursday",
+                        "friday",
+                        "saturday",
+                        "sunday",
+                      ];
+                      const binary = days
+                        .map((day) => (selected.includes(day) ? "1" : "0"))
+                        .join("");
+                      handleInputChange("availableDays", binary);
+                    }}
+                  />
+                  <AppText style={GlobalStyles.span}>
+                    Sélectionnez les jours où le sportif est disponible
+                  </AppText>
+
+                  {/* Créneaux horaires */}
+                  <Input
+                    type="selector"
+                    label="Créneaux horaires"
+                    placeholder="Sélectionnez un créneau"
+                    options={[
+                      { label: "07:00 - 10:00", value: "7-10" },
+                      { label: "10:00 - 13:00", value: "10-13" },
+                      { label: "13:00 - 16:00", value: "13-16" },
+                      { label: "16:00 - 19:00", value: "16-19" },
+                      { label: "19:00 - 22:00", value: "19-22" },
+                    ]}
+                    value={formData.availableTime || ""}
+                    onChangeText={(v) => handleInputChange("availableTime", v)}
+                  />
+                  <AppText style={GlobalStyles.span}>
+                    Sélectionnez le créneau horaire de disponibilité (3h)
+                  </AppText>
+                </View>
+              )}
+
+            {/* Étape 4: Soignants à affecter (sportifs uniquement) */}
+            {stepNewUserView === 4 &&
+              newUserType === ProfileCategory.SPORTSMAN && (
+                <View style={{ flexDirection: "column", gap: 16 }}>
+                  <AppText style={{ fontWeight: "bold" }}>
+                    Soignants à affecter
+                  </AppText>
+                  <AppText>
+                    Cette étape permet d'affecter des soignants au sportif.
+                  </AppText>
+
+                  <Pressable
+                    onPress={() => handleContactPopUpVisible()}
+                    style={{
+                      paddingHorizontal: 8,
+                      paddingVertical: 6,
+                      borderRadius: 8,
+                      borderWidth: 1,
+                      borderColor: Colors.deepBlue,
+                      marginTop: 8,
+                    }}
+                  >
+                    {selectedUsers.length !== 0 ? (
+                      selectedUsers.map((user) => (
+                        <AppText key={user.id}>
+                          {user.firstName} {user.lastName}
+                        </AppText>
+                      ))
+                    ) : (
+                      <AppText style={{ color: Colors.grey }}>
+                        Selectionnez une personne à ajouter à l'évenement
+                      </AppText>
+                    )}
+                  </Pressable>
+
+                  <AppText>
+                    Les soignants sélectionnés pourront accéder aux données
+                    médicales de ce sportif.
+                  </AppText>
+                </View>
+              )}
+
+            {/* Étape 5: Offre d'abonnement (sportifs uniquement) */}
+            {stepNewUserView === 5 &&
+              newUserType === ProfileCategory.SPORTSMAN && (
+                <View style={{ flexDirection: "column", gap: 16 }}>
+                  <AppText style={{ fontWeight: "bold" }}>
+                    Offre d'abonnement
+                  </AppText>
+
+                  <Input
+                    type="selector"
+                    label="Sélectionnez le libellé de l'offre d'abonnement"
+                    options={[
+                      { label: "Abonnement Gold", value: "gold" },
+                      { label: "Abonnement Silver", value: "silver" },
+                      { label: "Abonnement Bronze", value: "bronze" },
+                    ]}
+                    value={formData.subscriptionLabel || ""}
+                    onChangeText={(v) =>
+                      handleInputChange("subscriptionLabel", v)
+                    }
+                  />
+
+                  <View>
+                    <AppText style={{ marginBottom: 8 }}>
+                      Contrat d'abonnement
+                    </AppText>
+                    <AppButton
+                      type="secondary"
+                      title="Sélectionner le fichier"
+                      iconName="download"
+                    />
+                  </View>
+                </View>
+              )}
+
+            {/* Navigation entre les étapes */}
             <View
               style={{
-                flex: 1,
                 flexDirection: "row",
                 justifyContent: "space-between",
                 alignItems: "center",
+                marginTop: 16,
               }}
             >
               {stepNewUserView === 0 ? (
@@ -796,51 +1238,36 @@ export default function UsersScreen() {
                   <AppText>Annuler</AppText>
                 </Pressable>
               ) : (
-                <Pressable
-                  onPress={() => {
-                    setStepNewUserView((stepNewUserView -= 1));
-                  }}
-                >
+                <Pressable onPress={handlePrevStep}>
                   <AppText>Précédent</AppText>
                 </Pressable>
               )}
-              {newUserType !== "coach" && newUserType !== "medic" ? (
-                <AppButton
-                  type="primary"
-                  title={
-                    stepNewUserView + 1 === stepViews.length
-                      ? "Valider"
-                      : "Suivant"
-                  }
-                  iconName={
-                    stepNewUserView + 1 === stepViews.length
-                      ? "check"
-                      : "chevronRight"
-                  }
-                  onPress={() => {
-                    if (stepNewUserView + 1 === stepViews.length) {
-                      setDisplayUsersList(true);
-                      setStepNewUserView(0);
-                      setNewUserType("");
-                    } else {
-                      setStepNewUserView((stepNewUserView += 1));
-                    }
-                  }}
-                />
-              ) : (
-                <AppButton
-                  type="primary"
-                  title="Valider"
-                  iconName="check"
-                  onPress={() => {
-                    setDisplayUsersList(true);
-                    setStepNewUserView(0);
-                    setNewUserType("");
-                  }}
-                />
-              )}
+
+              <AppButton
+                type="primary"
+                title={
+                  isLastStep()
+                    ? isLoading
+                      ? "Création..."
+                      : "Créer l'utilisateur"
+                    : "Suivant"
+                }
+                iconName={isLastStep() ? "check" : "chevronRight"}
+                onPress={isLastStep() ? handleCreateUser : handleNextStep}
+                disabled={isLoading}
+              />
             </View>
           </View>
+        )}
+
+        {/* Popup pour ajouter des contacts */}
+        {addContactPopUpVisible && (
+          <AddContacts
+            visible={addContactPopUpVisible}
+            onClose={handleContactPopUpVisible}
+            onSubmit={handleAddContactsSubmit}
+            token={token as string}
+          />
         )}
       </ScrollView>
     </KeyboardAvoidingView>
