@@ -197,7 +197,7 @@ export default function UsersScreen() {
 
           return item.profile.user;
         })
-        .filter((user): user is User => !!user);
+        .filter((user): user is User => !!user && user.isActive !== false);
 
       setAllUsersByCategory(users);
       setUsersByCategory(users.slice(0, displayLimit));

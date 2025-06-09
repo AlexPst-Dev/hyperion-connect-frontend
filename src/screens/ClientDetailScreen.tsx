@@ -150,163 +150,75 @@ export default function ClientDetailScreen() {
     Category[]
   >([]);
 
+  const [archiveUserPopupVisible, setArchiveUserPopupVisible] = useState(false);
+
   useEffect(() => {
-    async function fetchCategories() {
+    let isMounted = true;
+    async function fetchAllClientData() {
+      // Optionally: set a loading state here
       try {
-        const sports = await categoryService.getCategoriesByType(
-          CategoryType.SPORT,
-          token ?? ""
-        );
+        // Fetch categories in parallel
+        const [sports, medics, muscleGroups] = await Promise.all([
+          categoryService.getCategoriesByType(CategoryType.SPORT, token ?? ""),
+          categoryService.getCategoriesByType(
+            CategoryType.MEDICAL,
+            token ?? ""
+          ),
+          categoryService.getCategoriesByType(
+            CategoryType.MUSCLE_GROUP,
+            token ?? ""
+          ),
+        ]);
+        if (!isMounted) return;
         setSportCategories(sports);
-        const medics = await categoryService.getCategoriesByType(
-          CategoryType.MEDICAL,
-          token ?? ""
-        );
         setMedicCategories(medics);
-      } catch (e) {
-        setSportCategories([]);
-        setMedicCategories([]);
-      }
-    }
-    fetchCategories();
-  }, [token]);
+        setMuscleGroupCategories(muscleGroups);
 
-  useEffect(() => {
-    // Fetch subscription file for sportsman
-    const fetchSubscriptionFile = async () => {
-      if (
-        client.profileCategory === ProfileCategory.SPORTSMAN &&
-        (client.profile as SportsmanProfile)?.subscriptionId
-      ) {
-        try {
-          const subscription =
-            await new SubscriptionService().getSubscriptionById(
-              (client.profile as SportsmanProfile).subscriptionId!,
-              token || ""
-            );
-          if (subscription?.subscriptionFileId) {
-            const file = await fileService.getFileById(
-              subscription.subscriptionFileId,
-              token || ""
-            );
-            setSubscriptionFile(file);
-          }
-        } catch (e) {
-          setSubscriptionFile(null);
-        }
-      }
-    };
+        // Only fetch sportsman-specific data if needed
+        if (
+          client.profileCategory === ProfileCategory.SPORTSMAN &&
+          client.id &&
+          token
+        ) {
+          // Fetch objectives, graph, sessions, exercises, medics, files, billings in parallel
+          const [objectives, graphs, allSessions, exercises] =
+            await Promise.all([
+              ObjectivesApiService.getObjectivesBySportsman(client.id, token),
+              GraphService.getGraphsByUserId(client.id, token),
+              new SessionService().getAllSessions(token),
+              exerciseService.getAllExercises(token),
+            ]);
+          if (!isMounted) return;
+          setObjectives(objectives);
+          const activeObjective =
+            objectives.find((o) => o.isActive) || objectives[0] || null;
+          setCurrentObjective(activeObjective);
 
-    // Fetch medical files
-    const fetchMedicFiles = async () => {
-      if (
-        client.profileCategory === ProfileCategory.SPORTSMAN &&
-        (client.profile as SportsmanProfile) &&
-        (client.profile as SportsmanProfile).listMedicFiles &&
-        token
-      ) {
-        const listMedicFiles = (client.profile as SportsmanProfile)
-          .listMedicFiles;
-        const ids = listMedicFiles
-          ? listMedicFiles
-              .split(";")
-              .map((id) => parseInt(id, 10))
-              .filter((id) => !isNaN(id))
-          : [];
-        try {
-          const files = await Promise.all(
-            ids.map((id) => fileService.getFileById(id, token))
+          const sessionsWithFiles: SessionWithFile[] = await Promise.all(
+            allSessions.map(async (session) => ({
+              session,
+              filePicture: session.filePictureId
+                ? await fileService
+                    .getFileById(session.filePictureId, token)
+                    .catch(() => null)
+                : null,
+            }))
           );
-          setMedicFiles(files);
-        } catch (e) {
-          setMedicFiles([]);
-        }
-      }
-    };
+          setAllSessions(sessionsWithFiles);
+          setAllExercises(exercises as ExerciseWithDetails[]);
 
-    fetchSubscriptionFile();
-    fetchMedicFiles();
-  }, [client, token]);
-
-  useEffect(() => {
-    const fetchObjectives = async () => {
-      if (
-        client.profileCategory === ProfileCategory.SPORTSMAN &&
-        client.id &&
-        token
-      ) {
-        try {
-          const objs = await ObjectivesApiService.getObjectivesBySportsman(
-            client.id,
-            token
-          );
-          setObjectives(objs);
-          // You may want to pick the active one, or the latest, etc.
-          const active = objs.find((o) => o.isActive) || objs[0] || null;
-          setCurrentObjective(active);
-        } catch (e) {
-          setObjectives([]);
-          setCurrentObjective(null);
-        }
-      }
-    };
-    fetchObjectives();
-  }, [client, token]);
-
-  useEffect(() => {
-    const fetchActiveSessions = async () => {
-      if (
-        client.profileCategory === ProfileCategory.SPORTSMAN &&
-        client.id &&
-        token
-      ) {
-        try {
-          const sessionService = new SessionService();
-          // 1. Get all linked sessions for this sportsman
-          const linkedSessions = await sessionService.getSessionsBySportsman(
-            client.id,
-            token
-          );
-          // 2. Fetch each session details by sessionId
-          const sessionPromises = linkedSessions.map((ls) =>
-            sessionService.getSessionById(ls.sessionId, token)
-          );
-          const allSessions = await Promise.all(sessionPromises);
-          // 3. Filter only active sessions
-          const onlyActive = allSessions.filter((s) => s.session.isActive);
-          setActiveSessions(onlyActive);
-        } catch (e) {
-          setActiveSessions([]);
-        }
-      }
-    };
-    fetchActiveSessions();
-  }, [client, token]);
-
-  useEffect(() => {
-    const fetchGraphData = async () => {
-      if (
-        client.profileCategory === ProfileCategory.SPORTSMAN &&
-        client.id &&
-        token
-      ) {
-        try {
-          const graphs = await GraphService.getGraphsByUserId(client.id, token);
+          // Graph
           setGraph(graphs[0] || null);
           const graph = graphs.find((g) => g.isActive) || graphs[0];
           if (graph && graph.listMonthlyValue && graph.startDate) {
-            // Parse the string "1: 54; 2: 34; 3: 66"
             const entries = graph.listMonthlyValue
               .split(";")
               .map((entry) => entry.trim())
               .filter(Boolean);
-
-            // Generate dynamic month labels
             const monthLabels = getDynamicMonthLabels(
               graph.startDate,
               entries.length
             );
-
             const data = entries.map((entry, idx) => {
               const [monthNum, value] = entry.split(":").map((s) => s.trim());
               return {
@@ -318,81 +230,122 @@ export default function ClientDetailScreen() {
           } else {
             setProgressGraphData([]);
           }
-        } catch (e) {
-          setProgressGraphData([]);
-        }
-      }
-    };
-    fetchGraphData();
-  }, [client, token]);
 
-  useEffect(() => {
-    const fetchBillings = async () => {
-      if (
-        client.profileCategory === ProfileCategory.SPORTSMAN &&
-        client.id &&
-        token
-      ) {
-        try {
-          // 1. Get all objectives for the sportsman
-          const objectives =
-            await ObjectivesApiService.getObjectivesBySportsman(
+          // Subscription file
+          if ((client.profile as SportsmanProfile)?.subscriptionId) {
+            try {
+              const subscription =
+                await new SubscriptionService().getSubscriptionById(
+                  (client.profile as SportsmanProfile).subscriptionId!,
+                  token
+                );
+              if (subscription?.subscriptionFileId) {
+                const file = await fileService.getFileById(
+                  subscription.subscriptionFileId,
+                  token
+                );
+                if (isMounted) setSubscriptionFile(file);
+              }
+            } catch {
+              if (isMounted) setSubscriptionFile(null);
+            }
+          }
+
+          // Medic files
+          if ((client.profile as SportsmanProfile)?.listMedicFiles) {
+            const listMedicFiles = (client.profile as SportsmanProfile)
+              .listMedicFiles;
+            const ids = listMedicFiles
+              ? listMedicFiles
+                  .split(";")
+                  .map((id) => parseInt(id, 10))
+                  .filter((id) => !isNaN(id))
+              : [];
+            try {
+              const files = await Promise.all(
+                ids.map((id) => fileService.getFileById(id, token))
+              );
+              if (isMounted) setMedicFiles(files);
+            } catch {
+              if (isMounted) setMedicFiles([]);
+            }
+          }
+
+          // Linked medics
+          if ((client.profile as SportsmanProfile)?.listMedicsIds) {
+            const listMedicsIds = (client.profile as SportsmanProfile)
+              .listMedicsIds;
+            const ids = listMedicsIds
+              ? listMedicsIds
+                  .split(";")
+                  .map((id) => parseInt(id.trim(), 10))
+                  .filter((id) => !isNaN(id))
+              : [];
+            try {
+              const users = await Promise.all(
+                ids.map((id) => UserService.getUserById(id, token))
+              );
+              if (isMounted) setLinkedMedics(users.map((res) => res.user));
+            } catch {
+              if (isMounted) setLinkedMedics([]);
+            }
+          } else {
+            setLinkedMedics([]);
+          }
+
+          // Active sessions
+          try {
+            const sessionService = new SessionService();
+            const linkedSessions = await sessionService.getSessionsBySportsman(
               client.id,
               token
             );
+            const sessionPromises = linkedSessions.map((ls) =>
+              sessionService.getSessionById(ls.sessionId, token)
+            );
+            const allActiveSessions = await Promise.all(sessionPromises);
+            const onlyActive = allActiveSessions.filter(
+              (s) => s.session.isActive
+            );
+            if (isMounted) setActiveSessions(onlyActive);
+          } catch {
+            if (isMounted) setActiveSessions([]);
+          }
 
-          // 2. Filter only active objectives
-          const activeObjectives = objectives.filter((obj) => obj.isActive);
-
-          // 3. For each active objective, get all billings
-          const groups = await Promise.all(
-            activeObjectives.map(async (objective) => {
-              const { billings } =
-                await billingService.getBillingsByObjectiveId(
-                  objective.id,
-                  token
-                );
-              return { objective, billings };
-            })
-          );
-          setBillingGroups(groups);
-        } catch (e) {
-          setBillingGroups([]);
+          // Billings
+          try {
+            const objectives =
+              await ObjectivesApiService.getObjectivesBySportsman(
+                client.id,
+                token
+              );
+            const activeObjectives = objectives.filter((obj) => obj.isActive);
+            const groups = await Promise.all(
+              activeObjectives.map(async (objective) => {
+                const { billings } =
+                  await billingService.getBillingsByObjectiveId(
+                    objective.id,
+                    token
+                  );
+                return { objective, billings };
+              })
+            );
+            if (isMounted) setBillingGroups(groups);
+          } catch {
+            if (isMounted) setBillingGroups([]);
+          }
         }
+      } catch (e) {
+        console.error(
+          "Erreur lors de la récupération des données du client :",
+          e
+        );
       }
+    }
+    fetchAllClientData();
+    return () => {
+      isMounted = false;
     };
-    fetchBillings();
-  }, [client, token]);
-
-  useEffect(() => {
-    const fetchMedics = async () => {
-      if (
-        client.profileCategory === ProfileCategory.SPORTSMAN &&
-        client.profile &&
-        (client.profile as SportsmanProfile).listMedicsIds &&
-        token
-      ) {
-        const listMedicsIds = (client.profile as SportsmanProfile)
-          .listMedicsIds;
-        const ids = listMedicsIds
-          ? listMedicsIds
-              .split(";")
-              .map((id) => parseInt(id.trim(), 10))
-              .filter((id) => !isNaN(id))
-          : [];
-        try {
-          const users = await Promise.all(
-            ids.map((id) => UserService.getUserById(id, token))
-          );
-          setLinkedMedics(users.map((res) => res.user));
-        } catch (e) {
-          setLinkedMedics([]);
-        }
-      } else {
-        setLinkedMedics([]);
-      }
-    };
-    fetchMedics();
   }, [client, token]);
 
   const getAge = (birthDate?: string) => {
@@ -583,58 +536,6 @@ export default function ClientDetailScreen() {
     setSelectedCoach(users[0] || null);
     setCoachSelectorVisible(false);
   };
-
-  // Fetch all session
-  useEffect(() => {
-    async function fetchSessions() {
-      if (token && client.profileCategory === ProfileCategory.SPORTSMAN) {
-        try {
-          const sessions = await new SessionService().getAllSessions(token);
-          const sessionDetails = await Promise.all(
-            sessions.map((s) =>
-              new SessionService().getSessionById(s.id, token)
-            )
-          );
-          setAllSessions(sessionDetails);
-        } catch (e) {
-          setAllSessions([]);
-        }
-      }
-    }
-    fetchSessions();
-  }, [token]);
-  // Fetch all exercises
-  useEffect(() => {
-    async function fetchExercises() {
-      if (token) {
-        try {
-          const exercises = await exerciseService.getAllExercises(token);
-          setAllExercises(exercises as ExerciseWithDetails[]);
-        } catch (e) {
-          setAllExercises([]);
-        }
-      }
-    }
-    fetchExercises();
-  }, [token]);
-
-  // Fetch all muscle group categories
-  useEffect(() => {
-    async function fetchMuscleGroups() {
-      if (token) {
-        try {
-          const categories = await categoryService.getCategoriesByType(
-            CategoryType.MUSCLE_GROUP,
-            token
-          );
-          setMuscleGroupCategories(categories);
-        } catch (e) {
-          setMuscleGroupCategories([]);
-        }
-      }
-    }
-    fetchMuscleGroups();
-  }, [token]);
 
   const clientInformationsContent: JSX.Element = (
     <>
@@ -1154,7 +1055,12 @@ export default function ClientDetailScreen() {
                 alignItems: "center",
               }}
             >
-              <AppButton type="primary" title="Archiver" iconName="archive" />
+              <AppButton
+                type="primary"
+                title="Archiver"
+                iconName="archive"
+                onPress={() => setArchiveUserPopupVisible(true)}
+              />
               <AppButton
                 type="secondary"
                 title="Abonnement"
@@ -1166,6 +1072,52 @@ export default function ClientDetailScreen() {
                 }}
               />
             </View>
+            {archiveUserPopupVisible && (
+              <Modal
+                visible={archiveUserPopupVisible}
+                transparent
+                onRequestClose={() => {
+                  setArchiveUserPopupVisible(false);
+                }}
+              >
+                <Pressable
+                  onPress={() => {
+                    setArchiveUserPopupVisible(false);
+                  }}
+                  style={{
+                    flex: 1,
+                    backgroundColor: "rgba(0,0,0,0.5)",
+                    justifyContent: "center",
+                    padding: 24,
+                  }}
+                >
+                  <PopUp
+                    onClose={() => {
+                      setArchiveUserPopupVisible(false);
+                    }}
+                    title="Archiver l'utilisateur"
+                    btnType="primary"
+                    btnText="Archiver"
+                    iconName="archive"
+                    closeText="Annuler"
+                    onSubmit={async () => {
+                      try {
+                        await UserService.updateUserByProfileAndId(
+                          client.id,
+                          client.profileCategory,
+                          { isActive: false },
+                          token!
+                        );
+                        setArchiveUserPopupVisible(false);
+                      } catch (error) {
+                        console.error("Erreur lors de l'archivage :", error);
+                      }
+                    }}
+                    paragraph="Êtes-vous sûr de vouloir archiver cet utilisateur ?"
+                  />
+                </Pressable>
+              </Modal>
+            )}
           </View>
         )}
       </View>
