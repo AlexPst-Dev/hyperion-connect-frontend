@@ -1,5 +1,5 @@
 // src/screens/SessionDetailScreen.tsx
-import React, { JSX, useState } from "react";
+import React, { JSX, useEffect, useState } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -9,6 +9,7 @@ import {
   Modal,
   Pressable,
   Dimensions,
+  ActivityIndicator,
 } from "react-native";
 import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
 import { RootStackParamList } from "@/src/navigation/types";
@@ -16,7 +17,12 @@ import GlobalStyles, { Colors } from "../styles/styles";
 import UserCard from "../components/UserCard";
 import AppText from "../components/AppText";
 import ViewController from "../components/ViewController";
-import { User } from "../models/user";
+import {
+  getMonthStartDates,
+  ProfileCategory,
+  SportsmanProfile,
+  User,
+} from "../models/user";
 import { useAuth } from "../hooks/useAuth";
 import Icon from "../components/Icon";
 import AppButton from "../components/AppButton";
@@ -32,6 +38,31 @@ import PopUp from "../components/PopUp";
 import Input from "../components/Input";
 import ProgressGraph from "../components/ProgressGraph";
 import { LoggedUser } from "../models/auth";
+import { Category, CategoryType } from "../models/category";
+import { File } from "../models/file";
+import {
+  getMonthsBetween,
+  getOngoingMonth,
+  Objective as ObjectiveModel,
+} from "../models/objective";
+import { SessionWithFile } from "../models/session";
+import { categoryService } from "../services/api/category-service";
+import { SubscriptionService } from "../services/api/subscription-service";
+import { fileService } from "../services/api/file-service";
+import { ObjectivesApiService } from "../services/api/objective-service";
+import {
+  getMinutesFromDuration,
+  SessionService,
+} from "../services/api/session-service";
+import { GraphService } from "../services/api/graph-service";
+import { getDynamicMonthLabels, Graph } from "../models/graph";
+import { Billing } from "../models/billing";
+import { billingService } from "../services/api/billing-service";
+import { UserService } from "../services/api/user-service";
+import AddContacts from "../components/popups/AddContacts";
+import AddSessions from "../components/popups/AddSession";
+import { ExerciseWithDetails } from "../models/exercise";
+import { exerciseService } from "../services/api/exercise-service";
 
 type ClientDetailRouteProp = RouteProp<RootStackParamList, "ClientDetail">;
 
@@ -41,7 +72,7 @@ export default function ClientDetailScreen() {
 
   type ClientDetailPageRenderer = (user: LoggedUser) => JSX.Element;
 
-  const { user } = useAuth();
+  const { user, token } = useAuth();
 
   if (!user) return null;
 
@@ -56,6 +87,555 @@ export default function ClientDetailScreen() {
     setEditSubscriptionEditPopUpVisible,
   ] = useState(false);
 
+  const [sportCategories, setSportCategories] = useState<Category[]>([]);
+  const [medicCategories, setMedicCategories] = useState<Category[]>([]);
+
+  const [subscriptionFile, setSubscriptionFile] = useState<File | null>(null);
+  const [medicFiles, setMedicFiles] = useState<File[]>([]);
+
+  const [objectives, setObjectives] = useState<ObjectiveModel[]>([]);
+  const [currentObjective, setCurrentObjective] =
+    useState<ObjectiveModel | null>(null);
+
+  const [activeSessions, setActiveSessions] = useState<SessionWithFile[]>([]);
+
+  const [graph, setGraph] = useState<Graph | null>(null);
+  const [progressGraphData, setProgressGraphData] = useState<
+    { month: string; value: number }[]
+  >([]);
+
+  const [billingGroups, setBillingGroups] = useState<
+    {
+      objective: ObjectiveModel;
+      billings: Billing[];
+    }[]
+  >([]);
+
+  const [linkedMedics, setLinkedMedics] = useState<User[]>([]);
+
+  // Popup for data edition
+  const [editNotesPopUpVisible, setEditNotesPopUpVisible] = useState(false);
+  const [newNoteContent, setNewNoteContent] = useState("");
+
+  const [addObjectivePopUpVisible, setAddObjectivePopUpVisible] =
+    useState(false);
+  const [coachSelectorVisible, setCoachSelectorVisible] = useState(false);
+  const [selectedCoach, setSelectedCoach] = useState<User | null>(null);
+
+  const [objectiveLoading, setObjectiveLoading] = useState(false);
+
+  const [addSessionPopUpVisible, setAddSessionPopUpVisible] = useState(false);
+
+  interface ObjectiveFormData {
+    objectiveLabel: string;
+    objectiveStartDate: string;
+    objectiveEndDate: string;
+    objectiveIsMonthly: boolean;
+    billingMonthlyAmount: string;
+    billingTotalAmount: string;
+  }
+
+  const [formData, setFormData] = useState<ObjectiveFormData>({
+    objectiveLabel: "",
+    objectiveStartDate: "",
+    objectiveEndDate: "",
+    objectiveIsMonthly: false,
+    billingMonthlyAmount: "",
+    billingTotalAmount: "",
+  });
+
+  const [allExercises, setAllExercises] = useState<ExerciseWithDetails[]>([]);
+  const [allSessions, setAllSessions] = useState<SessionWithFile[]>([]);
+  const [muscleGroupCategories, setMuscleGroupCategories] = useState<
+    Category[]
+  >([]);
+
+  useEffect(() => {
+    async function fetchCategories() {
+      try {
+        const sports = await categoryService.getCategoriesByType(
+          CategoryType.SPORT,
+          token ?? ""
+        );
+        setSportCategories(sports);
+        const medics = await categoryService.getCategoriesByType(
+          CategoryType.MEDICAL,
+          token ?? ""
+        );
+        setMedicCategories(medics);
+      } catch (e) {
+        setSportCategories([]);
+        setMedicCategories([]);
+      }
+    }
+    fetchCategories();
+  }, [token]);
+
+  useEffect(() => {
+    // Fetch subscription file for sportsman
+    const fetchSubscriptionFile = async () => {
+      if (
+        client.profileCategory === ProfileCategory.SPORTSMAN &&
+        (client.profile as SportsmanProfile)?.subscriptionId
+      ) {
+        try {
+          const subscription =
+            await new SubscriptionService().getSubscriptionById(
+              (client.profile as SportsmanProfile).subscriptionId!,
+              token || ""
+            );
+          if (subscription?.subscriptionFileId) {
+            const file = await fileService.getFileById(
+              subscription.subscriptionFileId,
+              token || ""
+            );
+            setSubscriptionFile(file);
+          }
+        } catch (e) {
+          setSubscriptionFile(null);
+        }
+      }
+    };
+
+    // Fetch medical files
+    const fetchMedicFiles = async () => {
+      if (
+        client.profileCategory === ProfileCategory.SPORTSMAN &&
+        (client.profile as SportsmanProfile) &&
+        (client.profile as SportsmanProfile).listMedicFiles &&
+        token
+      ) {
+        const listMedicFiles = (client.profile as SportsmanProfile)
+          .listMedicFiles;
+        const ids = listMedicFiles
+          ? listMedicFiles
+              .split(";")
+              .map((id) => parseInt(id, 10))
+              .filter((id) => !isNaN(id))
+          : [];
+        try {
+          const files = await Promise.all(
+            ids.map((id) => fileService.getFileById(id, token))
+          );
+          setMedicFiles(files);
+        } catch (e) {
+          setMedicFiles([]);
+        }
+      }
+    };
+
+    fetchSubscriptionFile();
+    fetchMedicFiles();
+  }, [client, token]);
+
+  useEffect(() => {
+    const fetchObjectives = async () => {
+      if (
+        client.profileCategory === ProfileCategory.SPORTSMAN &&
+        client.id &&
+        token
+      ) {
+        try {
+          const objs = await ObjectivesApiService.getObjectivesBySportsman(
+            client.id,
+            token
+          );
+          setObjectives(objs);
+          // You may want to pick the active one, or the latest, etc.
+          const active = objs.find((o) => o.isActive) || objs[0] || null;
+          setCurrentObjective(active);
+        } catch (e) {
+          setObjectives([]);
+          setCurrentObjective(null);
+        }
+      }
+    };
+    fetchObjectives();
+  }, [client, token]);
+
+  useEffect(() => {
+    const fetchActiveSessions = async () => {
+      if (
+        client.profileCategory === ProfileCategory.SPORTSMAN &&
+        client.id &&
+        token
+      ) {
+        try {
+          const sessionService = new SessionService();
+          // 1. Get all linked sessions for this sportsman
+          const linkedSessions = await sessionService.getSessionsBySportsman(
+            client.id,
+            token
+          );
+          // 2. Fetch each session details by sessionId
+          const sessionPromises = linkedSessions.map((ls) =>
+            sessionService.getSessionById(ls.sessionId, token)
+          );
+          const allSessions = await Promise.all(sessionPromises);
+          // 3. Filter only active sessions
+          const onlyActive = allSessions.filter((s) => s.session.isActive);
+          setActiveSessions(onlyActive);
+        } catch (e) {
+          setActiveSessions([]);
+        }
+      }
+    };
+    fetchActiveSessions();
+  }, [client, token]);
+
+  useEffect(() => {
+    const fetchGraphData = async () => {
+      if (
+        client.profileCategory === ProfileCategory.SPORTSMAN &&
+        client.id &&
+        token
+      ) {
+        try {
+          const graphs = await GraphService.getGraphsByUserId(client.id, token);
+          setGraph(graphs[0] || null);
+          const graph = graphs.find((g) => g.isActive) || graphs[0];
+          if (graph && graph.listMonthlyValue && graph.startDate) {
+            // Parse the string "1: 54; 2: 34; 3: 66"
+            const entries = graph.listMonthlyValue
+              .split(";")
+              .map((entry) => entry.trim())
+              .filter(Boolean);
+
+            // Generate dynamic month labels
+            const monthLabels = getDynamicMonthLabels(
+              graph.startDate,
+              entries.length
+            );
+
+            const data = entries.map((entry, idx) => {
+              const [monthNum, value] = entry.split(":").map((s) => s.trim());
+              return {
+                month: monthLabels[idx] || monthNum,
+                value: Number(value),
+              };
+            });
+            setProgressGraphData(data);
+          } else {
+            setProgressGraphData([]);
+          }
+        } catch (e) {
+          setProgressGraphData([]);
+        }
+      }
+    };
+    fetchGraphData();
+  }, [client, token]);
+
+  useEffect(() => {
+    const fetchBillings = async () => {
+      if (
+        client.profileCategory === ProfileCategory.SPORTSMAN &&
+        client.id &&
+        token
+      ) {
+        try {
+          // 1. Get all objectives for the sportsman
+          const objectives =
+            await ObjectivesApiService.getObjectivesBySportsman(
+              client.id,
+              token
+            );
+
+          // 2. Filter only active objectives
+          const activeObjectives = objectives.filter((obj) => obj.isActive);
+
+          // 3. For each active objective, get all billings
+          const groups = await Promise.all(
+            activeObjectives.map(async (objective) => {
+              const { billings } =
+                await billingService.getBillingsByObjectiveId(
+                  objective.id,
+                  token
+                );
+              return { objective, billings };
+            })
+          );
+          setBillingGroups(groups);
+        } catch (e) {
+          setBillingGroups([]);
+        }
+      }
+    };
+    fetchBillings();
+  }, [client, token]);
+
+  useEffect(() => {
+    const fetchMedics = async () => {
+      if (
+        client.profileCategory === ProfileCategory.SPORTSMAN &&
+        client.profile &&
+        (client.profile as SportsmanProfile).listMedicsIds &&
+        token
+      ) {
+        const listMedicsIds = (client.profile as SportsmanProfile)
+          .listMedicsIds;
+        const ids = listMedicsIds
+          ? listMedicsIds
+              .split(";")
+              .map((id) => parseInt(id.trim(), 10))
+              .filter((id) => !isNaN(id))
+          : [];
+        try {
+          const users = await Promise.all(
+            ids.map((id) => UserService.getUserById(id, token))
+          );
+          setLinkedMedics(users.map((res) => res.user));
+        } catch (e) {
+          setLinkedMedics([]);
+        }
+      } else {
+        setLinkedMedics([]);
+      }
+    };
+    fetchMedics();
+  }, [client, token]);
+
+  const getAge = (birthDate?: string) => {
+    if (!birthDate) return "";
+    const birth = new Date(birthDate);
+    const today = new Date();
+    let age = today.getFullYear() - birth.getFullYear();
+    const m = today.getMonth() - birth.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
+      age--;
+    }
+    return age.toString();
+  };
+
+  // Get sport or medical category label for the client
+  const getCategoryLabel = () => {
+    if (
+      (client.profileCategory === ProfileCategory.SPORTSMAN ||
+        client.profileCategory === ProfileCategory.COACH) &&
+      typeof (client.profile as any).sportCategoryId !== "undefined" &&
+      (client.profile as any).sportCategoryId &&
+      sportCategories.length > 0
+    ) {
+      const sportCategoryId = (client.profile as any).sportCategoryId;
+      const cat = sportCategories.find((c) => c.id === sportCategoryId);
+      return cat ? cat.label : "";
+    }
+    if (
+      client.profileCategory === ProfileCategory.MEDIC &&
+      typeof (client.profile as any).medicCategoryId !== "undefined" &&
+      (client.profile as any).medicCategoryId &&
+      medicCategories.length > 0
+    ) {
+      const medicCategoryId = (client.profile as any).medicCategoryId;
+      const cat = medicCategories.find((c) => c.id === medicCategoryId);
+      return cat ? cat.label : "";
+    }
+    return "";
+  };
+
+  // Parse all notes from the notes string
+  const getAllNotes = (notesString?: string) => {
+    if (!notesString) return [];
+    // Split on };{ and fix the curly braces
+    return notesString.split(/};\s*{/).map((note, idx, arr) => {
+      // Add missing braces for first and last
+      let cleanNote = note;
+      if (idx === 0 && !note.startsWith("{")) cleanNote = "{" + note;
+      if (idx === arr.length - 1 && !note.endsWith("}")) cleanNote = note + "}";
+      if (idx !== 0 && !note.startsWith("{")) cleanNote = "{" + note;
+      if (idx !== arr.length - 1 && !note.endsWith("}")) cleanNote = note + "}";
+      // Now parse header/message
+      const firstComma = cleanNote.indexOf(",");
+      if (firstComma === -1) return { header: cleanNote, message: "" };
+      const header = cleanNote.slice(1, firstComma).trim();
+      const message = cleanNote
+        .slice(firstComma + 1, cleanNote.length - 1)
+        .trim();
+      return { header, message };
+    });
+  };
+
+  const notesString = (client.profile as SportsmanProfile)?.listMedicNotes;
+  const allNotes = getAllNotes(notesString);
+
+  const handleAddNote = async () => {
+    if (!newNoteContent.trim()) return;
+
+    // Build author info
+    const authorCategory = `[${
+      user.profileCategory.charAt(0).toUpperCase() +
+      user.profileCategory.slice(1)
+    }]`;
+    const authorName = `${user.lastName.toUpperCase()} ${user.firstName}`;
+    const now = new Date();
+    const dateStr = now.toLocaleDateString("fr-FR");
+    const hourStr = now.toLocaleTimeString("fr-FR", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+    const header = `${authorCategory} ${authorName} - le ${dateStr} à ${hourStr}`;
+
+    // Build new note
+    const newNote = `{${header}, ${newNoteContent.trim()}}`;
+
+    // Get previous notes
+    const prevNotes =
+      (client.profile as SportsmanProfile)?.listMedicNotes || "";
+
+    // Concatenate with ";" if needed
+    const updatedNotes = prevNotes ? `${prevNotes};${newNote}` : newNote;
+
+    // Update the sportsman profile
+    try {
+      await UserService.updateSportsman(
+        client.id,
+        { listMedicNotes: updatedNotes },
+        token as string
+      );
+      // Optionally, refresh client/profile data here
+      setEditNotesPopUpVisible(false);
+      setNewNoteContent("");
+      // Refresh the notes
+    } catch (e) {
+      console.error("Erreur lors de l'ajout de la note :", e);
+    }
+  };
+
+  const handleNewObjectiveInputChange = (
+    field: keyof ObjectiveFormData,
+    value: any
+  ) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleAddObjective = async () => {
+    setObjectiveLoading(true);
+    let createdObjective: ObjectiveModel | null = null;
+    try {
+      if (client.profileCategory === ProfileCategory.SPORTSMAN && token) {
+        const objectivePayload = {
+          sportsmanId: client.id,
+          label: formData.objectiveLabel || "",
+          ...(selectedCoach && { responsibleId: selectedCoach.id }),
+          startDate: formData.objectiveStartDate || "",
+          endDate: formData.objectiveEndDate || "",
+          isActive: true,
+        };
+        const objectiveRes = await ObjectivesApiService.createObjective(
+          objectivePayload as any,
+          token
+        );
+        createdObjective = objectiveRes.objective;
+      }
+
+      if (
+        client.profileCategory === ProfileCategory.SPORTSMAN &&
+        createdObjective !== null &&
+        token
+      ) {
+        if (formData.objectiveIsMonthly) {
+          const monthDates = getMonthStartDates(
+            createdObjective.startDate,
+            createdObjective.endDate
+          );
+          await Promise.all(
+            monthDates.map((date, idx) =>
+              billingService.createBilling(
+                {
+                  objectiveId: createdObjective!.id,
+                  billingId: Number(`${createdObjective!.id}${idx + 1}`),
+                  date,
+                  globalAmount: 0,
+                  isMonthly: true,
+                  monthlyAmount: Number(formData.billingMonthlyAmount) || 0,
+                  paymentReceived: false,
+                  isActive: true,
+                },
+                token
+              )
+            )
+          );
+        } else {
+          await billingService.createBilling(
+            {
+              objectiveId: createdObjective.id,
+              billingId: createdObjective.id,
+              date: createdObjective.startDate,
+              globalAmount: Number(formData.billingTotalAmount),
+              isMonthly: false,
+              monthlyAmount: 0,
+              paymentReceived: false,
+              isActive: true,
+            },
+            token
+          );
+        }
+      }
+      setAddObjectivePopUpVisible(false);
+      // Optionally refresh objectives/billings here
+    } catch (e) {
+      // Optionally show an error message
+    } finally {
+      setObjectiveLoading(false);
+    }
+  };
+  const handleAddCoachSubmit = (users: User[]) => {
+    setSelectedCoach(users[0] || null);
+    setCoachSelectorVisible(false);
+  };
+
+  // Fetch all session
+  useEffect(() => {
+    async function fetchSessions() {
+      if (token && client.profileCategory === ProfileCategory.SPORTSMAN) {
+        try {
+          const sessions = await new SessionService().getAllSessions(token);
+          const sessionDetails = await Promise.all(
+            sessions.map((s) =>
+              new SessionService().getSessionById(s.id, token)
+            )
+          );
+          setAllSessions(sessionDetails);
+        } catch (e) {
+          setAllSessions([]);
+        }
+      }
+    }
+    fetchSessions();
+  }, [token]);
+  // Fetch all exercises
+  useEffect(() => {
+    async function fetchExercises() {
+      if (token) {
+        try {
+          const exercises = await exerciseService.getAllExercises(token);
+          setAllExercises(exercises as ExerciseWithDetails[]);
+        } catch (e) {
+          setAllExercises([]);
+        }
+      }
+    }
+    fetchExercises();
+  }, [token]);
+
+  // Fetch all muscle group categories
+  useEffect(() => {
+    async function fetchMuscleGroups() {
+      if (token) {
+        try {
+          const categories = await categoryService.getCategoriesByType(
+            CategoryType.MUSCLE_GROUP,
+            token
+          );
+          setMuscleGroupCategories(categories);
+        } catch (e) {
+          setMuscleGroupCategories([]);
+        }
+      }
+    }
+    fetchMuscleGroups();
+  }, [token]);
+
   const clientInformationsContent: JSX.Element = (
     <>
       <View style={{ flexDirection: "column", gap: 24 }}>
@@ -65,160 +645,231 @@ export default function ClientDetailScreen() {
           firstName={client.firstName}
           lastName={client.lastName}
           susbcriptionLabel={
-            client.profileCategory === "sportsman" ? "Gold" : ""
+            client.profileCategory === ProfileCategory.SPORTSMAN
+              ? (client.profile as SportsmanProfile)?.subscription
+                  ?.subscriptionFile.label || ""
+              : ""
           }
-          email={client.email}
-          phone="0606060606"
-          sport={client.profileCategory === "sportsman" ? "Running" : ""}
-          age="24"
-          profilePictureUrl="users/profilePicture/img-profile-1"
+          email={client.email || ""}
+          phone={client.phone || ""}
+          sport={getCategoryLabel()}
+          age={getAge(client.birthDate)}
+          profilePictureUrl={
+            client.image || "users/profilePicture/img-profile-1"
+          }
         />
         <AppText>Réseaux sociaux</AppText>
         <View style={{ flexDirection: "row", gap: 16 }}>
-          <View style={{ width: 64, height: 64, borderRadius: 16 }}>
-            <Image
-              source={{ uri: "https://reactnative.dev/img/tiny_logo.png" }}
-              style={{ height: "100%" }}
-            />
-          </View>
-          <View style={{ width: 64, height: 64, borderRadius: 16 }}>
-            <Image
-              source={{ uri: "https://reactnative.dev/img/tiny_logo.png" }}
-              style={{ height: "100%" }}
-            />
-          </View>
-          <View style={{ width: 64, height: 64, borderRadius: 16 }}>
-            <Image
-              source={{ uri: "https://reactnative.dev/img/tiny_logo.png" }}
-              style={{ height: "100%" }}
-            />
-          </View>
+          {client.facebookLink && (
+            <View
+              style={{
+                width: 64,
+                height: 64,
+                borderRadius: 16,
+                overflow: "hidden",
+              }}
+            >
+              <Image
+                source={{ uri: "https://reactnative.dev/img/tiny_logo.png" }}
+                style={{ height: "100%" }}
+              />
+            </View>
+          )}
+          {client.instagramLink && (
+            <View
+              style={{
+                width: 64,
+                height: 64,
+                borderRadius: 16,
+                overflow: "hidden",
+              }}
+            >
+              <Image
+                source={{ uri: "https://reactnative.dev/img/tiny_logo.png" }}
+                style={{ height: "100%" }}
+              />
+            </View>
+          )}
+          {client.linkedinLink && (
+            <View
+              style={{
+                width: 64,
+                height: 64,
+                borderRadius: 16,
+                overflow: "hidden",
+              }}
+            >
+              <Image
+                source={{ uri: "https://reactnative.dev/img/tiny_logo.png" }}
+                style={{ height: "100%" }}
+              />
+            </View>
+          )}
         </View>
         <AppText>
-          Passionné de trail et de nature, je participe régulièrement à des
-          courses en montagne. J'aime partager mes expériences et conseiller les
-          autres coureurs sur les meilleures techniques et équipements pour le
-          trail.
+          {client.description || "Aucune description renseignée."}
         </AppText>
         {/* Tests sportifs & bilans */}
         <View style={{ flexDirection: "column", gap: 16 }}>
           <AppText style={GlobalStyles.h2}>TESTS SPORTIFS & BILANS</AppText>
           <View style={{ flexDirection: "column", gap: 8 }}>
-            <View
-              style={{
-                flexDirection: "row",
-                justifyContent: "space-between",
-              }}
-            >
-              <AppText>Premier_Test_Physique-2025.pdf</AppText>
-              <Icon
-                name="download"
-                width={24}
-                height={24}
-                fillColor="transparent"
-                strokeColor="black"
-                strokeWidth={2}
-              />
-            </View>
-            <View
-              style={{
-                flexDirection: "row",
-                justifyContent: "space-between",
-              }}
-            >
-              <AppText>Bilan_Février_2025.pdf</AppText>
-              <Icon
-                name="download"
-                width={24}
-                height={24}
-                fillColor="transparent"
-                strokeColor="black"
-                strokeWidth={2}
-              />
-            </View>
-          </View>
-          {user.profileCategory === "admin" ||
-            (user.profileCategory === "coach" && (
+            {subscriptionFile ? (
               <View
-                style={{ flexDirection: "row", justifyContent: "flex-end" }}
+                style={{
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                }}
               >
-                <AppButton type="add" iconName="plus" />
+                <AppText>{subscriptionFile.label}</AppText>
+                <Icon
+                  name="download"
+                  width={24}
+                  height={24}
+                  fillColor="transparent"
+                  strokeColor="black"
+                  strokeWidth={2}
+                />
               </View>
-            ))}
+            ) : (
+              <AppText>Aucun fichier de test sportif</AppText>
+            )}
+          </View>
+          {(user.profileCategory === "admin" ||
+            user.profileCategory === "coach") && (
+            <View style={{ flexDirection: "row", justifyContent: "flex-end" }}>
+              <AppButton type="add" iconName="plus" />
+            </View>
+          )}
         </View>
         {/* Comptes rendus médicaux */}
         <View style={{ flexDirection: "column", gap: 16 }}>
           <AppText style={GlobalStyles.h2}>COMPTES RENDUS MEDICAUX</AppText>
           <View style={{ flexDirection: "column", gap: 8 }}>
-            <View
-              style={{
-                flexDirection: "row",
-                justifyContent: "space-between",
-              }}
-            >
-              <AppText>Résultats_Analyse_Sanguine_2025.pdf</AppText>
-              <Icon
-                name="download"
-                width={24}
-                height={24}
-                fillColor="transparent"
-                strokeColor="black"
-                strokeWidth={2}
-              />
-            </View>
-            <View
-              style={{
-                flexDirection: "row",
-                justifyContent: "space-between",
-              }}
-            >
-              <AppText>Compte_Rendu_IRM_Genou_2025.pdf</AppText>
-              <Icon
-                name="download"
-                width={24}
-                height={24}
-                fillColor="transparent"
-                strokeColor="black"
-                strokeWidth={2}
-              />
-            </View>
+            {medicFiles.length > 0 ? (
+              medicFiles.map((file) => (
+                <View
+                  key={file.id}
+                  style={{
+                    flexDirection: "row",
+                    justifyContent: "space-between",
+                  }}
+                >
+                  <AppText>{file.label}</AppText>
+                  <Icon
+                    name="download"
+                    width={24}
+                    height={24}
+                    fillColor="transparent"
+                    strokeColor="black"
+                    strokeWidth={2}
+                  />
+                </View>
+              ))
+            ) : (
+              <AppText>Aucun compte rendu médical</AppText>
+            )}
           </View>
-          {user.profileCategory === "admin" ||
-            (user.profileCategory === "medic" && (
-              <View
-                style={{ flexDirection: "row", justifyContent: "flex-end" }}
-              >
-                <AppButton type="add" iconName="plus" />
-              </View>
-            ))}
+          {(user.profileCategory === "admin" ||
+            user.profileCategory === "medic") && (
+            <View style={{ flexDirection: "row", justifyContent: "flex-end" }}>
+              <AppButton type="add" iconName="plus" />
+            </View>
+          )}
         </View>
         {/* Notes */}
         <View style={{ flexDirection: "column", gap: 16 }}>
           <AppText style={GlobalStyles.h2}>NOTES</AppText>
           <View>
-            <AppText style={{ fontWeight: "bold" }}>
-              [Consultant] NOM Prénom - le DD/MM/YYYY à HH:MM
-            </AppText>
-            <AppText>
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin id
-              volutpat sem. Vestibulum finibus lacus ante, at facilisis felis
-              lobortis varius. Morbi gravida dui placerat, tincidunt ligula vel,
-              auctor dolor. Nulla lorem nisl, tempus nec leo sit amet, sodales
-              volutpat sem. In eget justo urna. Sed nec auctor odio.
-            </AppText>
+            {allNotes.length > 0 ? (
+              allNotes.map((note, idx) => (
+                <View key={idx} style={{ marginBottom: 12 }}>
+                  <AppText style={{ fontWeight: "bold" }}>
+                    {note.header}
+                  </AppText>
+                  <AppText>{note.message}</AppText>
+                </View>
+              ))
+            ) : (
+              <AppText>Aucune note</AppText>
+            )}
           </View>
           <View style={{ flexDirection: "row", justifyContent: "flex-end" }}>
-            <AppButton type="add" iconName="plus" />
+            <AppButton
+              type="add"
+              iconName="plus"
+              onPress={() => setEditNotesPopUpVisible(true)}
+            />
           </View>
         </View>
+        {editNotesPopUpVisible && (
+          <Modal
+            visible={editNotesPopUpVisible}
+            transparent
+            onRequestClose={() => {
+              setEditNotesPopUpVisible(false);
+            }}
+          >
+            <Pressable
+              onPress={() => {
+                setEditNotesPopUpVisible(false);
+              }}
+              style={{
+                flex: 1,
+                backgroundColor: "rgba(0,0,0,0.5)",
+                justifyContent: "center",
+                padding: 24,
+              }}
+            >
+              <PopUp
+                onClose={() => {
+                  setEditNotesPopUpVisible(false);
+                  setNewNoteContent("");
+                }}
+                title="Ajouter une note"
+                btnType="primary"
+                btnText="Valider"
+                iconName="check"
+                closeText="Annuler"
+                onSubmit={handleAddNote}
+                paragraph="Renseignez ici le contenu de la note"
+                inputs={
+                  <>
+                    <Input
+                      type="textarea"
+                      label="Contenu de la note"
+                      placeholder="Remarques, conseils, etc."
+                      value={newNoteContent}
+                      onChangeText={setNewNoteContent}
+                    />
+                  </>
+                }
+              />
+            </Pressable>
+          </Modal>
+        )}
         {/* Prestation & échéance */}
         <View style={{ flexDirection: "column", gap: 16 }}>
           <AppText style={GlobalStyles.h2}>PRESTATION & ECHEANCES</AppText>
-          <Objective
-            duration={10}
-            onGoingNumber={7}
-            label="Suivi par un coach sportif de running pour un marathon"
-          />
+          {objectives.filter((obj) => obj.isActive).length > 0 ? (
+            objectives
+              .filter((obj) => obj.isActive)
+              .map((objective) => (
+                <Objective
+                  key={objective.id}
+                  duration={getMonthsBetween(
+                    objective.startDate,
+                    objective.endDate
+                  )}
+                  onGoingNumber={getOngoingMonth(
+                    objective.startDate,
+                    objective.endDate
+                  )}
+                  label={objective.label}
+                />
+              ))
+          ) : (
+            <AppText>Aucun objectif défini</AppText>
+          )}
           {user.profileCategory === "admin" && (
             <View
               style={{
@@ -232,45 +883,214 @@ export default function ClientDetailScreen() {
                 title="Voir la facturation"
                 iconName="eye"
               />
-              <AppButton type="add" iconName="plus" />
+              <AppButton
+                type="add"
+                iconName="plus"
+                onPress={() => setAddObjectivePopUpVisible(true)}
+              />
             </View>
+          )}
+          {addObjectivePopUpVisible && (
+            <Modal
+              visible={addObjectivePopUpVisible}
+              transparent
+              onRequestClose={() => {
+                setAddObjectivePopUpVisible(false);
+              }}
+            >
+              <Pressable
+                onPress={() => {
+                  setAddObjectivePopUpVisible(false);
+                }}
+                style={{
+                  flex: 1,
+                  backgroundColor: "rgba(0,0,0,0.5)",
+                  justifyContent: "center",
+                  padding: 24,
+                }}
+              >
+                <PopUp
+                  onClose={() => {
+                    if (!objectiveLoading) setAddObjectivePopUpVisible(false);
+                  }}
+                  title="Ajouter un objectif"
+                  btnType="primary"
+                  btnText="Valider"
+                  iconName="check"
+                  closeText="Annuler"
+                  onSubmit={handleAddObjective}
+                  paragraph="Renseignez les champs ci-dessous pour ajouter un objectif"
+                  specificBody={
+                    objectiveLoading ? (
+                      <View style={{ alignItems: "center", padding: 32 }}>
+                        <ActivityIndicator
+                          size="large"
+                          color={Colors.deepBlue}
+                        />
+                        <AppText style={{ marginTop: 16 }}>
+                          Création en cours...
+                        </AppText>
+                      </View>
+                    ) : (
+                      <View style={{ flexDirection: "column", gap: 16 }}>
+                        <Input
+                          type="text"
+                          label="Libellé de la prestation"
+                          placeholder="Libellé"
+                          value={formData.objectiveLabel || ""}
+                          onChangeText={(v) =>
+                            handleNewObjectiveInputChange("objectiveLabel", v)
+                          }
+                        />
+                        <Input
+                          type="date"
+                          label="Date de début"
+                          placeholder="XX/XX/XXXX"
+                          value={formData.objectiveStartDate || ""}
+                          onChangeText={(v) =>
+                            handleNewObjectiveInputChange(
+                              "objectiveStartDate",
+                              v
+                            )
+                          }
+                        />
+
+                        <Input
+                          type="date"
+                          label="Date de fin"
+                          placeholder="XX/XX/XXXX"
+                          value={formData.objectiveEndDate || ""}
+                          onChangeText={(v) =>
+                            handleNewObjectiveInputChange("objectiveEndDate", v)
+                          }
+                        />
+
+                        <View style={{ flexDirection: "column", gap: 8 }}>
+                          <AppText>Tarification complète par défaut</AppText>
+                          <Input
+                            type="checkbox"
+                            label="Passer en tarification par mois"
+                            value={formData.objectiveIsMonthly || false}
+                            onChange={(v) =>
+                              handleNewObjectiveInputChange(
+                                "objectiveIsMonthly",
+                                v
+                              )
+                            }
+                          />
+                        </View>
+
+                        <Input
+                          type="text"
+                          label={
+                            formData.objectiveIsMonthly
+                              ? "Tarification par mois"
+                              : "Tarification totale"
+                          }
+                          placeholder={
+                            formData.objectiveIsMonthly ? "XX€/mois" : "XX€"
+                          }
+                          value={
+                            formData.objectiveIsMonthly
+                              ? formData.billingMonthlyAmount || ""
+                              : formData.billingTotalAmount || ""
+                          }
+                          onChangeText={(v) =>
+                            handleNewObjectiveInputChange(
+                              formData.objectiveIsMonthly
+                                ? "billingMonthlyAmount"
+                                : "billingTotalAmount",
+                              v
+                            )
+                          }
+                        />
+                        <Pressable
+                          onPress={() =>
+                            setCoachSelectorVisible(!coachSelectorVisible)
+                          }
+                          style={{
+                            paddingHorizontal: 8,
+                            paddingVertical: 6,
+                            borderRadius: 8,
+                            borderWidth: 1,
+                            borderColor: Colors.deepBlue,
+                            marginTop: 8,
+                          }}
+                        >
+                          {selectedCoach ? (
+                            <AppText>
+                              {selectedCoach.firstName} {selectedCoach.lastName}
+                            </AppText>
+                          ) : (
+                            <AppText style={{ color: Colors.grey }}>
+                              Sélectionnez un coach à affecter
+                            </AppText>
+                          )}
+                        </Pressable>
+                        <AppText>
+                          Le coach sélectionné sera responsable de l'objectif de
+                          ce sportif.
+                        </AppText>
+                      </View>
+                    )
+                  }
+                />
+              </Pressable>
+            </Modal>
+          )}
+          {coachSelectorVisible && (
+            <AddContacts
+              visible={coachSelectorVisible}
+              onClose={() => setCoachSelectorVisible(!coachSelectorVisible)}
+              onSubmit={handleAddCoachSubmit}
+              token={token as string}
+            />
           )}
           <AppText style={GlobalStyles.h3}>PLAN DE PERFORMANCES</AppText>
           <View style={{ flexDirection: "column", gap: 8 }}>
-            <Session
-              title="Séance de fractionné"
-              nbExercises={5}
-              durationTime={68}
-              labels={[
-                <Label key={1} type="blue" size="small" title="Label" />,
-                <Label key={2} type="blue" size="small" title="Label" />,
-              ]}
-            />
-            <Session
-              title="Séance de fractionné"
-              nbExercises={5}
-              durationTime={68}
-              labels={[
-                <Label key={3} type="blue" size="small" title="Label" />,
-                <Label key={4} type="blue" size="small" title="Label" />,
-              ]}
-            />
-            <Session
-              title="Séance de fractionné"
-              nbExercises={5}
-              durationTime={68}
-              labels={[
-                <Label key={5} type="blue" size="small" title="Label" />,
-                <Label key={6} type="blue" size="small" title="Label" />,
-              ]}
-            />
+            {activeSessions.length > 0 ? (
+              activeSessions.map((sessionWithFile) => (
+                <Session
+                  key={sessionWithFile.session.id}
+                  title={sessionWithFile.session.label}
+                  nbExercises={sessionWithFile.session.numberOfExercises}
+                  durationTime={getMinutesFromDuration(
+                    sessionWithFile.session.durationTime
+                  )}
+                  labels={[]}
+                />
+              ))
+            ) : (
+              <AppText>Aucune séance active</AppText>
+            )}
             <View style={{ flexDirection: "row", justifyContent: "flex-end" }}>
               <AppButton
                 type="primary"
                 title="Envoyer un plan"
                 iconName="send"
+                onPress={() => {
+                  setAddSessionPopUpVisible(true);
+                }}
               />
             </View>
+            {addSessionPopUpVisible && (
+              <AddSessions
+                visible={addSessionPopUpVisible}
+                listOfSession={allSessions}
+                onClose={() => setAddSessionPopUpVisible(false)}
+                onSubmit={(selectedSessions) => {
+                  selectedSessions.map(async (s) => {
+                    await new SessionService().addSessionToSportsman(
+                      client.id,
+                      s.session.id,
+                      token as string
+                    );
+                  });
+                }}
+                exercises={allExercises}
+                categories={muscleGroupCategories}
+              />
+            )}
           </View>
           {user.profileCategory === "coach" && (
             <View style={{ flexDirection: "column", gap: 16 }}>
@@ -283,8 +1103,20 @@ export default function ClientDetailScreen() {
                 nbExercises={5}
                 durationTime={68}
                 labels={[
-                  <Label key={1} type="blue" size="small" title="Label" />,
-                  <Label key={2} type="blue" size="small" title="Label" />,
+                  <Label
+                    key={1}
+                    backgroundColor="#D6EBFF"
+                    textColor="#1E3A8A"
+                    size="small"
+                    title="Label"
+                  />,
+                  <Label
+                    key={2}
+                    backgroundColor="#D6EBFF"
+                    textColor="#1E3A8A"
+                    size="small"
+                    title="Label"
+                  />,
                 ]}
               />
             </View>
@@ -306,25 +1138,11 @@ export default function ClientDetailScreen() {
             <AppButton type="primary" title="Télécharger" iconName="download" />
           </View>
         </View>
-        <View>
-          <ProgressGraph
-            title="Historique des performances"
-            data={[
-              { month: "Jan", value: 55 },
-              { month: "Fév", value: 62 },
-              { month: "Mar", value: 60 },
-              { month: "Avr", value: 68 },
-              { month: "Mai", value: 55 },
-              { month: "Jun", value: 62 },
-              { month: "Jul", value: 70 },
-              { month: "Aou", value: 65 },
-              { month: "Sep", value: 72 },
-              { month: "Oct", value: 70 },
-              { month: "Nov", value: 86 },
-              { month: "Dec", value: 92 },
-            ]}
-          />
-        </View>
+        {graph && graph.isActive && (
+          <View>
+            <ProgressGraph title={graph.title} data={progressGraphData} />
+          </View>
+        )}
         {/* User profile management */}
         {user.profileCategory === "admin" && (
           <View style={{ flexDirection: "column", gap: 16 }}>
@@ -384,172 +1202,120 @@ export default function ClientDetailScreen() {
                   Plan de facturation choisi
                 </AppText>
                 <View>
-                  <AppText>Lorem ipsum dolor sit amet</AppText>
-                  <AppText>Consectetur adipiscing elit</AppText>
-                  <AppText>Sed do eiusmod tempor incididunt</AppText>
+                  <AppText>
+                    {
+                      (client.profile as SportsmanProfile).subscription
+                        ?.labelDiagnostic
+                    }
+                  </AppText>
+                  <AppText>
+                    {
+                      (client.profile as SportsmanProfile).subscription
+                        ?.labelPerformancePlan
+                    }
+                  </AppText>
                 </View>
               </View>
-              <BillingGroup
-                label="Suivi par un coach sportif de running"
-                proFirstName="Alex"
-                proLastName="MARTIN"
-                sportsmanFirstName="John"
-                sportsmanLastName="Doe"
-                billingStartDate={new Date("2025-01-01")}
-                billingEndDate={new Date("2025-10-01")}
-                globalAmount={10000}
-                billingLines={[
-                  <BillingLine
-                    amount={500}
-                    state="pending"
-                    startDate={new Date("2025-06-01")}
-                    endDate={new Date("2025-07-01")}
-                    key={1}
-                  />,
-                  <BillingLine
-                    amount={500}
-                    state="received"
-                    startDate={new Date("2025-05-01")}
-                    endDate={new Date("2025-06-01")}
-                    key={2}
-                  />,
-                  <BillingLine
-                    amount={500}
-                    state="received"
-                    startDate={new Date("2025-04-01")}
-                    endDate={new Date("2025-05-01")}
-                    key={3}
-                  />,
-                ]}
-              />
-              <BillingGroup
-                label="Suivi par un coach sportif de running"
-                proFirstName="Alex"
-                proLastName="MARTIN"
-                sportsmanFirstName="John"
-                sportsmanLastName="Doe"
-                billingStartDate={new Date("2025-01-01")}
-                billingEndDate={new Date("2025-10-01")}
-                globalAmount={10000}
-                billingLines={[
-                  <BillingLine
-                    amount={500}
-                    state="received"
-                    startDate={new Date("2025-06-01")}
-                    endDate={new Date("2025-07-01")}
-                    key={4}
-                  />,
-                  <BillingLine
-                    amount={500}
-                    state="received"
-                    startDate={new Date("2025-05-01")}
-                    endDate={new Date("2025-06-01")}
-                    key={5}
-                  />,
-                  <BillingLine
-                    amount={500}
-                    state="received"
-                    startDate={new Date("2025-04-01")}
-                    endDate={new Date("2025-05-01")}
-                    key={6}
-                  />,
-                ]}
-              />
-              <BillingGroup
-                label="Suivi par un coach sportif de running"
-                proFirstName="Alex"
-                proLastName="MARTIN"
-                sportsmanFirstName="John"
-                sportsmanLastName="Doe"
-                billingStartDate={new Date("2025-01-01")}
-                billingEndDate={new Date("2025-10-01")}
-                globalAmount={10000}
-                billingLines={[
-                  <BillingLine
-                    amount={500}
-                    state="received"
-                    startDate={new Date("2025-06-01")}
-                    endDate={new Date("2025-07-01")}
-                    key={7}
-                  />,
-                  <BillingLine
-                    amount={500}
-                    state="received"
-                    startDate={new Date("2025-05-01")}
-                    endDate={new Date("2025-06-01")}
-                    key={8}
-                  />,
-                  <BillingLine
-                    amount={500}
-                    state="received"
-                    startDate={new Date("2025-04-01")}
-                    endDate={new Date("2025-05-01")}
-                    key={9}
-                  />,
-                ]}
-              />
+              {billingGroups.length > 0 ? (
+                billingGroups.map(({ objective, billings }) => {
+                  if (!billings.length) return null;
+
+                  // Group billings by isMonthly
+                  const isMonthly = billings[0].isMonthly;
+
+                  // For monthly, sort by date descending (optional)
+                  const sortedBillings = [...billings].sort(
+                    (a, b) =>
+                      new Date(a.date).getTime() - new Date(b.date).getTime()
+                  );
+
+                  return (
+                    <BillingGroup
+                      key={objective.id}
+                      label={objective.label}
+                      proFirstName={objective.responsible.firstName}
+                      proLastName={objective.responsible.lastName}
+                      sportsmanFirstName={objective.sportsman.firstName}
+                      sportsmanLastName={objective.sportsman.lastName}
+                      billingStartDate={new Date(objective.startDate)}
+                      billingEndDate={new Date(objective.endDate)}
+                      globalAmount={billings[0].globalAmount}
+                      billingLines={
+                        isMonthly
+                          ? sortedBillings.map((billing) => (
+                              <BillingLine
+                                key={billing.billingId}
+                                amount={billing.monthlyAmount}
+                                state={
+                                  billing.paymentReceived
+                                    ? "received"
+                                    : "pending"
+                                }
+                                startDate={new Date(billing.date)}
+                                // set endate to startDate + 1 month
+                                endDate={
+                                  new Date(
+                                    new Date(billing.date).setMonth(
+                                      new Date(billing.date).getMonth() + 1
+                                    )
+                                  )
+                                }
+                              />
+                            ))
+                          : [
+                              <BillingLine
+                                key={billings[0].billingId}
+                                amount={billings[0].globalAmount}
+                                state={
+                                  billings[0].paymentReceived
+                                    ? "received"
+                                    : "pending"
+                                }
+                                startDate={new Date(objective.startDate)}
+                                endDate={new Date(objective.endDate)}
+                              />,
+                            ]
+                      }
+                    />
+                  );
+                })
+              ) : (
+                <AppText>Aucune facturation trouvée</AppText>
+              )}
             </View>,
             <View key="medics" style={{ flexDirection: "column", gap: 24 }}>
               <AppText style={GlobalStyles.h2}>SOIGNANTS</AppText>
               <View style={{ flexDirection: "column", gap: 16 }}>
-                <ItemUser
-                  firstName="firstName"
-                  lastName="Lastname"
-                  job="Kinésithérapeute"
-                  isCompany={false}
-                />
-                <View
-                  style={{ flexDirection: "row", justifyContent: "flex-end" }}
-                >
-                  <AppButton
-                    type="linkSmall"
-                    title="Supprimer"
-                    iconName="trash"
-                    textStyle={{ color: Colors.lightRed }}
-                    borderColor={Colors.lightRed}
-                    iconColor={Colors.lightRed}
-                  />
-                </View>
+                {linkedMedics.length > 0 ? (
+                  linkedMedics.map((medic) => (
+                    <View
+                      key={medic.id}
+                      style={{ flexDirection: "column", gap: 8 }}
+                    >
+                      <ItemUser user={medic} isCompany={false} />
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          justifyContent: "flex-end",
+                        }}
+                      >
+                        <AppButton
+                          type="linkSmall"
+                          title="Supprimer"
+                          iconName="trash"
+                          textStyle={{ color: Colors.lightRed }}
+                          borderColor={Colors.lightRed}
+                          iconColor={Colors.lightRed}
+                        />
+                      </View>
+                    </View>
+                  ))
+                ) : (
+                  <AppText>Aucun soignant lié</AppText>
+                )}
               </View>
-              <View style={{ flexDirection: "column", gap: 16 }}>
-                <ItemUser
-                  firstName="firstName"
-                  lastName="Lastname"
-                  job="Osthéopathe"
-                  isCompany={false}
-                />
-                <View
-                  style={{ flexDirection: "row", justifyContent: "flex-end" }}
-                >
-                  <AppButton
-                    type="linkSmall"
-                    title="Supprimer"
-                    iconName="trash"
-                    textStyle={{ color: Colors.lightRed }}
-                    borderColor={Colors.lightRed}
-                    iconColor={Colors.lightRed}
-                  />
-                </View>
-              </View>
-              <View style={{ flexDirection: "column", gap: 16 }}>
-                <ItemUser
-                  firstName="firstName"
-                  lastName="Lastname"
-                  job="Médecin généraliste"
-                  isCompany={false}
-                />
-                <View
-                  style={{ flexDirection: "row", justifyContent: "flex-end" }}
-                >
-                  <AppButton
-                    type="linkSmall"
-                    title="Supprimer"
-                    iconName="trash"
-                    textStyle={{ color: Colors.lightRed }}
-                    borderColor={Colors.lightRed}
-                    iconColor={Colors.lightRed}
-                  />
-                </View>
+              <View style={{ flexDirection: "row", justifyContent: "center" }}>
+                <AppButton type="add" iconName="plus" />
               </View>
             </View>,
           ];
@@ -690,17 +1456,29 @@ export default function ClientDetailScreen() {
                   <AppText style={GlobalStyles.h2}>SES PATIENTS</AppText>
                   <View style={{ flexDirection: "column", gap: 8 }}>
                     <ItemUser
-                      firstName="firstName"
-                      lastName="LastName"
-                      sport="Running"
-                      job="Dentiste"
+                      user={{
+                        firstName: "firstName",
+                        lastName: "Lastname",
+                        email: "one@mail.com",
+                        id: 1,
+                        isActive: true,
+                        profileCategory: ProfileCategory.SPORTSMAN,
+                        createdAt: new Date().toLocaleDateString("fr-FR"),
+                        updatedAt: new Date().toLocaleDateString("fr-FR"),
+                      }}
                       isCompany={false}
                     />
                     <ItemUser
-                      firstName="firstName"
-                      lastName="LastName"
-                      sport="Danse"
-                      job="Charpentier"
+                      user={{
+                        firstName: "firstName",
+                        lastName: "Lastname",
+                        email: "one@mail.com",
+                        id: 1,
+                        isActive: true,
+                        profileCategory: ProfileCategory.SPORTSMAN,
+                        createdAt: new Date().toLocaleDateString("fr-FR"),
+                        updatedAt: new Date().toLocaleDateString("fr-FR"),
+                      }}
                       isCompany={false}
                     />
                   </View>
@@ -779,17 +1557,29 @@ export default function ClientDetailScreen() {
                   <AppText style={GlobalStyles.h2}>SES CLIENTS</AppText>
                   <View style={{ flexDirection: "column", gap: 8 }}>
                     <ItemUser
-                      firstName="firstName"
-                      lastName="LastName"
-                      sport="Running"
-                      job="Dentiste"
+                      user={{
+                        firstName: "firstName",
+                        lastName: "Lastname",
+                        email: "one@mail.com",
+                        id: 1,
+                        isActive: true,
+                        profileCategory: ProfileCategory.SPORTSMAN,
+                        createdAt: new Date().toLocaleDateString("fr-FR"),
+                        updatedAt: new Date().toLocaleDateString("fr-FR"),
+                      }}
                       isCompany={false}
                     />
                     <ItemUser
-                      firstName="firstName"
-                      lastName="LastName"
-                      sport="Danse"
-                      job="Charpentier"
+                      user={{
+                        firstName: "firstName",
+                        lastName: "Lastname",
+                        email: "two@mail.com",
+                        id: 2,
+                        isActive: true,
+                        profileCategory: ProfileCategory.SPORTSMAN,
+                        createdAt: new Date().toLocaleDateString("fr-FR"),
+                        updatedAt: new Date().toLocaleDateString("fr-FR"),
+                      }}
                       isCompany={false}
                     />
                   </View>

@@ -263,3 +263,19 @@ export const stringifyAvailableDays = (days: AvailableDays): string => {
     days.sunday ? "1" : "0",
   ].join("");
 };
+
+export function getMonthStartDates(start: string, end: string): string[] {
+  const result: string[] = [];
+  let current = new Date(start);
+  const endDate = new Date(end);
+
+  // Always use the first day of the month for billing
+  current.setDate(1);
+
+  while (current <= endDate) {
+    result.push(current.toISOString().slice(0, 10));
+    // Move to next month
+    current.setMonth(current.getMonth() + 1);
+  }
+  return result;
+}

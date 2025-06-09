@@ -11,6 +11,7 @@ import {
   ProfileCategory,
   CreateUserProfilePayload,
   UserResponse,
+  SportsmanProfile,
 } from "../../models/user";
 
 export class UserService {
@@ -130,7 +131,7 @@ export class UserService {
     userData: any,
     token: string
   ): Promise<{ message: string }> {
-    return apiClient.put<{ message: string }>(
+    return apiClient.patch<{ message: string }>(
       `/users/${userId}/${profileCategory}`,
       userData,
       token
@@ -248,7 +249,7 @@ export class UserService {
    */
   static async updateSportsman(
     userId: number,
-    sportsmanData: Partial<SportsmanUser>,
+    sportsmanData: Partial<SportsmanProfile>,
     token: string
   ): Promise<{ message: string }> {
     return this.updateUserByProfileAndId(

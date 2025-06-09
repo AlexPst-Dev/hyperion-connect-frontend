@@ -4,6 +4,7 @@ import {
   SessionExercisesResponse,
   SessionWithFile,
   UpdateSessionRequest,
+  LinkedSessions,
 } from "../../models/session";
 import { apiClient } from "./client";
 
@@ -153,6 +154,58 @@ export class SessionService {
   }
 
   /**
+   * Find all sessions of a sportsman
+   */
+  async getSessionsBySportsman(
+    sportsmanId: number,
+    token?: string
+  ): Promise<LinkedSessions[]> {
+    if (isNaN(sportsmanId)) {
+      throw new Error("ID de sportsman invalide");
+    }
+
+    try {
+      const allLinkedSessions = await apiClient.get<LinkedSessions[]>(
+        `/linkedSessions`,
+        token
+      );
+      // Filter only those for the given sportsmanId
+      return allLinkedSessions.filter((ls) => ls.sportsmanId === sportsmanId);
+    } catch (error) {
+      console.error(
+        "Erreur lors de la récupération des linked sessions :",
+        error
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Add a session to the list of a sportsman
+   */
+  async addSessionToSportsman(
+    sportsmanId: number,
+    sessionId: number,
+    token?: string
+  ): Promise<LinkedSessions[]> {
+    if (!sportsmanId || isNaN(sportsmanId) || !sessionId || isNaN(sessionId)) {
+      throw new Error("ID invalides");
+    }
+
+    try {
+      const newLinkedSession = await apiClient.post<LinkedSessions[]>(
+        `/linkedSessions`,
+        { sportsmanId, sessionId },
+        token
+      );
+      return newLinkedSession;
+    } catch (error) {
+      console.error("Erreur lors de la création de la linked session :", error);
+      throw error;
+    }
+  }
+
+  /**
    * Set a session as "isDone"
    */
   async markSessionAsDone(
@@ -191,4 +244,10 @@ export class SessionService {
   ): Promise<{ message: string; session: Session }> {
     return this.updateSessionById(id, { isActive: false }, token);
   }
+}
+
+export function getMinutesFromDuration(durationTime: string): number {
+  if (!durationTime) return 0;
+  const [hours, minutes] = durationTime.split(":").map(Number);
+  return (hours || 0) * 60 + (minutes || 0);
 }

@@ -20,9 +20,9 @@ export class ObjectivesApiService {
     OBJECTIVES: "/objectives",
     OBJECTIVE_BY_ID: (id: number) => `/objectives/${id}`,
     OBJECTIVES_BY_SPORTSMAN: (sportsmanId: number) =>
-      `/objectives/sportsman/${sportsmanId}`,
+      `/objectives/by-sportsman/${sportsmanId}`,
     OBJECTIVES_BY_RESPONSIBLE: (responsibleId: number) =>
-      `/objectives/responsible/${responsibleId}`,
+      `/objectives/by-responsible/${responsibleId}`,
     INACTIVE_OBJECTIVES_BY_SPORTSMAN: (sportsmanId: number) =>
       `/objectives/sportsman/${sportsmanId}/inactive`,
   } as const;

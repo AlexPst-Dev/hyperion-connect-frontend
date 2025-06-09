@@ -140,18 +140,6 @@ const GlobalStyles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 4,
   },
-  label_blue: {
-    backgroundColor: "#D6EBFF",
-    color: "#1E3A8A",
-  },
-  label_orange: {
-    backgroundColor: "#FFF9F4",
-    color: "#F97316",
-  },
-  label_green: {
-    backgroundColor: "#DEFFD6",
-    color: "#1F7722",
-  },
   labelTextBase: {
     fontSize: 16,
   },

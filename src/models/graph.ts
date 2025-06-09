@@ -74,3 +74,27 @@ export const mapGraphResponse = (
 export const DEFAULT_GRAPH_VALUES = {
   isActive: true,
 } as const;
+
+export function getDynamicMonthLabels(startDate: string, count: number) {
+  const months = [
+    "Jan",
+    "Fév",
+    "Mar",
+    "Avr",
+    "Mai",
+    "Jun",
+    "Jul",
+    "Aou",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
+  const [year, month] = startDate.split("-").map(Number); // YYYY-MM-DD
+  let labels = [];
+  let currentMonth = month - 1; // JS months are 0-based
+  for (let i = 0; i < count; i++) {
+    labels.push(months[(currentMonth + i) % 12]);
+  }
+  return labels;
+}

@@ -10,25 +10,20 @@ import Session from "../Session";
 import Label from "../Label";
 import Icon from "../Icon";
 import { Colors } from "@/src/styles/styles";
-
-export interface TempInterfaceSession {
-  id: number;
-  title: string;
-  nbExercises?: number;
-  durationTime: number;
-  muscleGroups: Array<{
-    title: string;
-    color: "blue" | "orange" | "green";
-  }>;
-}
+import { SessionWithFile } from "@/src/models/session";
+import { getMinutesFromDuration } from "@/src/services/api/session-service";
+import { ExerciseWithDetails } from "@/src/models/exercise";
+import { Category } from "@/src/models/category";
 
 interface Props {
   visible: boolean;
-  listOfSession: TempInterfaceSession[];
+  listOfSession: SessionWithFile[];
   onClose: () => void;
-  onSubmit?: (selectedSessions: TempInterfaceSession[]) => void;
+  onSubmit?: (selectedSessions: SessionWithFile[]) => void;
   isEditable?: boolean;
   isExercises?: boolean;
+  exercises: ExerciseWithDetails[];
+  categories: Category[];
 }
 
 export default function AddSessions({
@@ -37,18 +32,51 @@ export default function AddSessions({
   onClose,
   onSubmit,
   isExercises,
+  exercises,
+  categories,
 }: Props) {
   const [selectedSessionIds, setSelectedSessionIds] = useState<number[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
 
+  // Helper to get muscle group categories for a session
+  const getSessionMuscleGroups = (sessionWithFile: SessionWithFile) => {
+    // Get exercise IDs from session.listExercises
+    const exerciseIds = sessionWithFile.session.listExercises
+      .split(";")
+      .map((id) => id.trim())
+      .filter(Boolean)
+      .map(Number);
+
+    // Get all muscle group IDs from those exercises
+    const muscleGroupIds = exercises
+      .filter((ex) => exerciseIds.includes(ex.id))
+      .flatMap((ex) =>
+        ex.listMuscleGroupIds
+          .split(";")
+          .map((id) => id.trim())
+          .filter(Boolean)
+          .map(Number)
+      );
+
+    // Get unique muscle group IDs
+    const uniqueMuscleGroupIds = Array.from(new Set(muscleGroupIds));
+
+    // Map to category objects
+    return categories.filter((cat) => uniqueMuscleGroupIds.includes(cat.id));
+  };
+
+  // For filter options
   const filterCategories = Array.from(
     new Set(
       listOfSession
-        .flatMap((session) => session.muscleGroups.map((group) => group.title))
+        .flatMap((session) =>
+          getSessionMuscleGroups(session).map((group) => group.label)
+        )
         .filter(Boolean)
     )
   );
+
   useEffect(() => {
     if (
       visible &&
@@ -73,20 +101,24 @@ export default function AddSessions({
   };
 
   const handleSubmit = () => {
-    const selectedSessions = listOfSession.filter((session) =>
-      selectedSessionIds.includes(session.id)
+    const selectedSessions = listOfSession.filter((sessionWithFile) =>
+      selectedSessionIds.includes(sessionWithFile.session.id)
     );
     onSubmit?.(selectedSessions);
     onClose();
   };
 
-  const filteredSessions = listOfSession.filter((session) => {
+  const filteredSessions = listOfSession.filter((sessionWithFile) => {
+    const sessionMuscleGroups = getSessionMuscleGroups(sessionWithFile);
+
     const matchesSearch =
       searchTerm.length < 3 ||
-      session.title.toLowerCase().startsWith(searchTerm.toLowerCase());
+      sessionWithFile.session.label
+        .toLowerCase()
+        .startsWith(searchTerm.toLowerCase());
 
-    const matchesFilter = session.muscleGroups.some((group) =>
-      selectedFilters.includes(group.title)
+    const matchesFilter = sessionMuscleGroups.some((group) =>
+      selectedFilters.includes(group.label)
     );
 
     return matchesSearch && matchesFilter;
@@ -112,17 +144,24 @@ export default function AddSessions({
             }
             inputs={
               <>
-                <Input
+                {/* <Input
                   type="selector"
                   label="Groupe musculaire"
                   placeholder="Jambes"
                   value={selectedFilters}
-                  onChangeText={(v) => {
-                    const values = v.split(",");
-                    setSelectedFilters(values);
+                  onChange={(values) => {
+                    if (Array.isArray(values)) {
+                      setSelectedFilters(
+                        values.filter((v): v is string => typeof v === "string")
+                      );
+                    } else if (typeof values === "string") {
+                      setSelectedFilters([values]);
+                    } else {
+                      setSelectedFilters([]);
+                    }
                   }}
                   options={filterOptions}
-                />
+                /> */}
                 <Input
                   type="text"
                   label="Rechercher"
@@ -136,14 +175,19 @@ export default function AddSessions({
               <>
                 <ScrollView style={styles.sessionList}>
                   {filteredSessions.length > 0 ? (
-                    filteredSessions.map((session, index) => {
+                    filteredSessions.map((sessionWithFile, index) => {
                       const isSelected = selectedSessionIds.includes(
-                        session.id
+                        sessionWithFile.session.id
                       );
+                      const sessionMuscleGroups =
+                        getSessionMuscleGroups(sessionWithFile);
+
                       return (
                         <Pressable
-                          key={session.id}
-                          onPress={() => toggleSelection(session.id)}
+                          key={sessionWithFile.session.id}
+                          onPress={() =>
+                            toggleSelection(sessionWithFile.session.id)
+                          }
                           style={{
                             marginBottom:
                               index === filteredSessions.length - 1 ? 0 : 12,
@@ -153,45 +197,16 @@ export default function AddSessions({
                           }}
                         >
                           <View style={{ width: "89%" }}>
-                            {!isExercises ? (
-                              <Session
-                                title={session.title}
-                                durationTime={session.durationTime}
-                                nbExercises={session.nbExercises}
-                                hideIcon
-                                labels={
-                                  <>
-                                    {session.muscleGroups.map((group) => (
-                                      <Label
-                                        key={group.title}
-                                        title={group.title}
-                                        type={group.color}
-                                        size="small"
-                                      />
-                                    ))}
-                                  </>
-                                }
-                              />
-                            ) : (
-                              <Session
-                                title={session.title}
-                                durationTime={session.durationTime}
-                                isExercice
-                                hideIcon
-                                labels={
-                                  <>
-                                    {session.muscleGroups.map((group) => (
-                                      <Label
-                                        key={group.title}
-                                        title={group.title}
-                                        type={group.color}
-                                        size="small"
-                                      />
-                                    ))}
-                                  </>
-                                }
-                              />
-                            )}
+                            <Session
+                              title={sessionWithFile.session.label}
+                              durationTime={getMinutesFromDuration(
+                                sessionWithFile.session.durationTime
+                              )}
+                              nbExercises={
+                                sessionWithFile.session.numberOfExercises
+                              }
+                              hideIcon
+                            />
                           </View>
                           <Icon
                             name={isSelected ? "circleChecked" : "circle"}

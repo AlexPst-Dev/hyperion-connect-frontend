@@ -10,14 +10,14 @@ export const exerciseService = {
     token: string
   ): Promise<{ message: string; exercice: Exercise }> {
     return apiClient.post<{ message: string; exercice: Exercise }>(
-      "/exercices",
+      "/exercises",
       data,
       token
     );
   },
 
   async getAllExercises(token: string): Promise<Exercise[]> {
-    return apiClient.get<Exercise[]>("/exercices", token);
+    return apiClient.get<Exercise[]>("/exercises", token);
   },
 
   async getExerciseById(
@@ -25,7 +25,7 @@ export const exerciseService = {
     token: string
   ): Promise<{ exercice: Exercise; filePicture: any }> {
     return apiClient.get<{ exercice: Exercise; filePicture: any }>(
-      `/exercices/${id}`,
+      `/exercises/${id}`,
       token
     );
   },
@@ -38,7 +38,7 @@ export const exerciseService = {
     token: string
   ): Promise<{ message: string; exercice: Exercise }> {
     return apiClient.put<{ message: string; exercice: Exercise }>(
-      `/exercices/${id}`,
+      `/exercises/${id}`,
       data,
       token
     );
@@ -49,7 +49,7 @@ export const exerciseService = {
     token: string
   ): Promise<{ message: string; exercice: Exercise }> {
     return apiClient.put<{ message: string; exercice: Exercise }>(
-      `/exercices/${id}/soft-delete`,
+      `/exercises/${id}/soft-delete`,
       {},
       token
     );
@@ -59,7 +59,7 @@ export const exerciseService = {
     id: number,
     token: string
   ): Promise<{ message: string }> {
-    return apiClient.delete<{ message: string }>(`/exercices/${id}`, token);
+    return apiClient.delete<{ message: string }>(`/exercises/${id}`, token);
   },
 
   async getMuscleGroupsForExercise(
@@ -67,7 +67,7 @@ export const exerciseService = {
     token: string
   ): Promise<{ muscleGroups: any[] }> {
     return apiClient.get<{ muscleGroups: any[] }>(
-      `/exercices/${id}/muscle-groups`,
+      `/exercises/${id}/muscle-groups`,
       token
     );
   },

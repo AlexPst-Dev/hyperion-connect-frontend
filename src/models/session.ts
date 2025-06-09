@@ -47,3 +47,9 @@ export interface SessionWithFile {
 export interface SessionExercisesResponse {
   exercises: ExerciseWithDetails[];
 }
+
+export interface LinkedSessions {
+  id: number;
+  sportsmanId: number;
+  sessionId: number;
+}

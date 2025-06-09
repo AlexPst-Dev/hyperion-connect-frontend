@@ -10,7 +10,12 @@ import GlobalStyles, { Colors } from "../styles/styles";
 import AppText from "../components/AppText";
 import Input from "../components/Input";
 import ViewController from "../components/ViewController";
-import { ProfileCategory, User, UserProfile } from "../models/user";
+import {
+  getMonthStartDates,
+  ProfileCategory,
+  User,
+  UserProfile,
+} from "../models/user";
 import ItemUser from "../components/ItemUser";
 import AppButton from "../components/AppButton";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -89,6 +94,17 @@ export default function UsersScreen() {
 
   const [addContactPopUpVisible, setAddContactPopUpVisible] = useState(false);
   const [selectedUsers, setSelectedUser] = useState<User[] | []>([]);
+
+  const [addCoachPopUpVisible, setAddCoachPopUpVisible] = useState(false);
+  const [selectedCoach, setSelectedCoach] = useState<User | null>(null);
+
+  const handleAddCoachSubmit = (users: User[]) => {
+    setSelectedCoach(users[0] || null); // Only one coach should be selected
+    setAddCoachPopUpVisible(false);
+  };
+  const handleCoachPopUpVisible = () => {
+    setAddCoachPopUpVisible(!addCoachPopUpVisible);
+  };
 
   const handleAddContactsSubmit = (selectedUsers: User[]) => {
     console.log("Selected users:", selectedUsers);
@@ -465,13 +481,14 @@ export default function UsersScreen() {
         const objectivePayload = {
           sportsmanId: userResponse.user.id,
           label: formData.objectiveLabel || "",
-          responsibleId: selectedUsers[0]?.id,
+          // Only include responsibleId if a coach is selected
+          ...(selectedCoach && { responsibleId: selectedCoach.id }),
           startDate: formData.objectiveStartDate || "",
           endDate: formData.objectiveEndDate || "",
           isActive: true,
         };
         const objectiveRes = await ObjectivesApiService.createObjective(
-          objectivePayload,
+          objectivePayload as any,
           token
         );
         createdObjective = objectiveRes.objective;
@@ -479,21 +496,45 @@ export default function UsersScreen() {
 
       // 3. Create the billing (if sportsman and objective created)
       if (newUserType === ProfileCategory.SPORTSMAN && createdObjective) {
-        await billingService.createBilling(
-          {
-            objectiveId: createdObjective.id,
-            billingId: createdObjective.id,
-            date: new Date().toISOString().slice(0, 10),
-            globalAmount: formData.objectiveIsMonthly
-              ? Number(formData.billingMonthlyAmount)
-              : Number(formData.billingTotalAmount),
-            isMonthly: !!formData.objectiveIsMonthly,
-            monthlyAmount: Number(formData.billingMonthlyAmount) || 0,
-            paymentReceived: false,
-            isActive: true,
-          },
-          token
-        );
+        if (formData.objectiveIsMonthly) {
+          // Create a billing for each month
+          const monthDates = getMonthStartDates(
+            createdObjective.startDate,
+            createdObjective.endDate
+          );
+          await Promise.all(
+            monthDates.map((date, idx) =>
+              billingService.createBilling(
+                {
+                  objectiveId: createdObjective.id,
+                  billingId: Number(`${createdObjective.id}${idx + 1}`),
+                  date,
+                  globalAmount: 0, // Not used for monthly
+                  isMonthly: true,
+                  monthlyAmount: Number(formData.billingMonthlyAmount) || 0,
+                  paymentReceived: false,
+                  isActive: true,
+                },
+                token
+              )
+            )
+          );
+        } else {
+          // Single billing for the whole period
+          await billingService.createBilling(
+            {
+              objectiveId: createdObjective.id,
+              billingId: createdObjective.id,
+              date: createdObjective.startDate,
+              globalAmount: Number(formData.billingTotalAmount),
+              isMonthly: false,
+              monthlyAmount: 0,
+              paymentReceived: false,
+              isActive: true,
+            },
+            token
+          );
+        }
       }
 
       // Succès - retour à la liste
@@ -1058,6 +1099,31 @@ export default function UsersScreen() {
                       )
                     }
                   />
+                  <Pressable
+                    onPress={handleCoachPopUpVisible}
+                    style={{
+                      paddingHorizontal: 8,
+                      paddingVertical: 6,
+                      borderRadius: 8,
+                      borderWidth: 1,
+                      borderColor: Colors.deepBlue,
+                      marginTop: 8,
+                    }}
+                  >
+                    {selectedCoach ? (
+                      <AppText>
+                        {selectedCoach.firstName} {selectedCoach.lastName}
+                      </AppText>
+                    ) : (
+                      <AppText style={{ color: Colors.grey }}>
+                        Sélectionnez un coach à affecter
+                      </AppText>
+                    )}
+                  </Pressable>
+                  <AppText>
+                    Le coach sélectionné sera responsable de l'objectif de ce
+                    sportif.
+                  </AppText>
                 </View>
               )}
 
@@ -1266,6 +1332,14 @@ export default function UsersScreen() {
             visible={addContactPopUpVisible}
             onClose={handleContactPopUpVisible}
             onSubmit={handleAddContactsSubmit}
+            token={token as string}
+          />
+        )}
+        {addCoachPopUpVisible && (
+          <AddContacts
+            visible={addCoachPopUpVisible}
+            onClose={handleCoachPopUpVisible}
+            onSubmit={handleAddCoachSubmit}
             token={token as string}
           />
         )}
