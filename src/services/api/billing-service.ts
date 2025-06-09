@@ -67,7 +67,7 @@ export const billingService = {
     >,
     token: string
   ): Promise<{ message: string; billing: Billing }> {
-    return apiClient.put<{ message: string; billing: Billing }>(
+    return apiClient.patch<{ message: string; billing: Billing }>(
       `/billings/${billingId}`,
       data,
       token

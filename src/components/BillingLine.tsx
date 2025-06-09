@@ -10,6 +10,7 @@ interface Props {
   state: "received" | "pending";
   startDate: Date;
   endDate: Date;
+  onBtnChangeStatePress?: () => void;
 }
 
 export default function BillingLine({
@@ -17,6 +18,7 @@ export default function BillingLine({
   state,
   startDate,
   endDate,
+  onBtnChangeStatePress,
 }: Props) {
   const [billingState, setBillingState] = useState<"pending" | "received">(
     state
@@ -57,7 +59,10 @@ export default function BillingLine({
               title="Marquer comme reçu"
               iconName="check"
               type="changeState"
-              onPress={handleChangeState}
+              onPress={() => {
+                if (onBtnChangeStatePress) onBtnChangeStatePress();
+                handleChangeState();
+              }}
               textStyle={{ fontSize: 12 }}
             />
           </View>

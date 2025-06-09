@@ -545,19 +545,36 @@ export default function ClientDetailScreen() {
     isMounted: boolean
   ) => {
     if (selectedMedics.length > 0 && token) {
-      let listMedicsIds = "";
-      selectedMedics.map((medic) => {
-        listMedicsIds += `${medic.id};`;
-      });
-      const ids = listMedicsIds
-        ? listMedicsIds
+      // Get current list of medic IDs
+      const currentList =
+        (client.profile as SportsmanProfile)?.listMedicsIds || "";
+      const currentIds = currentList
+        ? currentList
             .split(";")
             .map((id) => parseInt(id.trim(), 10))
             .filter((id) => !isNaN(id))
         : [];
+
+      // Get new medic IDs from selection
+      const newIds = selectedMedics.map((medic) => medic.id);
+
+      // Merge and deduplicate
+      const mergedIds = Array.from(new Set([...currentIds, ...newIds]));
+
+      // Build new list string
+      const updatedList = mergedIds.join(";");
+
       try {
+        // Update the sportsman profile with the new list
+        await UserService.updateSportsman(
+          client.id,
+          { listMedicsIds: updatedList },
+          token
+        );
+
+        // Optionally, fetch updated medic users for display
         const users = await Promise.all(
-          ids.map((id) => UserService.getUserById(id, token))
+          mergedIds.map((id) => UserService.getUserById(id, token))
         );
         if (isMounted) setLinkedMedics(users.map((res) => res.user));
       } catch {
@@ -565,6 +582,44 @@ export default function ClientDetailScreen() {
       }
     } else {
       setLinkedMedics([]);
+    }
+  };
+
+  const handleRemoveMedicFromSportsman = async (
+    medicIdToRemove: number,
+    isMounted: boolean
+  ) => {
+    if (!token) return;
+
+    // Get current list of medic IDs
+    const currentList =
+      (client.profile as SportsmanProfile)?.listMedicsIds || "";
+    const currentIds = currentList
+      ? currentList
+          .split(";")
+          .map((id) => parseInt(id.trim(), 10))
+          .filter((id) => !isNaN(id) && id !== medicIdToRemove)
+      : [];
+
+    // Build new list string with trailing semicolon if not empty
+    const updatedList =
+      currentIds.length > 0 ? currentIds.join("; ") + ";" : "";
+
+    try {
+      // Update the sportsman profile with the new list
+      await UserService.updateSportsman(
+        client.id,
+        { listMedicsIds: updatedList },
+        token
+      );
+
+      // Optionally, fetch updated medic users for display
+      const users = await Promise.all(
+        currentIds.map((id) => UserService.getUserById(id, token))
+      );
+      if (isMounted) setLinkedMedics(users.map((res) => res.user));
+    } catch {
+      if (isMounted) setLinkedMedics([]);
     }
   };
 
@@ -1243,6 +1298,16 @@ export default function ClientDetailScreen() {
                                     )
                                   )
                                 }
+                                onBtnChangeStatePress={() => {
+                                  if (token)
+                                    billingService.updateBilling(
+                                      billing.billingId,
+                                      {
+                                        paymentReceived: true,
+                                      },
+                                      token
+                                    );
+                                }}
                               />
                             ))
                           : [
@@ -1289,6 +1354,9 @@ export default function ClientDetailScreen() {
                           textStyle={{ color: Colors.lightRed }}
                           borderColor={Colors.lightRed}
                           iconColor={Colors.lightRed}
+                          onPress={() =>
+                            handleRemoveMedicFromSportsman(medic.id, true)
+                          }
                         />
                       </View>
                     </View>
