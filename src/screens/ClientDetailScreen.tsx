@@ -126,6 +126,9 @@ export default function ClientDetailScreen() {
 
   const [addSessionPopUpVisible, setAddSessionPopUpVisible] = useState(false);
 
+  const [addMedicToSportsmanPopUpVisible, setAddMedicToSportsmanPopUpVisible] =
+    useState(false);
+
   interface ObjectiveFormData {
     objectiveLabel: string;
     objectiveStartDate: string;
@@ -535,6 +538,34 @@ export default function ClientDetailScreen() {
   const handleAddCoachSubmit = (users: User[]) => {
     setSelectedCoach(users[0] || null);
     setCoachSelectorVisible(false);
+  };
+
+  const handleMedicToSportsmanSubmit = async (
+    selectedMedics: User[],
+    isMounted: boolean
+  ) => {
+    if (selectedMedics.length > 0 && token) {
+      let listMedicsIds = "";
+      selectedMedics.map((medic) => {
+        listMedicsIds += `${medic.id};`;
+      });
+      const ids = listMedicsIds
+        ? listMedicsIds
+            .split(";")
+            .map((id) => parseInt(id.trim(), 10))
+            .filter((id) => !isNaN(id))
+        : [];
+      try {
+        const users = await Promise.all(
+          ids.map((id) => UserService.getUserById(id, token))
+        );
+        if (isMounted) setLinkedMedics(users.map((res) => res.user));
+      } catch {
+        if (isMounted) setLinkedMedics([]);
+      }
+    } else {
+      setLinkedMedics([]);
+    }
   };
 
   const clientInformationsContent: JSX.Element = (
@@ -1267,8 +1298,25 @@ export default function ClientDetailScreen() {
                 )}
               </View>
               <View style={{ flexDirection: "row", justifyContent: "center" }}>
-                <AppButton type="add" iconName="plus" />
+                <AppButton
+                  type="add"
+                  iconName="plus"
+                  onPress={() => {
+                    setAddMedicToSportsmanPopUpVisible(true);
+                  }}
+                />
               </View>
+              {addMedicToSportsmanPopUpVisible && (
+                <AddContacts
+                  visible={addMedicToSportsmanPopUpVisible}
+                  onClose={() => setAddMedicToSportsmanPopUpVisible(false)}
+                  onSubmit={(users) => {
+                    handleMedicToSportsmanSubmit(users, true);
+                    setAddMedicToSportsmanPopUpVisible(false);
+                  }}
+                  token={token!}
+                />
+              )}
             </View>,
           ];
 
