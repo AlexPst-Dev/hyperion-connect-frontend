@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { StyleSheet, View } from "react-native";
 import AppText from "./AppText";
-import GlobalStyles from "../styles/styles";
+import GlobalStyles, { Colors } from "../styles/styles";
 import AppButton from "./AppButton";
 import Label from "./Label";
 
@@ -44,7 +44,10 @@ export default function BillingLine({
                 ? "Paiement en attente"
                 : "Paiement reçu"
             }
-            type={billingState === "pending" ? "orange" : "green"}
+            backgroundColor={billingState === "pending" ? "#FFFAF4" : "#DEFFD6"}
+            textColor={
+              billingState === "pending" ? Colors.orange : Colors.green
+            }
             size="small"
           />
         </View>
