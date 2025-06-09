@@ -1204,6 +1204,78 @@ export default function ClientDetailScreen() {
                 </Pressable>
               </Modal>
             )}
+            {editSubscriptionEditPopUpVisible && (
+              <Modal
+                visible={editSubscriptionEditPopUpVisible}
+                transparent
+                onRequestClose={() => {
+                  setEditSubscriptionEditPopUpVisible(false);
+                }}
+              >
+                <Pressable
+                  onPress={() => {
+                    setEditSubscriptionEditPopUpVisible(false);
+                  }}
+                  style={{
+                    flex: 1,
+                    backgroundColor: "rgba(0,0,0,0.5)",
+                    justifyContent: "center",
+                    padding: 24,
+                  }}
+                >
+                  <PopUp
+                    title="Editer l'abonnement"
+                    paragraph="Importez le contrat d'offre d'abonnement ici"
+                    specificBody={
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          justifyContent: "flex-end",
+                        }}
+                      >
+                        <AppButton
+                          type="secondary"
+                          title="Sélectionner le fichier"
+                          iconName="download"
+                        />
+                      </View>
+                    }
+                    inputs={
+                      <>
+                        <Input
+                          type="selector"
+                          label="Choix du diagnostic"
+                          options={[
+                            {
+                              label: "Gold",
+                              value: "gold",
+                            },
+                            {
+                              label: "Silver",
+                              value: "silver",
+                            },
+                          ]}
+                        />
+                      </>
+                    }
+                    onClose={() =>
+                      setEditSubscriptionEditPopUpVisible(
+                        !editSubscriptionEditPopUpVisible
+                      )
+                    }
+                    closeText="Annuler"
+                    onSubmit={() =>
+                      setEditSubscriptionEditPopUpVisible(
+                        !editSubscriptionEditPopUpVisible
+                      )
+                    }
+                    btnType="primary"
+                    btnText="Modifier"
+                    iconName="check"
+                  />
+                </Pressable>
+              </Modal>
+            )}
           </View>
         )}
       </View>
@@ -1401,76 +1473,6 @@ export default function ClientDetailScreen() {
                 />
                 {tabViews[activeTabIndex]}
               </View>
-              <Modal
-                visible={editSubscriptionEditPopUpVisible}
-                transparent
-                onRequestClose={() => {
-                  setEditSubscriptionEditPopUpVisible(false);
-                }}
-              >
-                <Pressable
-                  onPress={() => {
-                    setEditSubscriptionEditPopUpVisible(false);
-                  }}
-                  style={{
-                    flex: 1,
-                    backgroundColor: "rgba(0,0,0,0.5)",
-                    justifyContent: "center",
-                    padding: 24,
-                  }}
-                >
-                  <PopUp
-                    title="Editer l'abonnement"
-                    paragraph="Importez le contrat d'offre d'abonnement ici"
-                    specificBody={
-                      <View
-                        style={{
-                          flexDirection: "row",
-                          justifyContent: "flex-end",
-                        }}
-                      >
-                        <AppButton
-                          type="secondary"
-                          title="Sélectionner le fichier"
-                          iconName="download"
-                        />
-                      </View>
-                    }
-                    inputs={
-                      <>
-                        <Input
-                          type="selector"
-                          label="Choix du diagnostic"
-                          options={[
-                            {
-                              label: "Gold",
-                              value: "gold",
-                            },
-                            {
-                              label: "Silver",
-                              value: "silver",
-                            },
-                          ]}
-                        />
-                      </>
-                    }
-                    onClose={() =>
-                      setEditSubscriptionEditPopUpVisible(
-                        !editSubscriptionEditPopUpVisible
-                      )
-                    }
-                    closeText="Annuler"
-                    onSubmit={() =>
-                      setEditSubscriptionEditPopUpVisible(
-                        !editSubscriptionEditPopUpVisible
-                      )
-                    }
-                    btnType="primary"
-                    btnText="Modifier"
-                    iconName="check"
-                  />
-                </Pressable>
-              </Modal>
             </>
           );
         case "medic":
