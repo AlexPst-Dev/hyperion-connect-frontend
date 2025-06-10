@@ -18,6 +18,7 @@ import UserCard from "../components/UserCard";
 import AppText from "../components/AppText";
 import ViewController from "../components/ViewController";
 import {
+  CoachProfile,
   getMonthStartDates,
   ProfileCategory,
   SportsmanProfile,
@@ -63,6 +64,10 @@ import AddContacts from "../components/popups/AddContacts";
 import AddSessions from "../components/popups/AddSession";
 import { ExerciseWithDetails } from "../models/exercise";
 import { exerciseService } from "../services/api/exercise-service";
+import { useCoachClients } from "../hooks/useCoachClients";
+import { addSportsmanToCoachObjective } from "../utils/objective-utils";
+import { useMedicClients } from "../hooks/useMedicClients";
+import { addMedicToSportsman } from "../utils/sportsman-utils";
 
 type ClientDetailRouteProp = RouteProp<RootStackParamList, "ClientDetail">;
 
@@ -121,6 +126,9 @@ export default function ClientDetailScreen() {
     useState(false);
   const [coachSelectorVisible, setCoachSelectorVisible] = useState(false);
   const [selectedCoach, setSelectedCoach] = useState<User | null>(null);
+  const [sportsmanSelectorVisible, setSportsmanSelectorVisible] =
+    useState(false);
+  const [selectedSportsman, setSelectedSportsman] = useState<User | null>(null);
 
   const [objectiveLoading, setObjectiveLoading] = useState(false);
 
@@ -539,6 +547,10 @@ export default function ClientDetailScreen() {
     setSelectedCoach(users[0] || null);
     setCoachSelectorVisible(false);
   };
+  const handleAddSportsmanSubmit = (users: User[]) => {
+    setSelectedSportsman(users[0] || null);
+    setSportsmanSelectorVisible(false);
+  };
 
   const handleMedicToSportsmanSubmit = async (
     selectedMedics: User[],
@@ -623,6 +635,31 @@ export default function ClientDetailScreen() {
     }
   };
 
+  // Handler for adding a sportsman to a coach
+  const handleAddSportsmanToCoach = async (
+    selectedSportsman: User,
+    formData: ObjectiveFormData
+  ) => {
+    if (!selectedSportsman || !token) return;
+    setObjectiveLoading(true);
+    try {
+      const createdObjective = await addSportsmanToCoachObjective({
+        sportsmanId: selectedSportsman.id,
+        coachId: client.id, // client is the coach in this context
+        label: formData.objectiveLabel,
+        startDate: formData.objectiveStartDate,
+        endDate: formData.objectiveEndDate,
+        token,
+      });
+      // Optionally refresh objectives/clients here
+      setAddObjectivePopUpVisible(false);
+    } catch (e) {
+      // Optionally show an error message
+    } finally {
+      setObjectiveLoading(false);
+    }
+  };
+
   const clientInformationsContent: JSX.Element = (
     <>
       <View style={{ flexDirection: "column", gap: 24 }}>
@@ -645,54 +682,66 @@ export default function ClientDetailScreen() {
             client.image || "users/profilePicture/img-profile-1"
           }
         />
-        <AppText>Réseaux sociaux</AppText>
-        <View style={{ flexDirection: "row", gap: 16 }}>
-          {client.facebookLink && (
-            <View
-              style={{
-                width: 64,
-                height: 64,
-                borderRadius: 16,
-                overflow: "hidden",
-              }}
-            >
-              <Image
-                source={{ uri: "https://reactnative.dev/img/tiny_logo.png" }}
-                style={{ height: "100%" }}
-              />
+        {(client.facebookLink ||
+          client.instagramLink ||
+          client.linkedinLink) && (
+          <>
+            <AppText>Réseaux sociaux</AppText>
+            <View style={{ flexDirection: "row", gap: 16 }}>
+              {client.facebookLink && (
+                <View
+                  style={{
+                    width: 64,
+                    height: 64,
+                    borderRadius: 16,
+                    overflow: "hidden",
+                  }}
+                >
+                  <Image
+                    source={{
+                      uri: "https://reactnative.dev/img/tiny_logo.png",
+                    }}
+                    style={{ height: "100%" }}
+                  />
+                </View>
+              )}
+              {client.instagramLink && (
+                <View
+                  style={{
+                    width: 64,
+                    height: 64,
+                    borderRadius: 16,
+                    overflow: "hidden",
+                  }}
+                >
+                  <Image
+                    source={{
+                      uri: "https://reactnative.dev/img/tiny_logo.png",
+                    }}
+                    style={{ height: "100%" }}
+                  />
+                </View>
+              )}
+              {client.linkedinLink && (
+                <View
+                  style={{
+                    width: 64,
+                    height: 64,
+                    borderRadius: 16,
+                    overflow: "hidden",
+                  }}
+                >
+                  <Image
+                    source={{
+                      uri: "https://reactnative.dev/img/tiny_logo.png",
+                    }}
+                    style={{ height: "100%" }}
+                  />
+                </View>
+              )}
             </View>
-          )}
-          {client.instagramLink && (
-            <View
-              style={{
-                width: 64,
-                height: 64,
-                borderRadius: 16,
-                overflow: "hidden",
-              }}
-            >
-              <Image
-                source={{ uri: "https://reactnative.dev/img/tiny_logo.png" }}
-                style={{ height: "100%" }}
-              />
-            </View>
-          )}
-          {client.linkedinLink && (
-            <View
-              style={{
-                width: 64,
-                height: 64,
-                borderRadius: 16,
-                overflow: "hidden",
-              }}
-            >
-              <Image
-                source={{ uri: "https://reactnative.dev/img/tiny_logo.png" }}
-                style={{ height: "100%" }}
-              />
-            </View>
-          )}
-        </View>
+          </>
+        )}
         <AppText>
           {client.description || "Aucune description renseignée."}
         </AppText>
@@ -1158,52 +1207,6 @@ export default function ClientDetailScreen() {
                 }}
               />
             </View>
-            {archiveUserPopupVisible && (
-              <Modal
-                visible={archiveUserPopupVisible}
-                transparent
-                onRequestClose={() => {
-                  setArchiveUserPopupVisible(false);
-                }}
-              >
-                <Pressable
-                  onPress={() => {
-                    setArchiveUserPopupVisible(false);
-                  }}
-                  style={{
-                    flex: 1,
-                    backgroundColor: "rgba(0,0,0,0.5)",
-                    justifyContent: "center",
-                    padding: 24,
-                  }}
-                >
-                  <PopUp
-                    onClose={() => {
-                      setArchiveUserPopupVisible(false);
-                    }}
-                    title="Archiver l'utilisateur"
-                    btnType="primary"
-                    btnText="Archiver"
-                    iconName="archive"
-                    closeText="Annuler"
-                    onSubmit={async () => {
-                      try {
-                        await UserService.updateUserByProfileAndId(
-                          client.id,
-                          client.profileCategory,
-                          { isActive: false },
-                          token!
-                        );
-                        setArchiveUserPopupVisible(false);
-                      } catch (error) {
-                        console.error("Erreur lors de l'archivage :", error);
-                      }
-                    }}
-                    paragraph="Êtes-vous sûr de vouloir archiver cet utilisateur ?"
-                  />
-                </Pressable>
-              </Modal>
-            )}
             {editSubscriptionEditPopUpVisible && (
               <Modal
                 visible={editSubscriptionEditPopUpVisible}
@@ -1476,6 +1479,10 @@ export default function ClientDetailScreen() {
             </>
           );
         case "medic":
+          const { medicClients, patientsLoading } = useMedicClients(
+            client.id,
+            token as string
+          );
           return (
             <>
               <View style={{ flexDirection: "column", gap: 24 }}>
@@ -1484,78 +1491,100 @@ export default function ClientDetailScreen() {
                   canBeContacted
                   firstName={client.firstName}
                   lastName={client.lastName}
-                  email={client.email}
-                  phone="0606060606"
-                  age="24"
-                  profilePictureUrl="users/profilePicture/img-profile-1"
+                  email={client.email || ""}
+                  phone={client.phone || ""}
+                  sport={getCategoryLabel()}
+                  age={getAge(client.birthDate)}
+                  profilePictureUrl={
+                    client.image || "users/profilePicture/img-profile-1"
+                  }
                 />
-                <AppText>Réseaux sociaux</AppText>
-                <View style={{ flexDirection: "row", gap: 16 }}>
-                  <View style={{ width: 64, height: 64, borderRadius: 16 }}>
-                    <Image
-                      source={{
-                        uri: "https://reactnative.dev/img/tiny_logo.png",
-                      }}
-                      style={{ height: "100%" }}
-                    />
-                  </View>
-                  <View style={{ width: 64, height: 64, borderRadius: 16 }}>
-                    <Image
-                      source={{
-                        uri: "https://reactnative.dev/img/tiny_logo.png",
-                      }}
-                      style={{ height: "100%" }}
-                    />
-                  </View>
-                  <View style={{ width: 64, height: 64, borderRadius: 16 }}>
-                    <Image
-                      source={{
-                        uri: "https://reactnative.dev/img/tiny_logo.png",
-                      }}
-                      style={{ height: "100%" }}
-                    />
-                  </View>
-                </View>
+                {(client.facebookLink ||
+                  client.instagramLink ||
+                  client.linkedinLink) && (
+                  <>
+                    <AppText>Réseaux sociaux</AppText>
+                    <View style={{ flexDirection: "row", gap: 16 }}>
+                      {client.facebookLink && (
+                        <View
+                          style={{
+                            width: 64,
+                            height: 64,
+                            borderRadius: 16,
+                            overflow: "hidden",
+                          }}
+                        >
+                          <Image
+                            source={{
+                              uri: "https://reactnative.dev/img/tiny_logo.png",
+                            }}
+                            style={{ height: "100%" }}
+                          />
+                        </View>
+                      )}
+                      {client.instagramLink && (
+                        <View
+                          style={{
+                            width: 64,
+                            height: 64,
+                            borderRadius: 16,
+                            overflow: "hidden",
+                          }}
+                        >
+                          <Image
+                            source={{
+                              uri: "https://reactnative.dev/img/tiny_logo.png",
+                            }}
+                            style={{ height: "100%" }}
+                          />
+                        </View>
+                      )}
+                      {client.linkedinLink && (
+                        <View
+                          style={{
+                            width: 64,
+                            height: 64,
+                            borderRadius: 16,
+                            overflow: "hidden",
+                          }}
+                        >
+                          <Image
+                            source={{
+                              uri: "https://reactnative.dev/img/tiny_logo.png",
+                            }}
+                            style={{ height: "100%" }}
+                          />
+                        </View>
+                      )}
+                    </View>
+                  </>
+                )}
                 <AppText>
-                  Passionné de trail et de nature, je participe régulièrement à
-                  des courses en montagne. J'aime partager mes expériences et
-                  conseiller les autres coureurs sur les meilleures techniques
-                  et équipements pour le trail.
+                  {client.description || "Aucune description renseignée."}
                 </AppText>
                 <View style={{ flexDirection: "column", gap: 16 }}>
                   <AppText style={GlobalStyles.h2}>SES PATIENTS</AppText>
                   <View style={{ flexDirection: "column", gap: 8 }}>
-                    <ItemUser
-                      user={{
-                        firstName: "firstName",
-                        lastName: "Lastname",
-                        email: "one@mail.com",
-                        id: 1,
-                        isActive: true,
-                        profileCategory: ProfileCategory.SPORTSMAN,
-                        createdAt: new Date().toLocaleDateString("fr-FR"),
-                        updatedAt: new Date().toLocaleDateString("fr-FR"),
-                      }}
-                      isCompany={false}
-                    />
-                    <ItemUser
-                      user={{
-                        firstName: "firstName",
-                        lastName: "Lastname",
-                        email: "one@mail.com",
-                        id: 1,
-                        isActive: true,
-                        profileCategory: ProfileCategory.SPORTSMAN,
-                        createdAt: new Date().toLocaleDateString("fr-FR"),
-                        updatedAt: new Date().toLocaleDateString("fr-FR"),
-                      }}
-                      isCompany={false}
-                    />
+                    {patientsLoading ? (
+                      <AppText>Chargement...</AppText>
+                    ) : medicClients.length > 0 ? (
+                      medicClients.map((user: User) => (
+                        <ItemUser key={user.id} user={user} isCompany={false} />
+                      ))
+                    ) : (
+                      <AppText>Aucun client</AppText>
+                    )}
                   </View>
                   <View
                     style={{ flexDirection: "row", justifyContent: "center" }}
                   >
-                    <AppButton type="add" iconName="plus" />
+                    <AppButton
+                      type="add"
+                      iconName="plus"
+                      onPress={() => {
+                        setAddMedicToSportsmanPopUpVisible(true);
+                      }}
+                    />
                   </View>
                 </View>
                 <View style={{ flexDirection: "column", gap: 16 }}>
@@ -1570,13 +1599,33 @@ export default function ClientDetailScreen() {
                       type="primary"
                       title="Archiver"
                       iconName="archive"
+                      onPress={() => setArchiveUserPopupVisible(true)}
                     />
                   </View>
                 </View>
+                {addMedicToSportsmanPopUpVisible && (
+                  <AddContacts
+                    visible={addMedicToSportsmanPopUpVisible}
+                    onClose={() => setAddMedicToSportsmanPopUpVisible(false)}
+                    onSubmit={async (users) => {
+                      for (const user of users) {
+                        console.log(user.id, client.id);
+                        await addMedicToSportsman(user.id, client.id, token!);
+                      }
+                      setAddMedicToSportsmanPopUpVisible(false);
+                    }}
+                    token={token!}
+                  />
+                )}
               </View>
             </>
           );
         case "coach":
+          const { coachClients, loading } = useCoachClients(
+            client.id,
+            token as string
+          );
+
           return (
             <>
               <View style={{ flexDirection: "column", gap: 24 }}>
@@ -1585,78 +1634,98 @@ export default function ClientDetailScreen() {
                   canBeContacted
                   firstName={client.firstName}
                   lastName={client.lastName}
-                  email={client.email}
-                  phone="0606060606"
-                  age="24"
-                  profilePictureUrl="users/profilePicture/img-profile-1"
+                  email={client.email || ""}
+                  phone={client.phone || ""}
+                  sport={getCategoryLabel()}
+                  age={getAge(client.birthDate)}
+                  profilePictureUrl={
+                    client.image || "users/profilePicture/img-profile-1"
+                  }
                 />
-                <AppText>Réseaux sociaux</AppText>
-                <View style={{ flexDirection: "row", gap: 16 }}>
-                  <View style={{ width: 64, height: 64, borderRadius: 16 }}>
-                    <Image
-                      source={{
-                        uri: "https://reactnative.dev/img/tiny_logo.png",
-                      }}
-                      style={{ height: "100%" }}
-                    />
-                  </View>
-                  <View style={{ width: 64, height: 64, borderRadius: 16 }}>
-                    <Image
-                      source={{
-                        uri: "https://reactnative.dev/img/tiny_logo.png",
-                      }}
-                      style={{ height: "100%" }}
-                    />
-                  </View>
-                  <View style={{ width: 64, height: 64, borderRadius: 16 }}>
-                    <Image
-                      source={{
-                        uri: "https://reactnative.dev/img/tiny_logo.png",
-                      }}
-                      style={{ height: "100%" }}
-                    />
-                  </View>
-                </View>
+                {(client.facebookLink ||
+                  client.instagramLink ||
+                  client.linkedinLink) && (
+                  <>
+                    <AppText>Réseaux sociaux</AppText>
+                    <View style={{ flexDirection: "row", gap: 16 }}>
+                      {client.facebookLink && (
+                        <View
+                          style={{
+                            width: 64,
+                            height: 64,
+                            borderRadius: 16,
+                            overflow: "hidden",
+                          }}
+                        >
+                          <Image
+                            source={{
+                              uri: "https://reactnative.dev/img/tiny_logo.png",
+                            }}
+                            style={{ height: "100%" }}
+                          />
+                        </View>
+                      )}
+                      {client.instagramLink && (
+                        <View
+                          style={{
+                            width: 64,
+                            height: 64,
+                            borderRadius: 16,
+                            overflow: "hidden",
+                          }}
+                        >
+                          <Image
+                            source={{
+                              uri: "https://reactnative.dev/img/tiny_logo.png",
+                            }}
+                            style={{ height: "100%" }}
+                          />
+                        </View>
+                      )}
+                      {client.linkedinLink && (
+                        <View
+                          style={{
+                            width: 64,
+                            height: 64,
+                            borderRadius: 16,
+                            overflow: "hidden",
+                          }}
+                        >
+                          <Image
+                            source={{
+                              uri: "https://reactnative.dev/img/tiny_logo.png",
+                            }}
+                            style={{ height: "100%" }}
+                          />
+                        </View>
+                      )}
+                    </View>
+                  </>
+                )}
                 <AppText>
-                  Passionné de trail et de nature, je participe régulièrement à
-                  des courses en montagne. J'aime partager mes expériences et
-                  conseiller les autres coureurs sur les meilleures techniques
-                  et équipements pour le trail.
+                  {client.description || "Aucune description renseignée."}
                 </AppText>
                 <View style={{ flexDirection: "column", gap: 16 }}>
                   <AppText style={GlobalStyles.h2}>SES CLIENTS</AppText>
                   <View style={{ flexDirection: "column", gap: 8 }}>
-                    <ItemUser
-                      user={{
-                        firstName: "firstName",
-                        lastName: "Lastname",
-                        email: "one@mail.com",
-                        id: 1,
-                        isActive: true,
-                        profileCategory: ProfileCategory.SPORTSMAN,
-                        createdAt: new Date().toLocaleDateString("fr-FR"),
-                        updatedAt: new Date().toLocaleDateString("fr-FR"),
-                      }}
-                      isCompany={false}
-                    />
-                    <ItemUser
-                      user={{
-                        firstName: "firstName",
-                        lastName: "Lastname",
-                        email: "two@mail.com",
-                        id: 2,
-                        isActive: true,
-                        profileCategory: ProfileCategory.SPORTSMAN,
-                        createdAt: new Date().toLocaleDateString("fr-FR"),
-                        updatedAt: new Date().toLocaleDateString("fr-FR"),
-                      }}
-                      isCompany={false}
-                    />
+                    {loading ? (
+                      <AppText>Chargement...</AppText>
+                    ) : coachClients.length > 0 ? (
+                      coachClients.map((user: User) => (
+                        <ItemUser key={user.id} user={user} isCompany={false} />
+                      ))
+                    ) : (
+                      <AppText>Aucun client</AppText>
+                    )}
                   </View>
                   <View
                     style={{ flexDirection: "row", justifyContent: "center" }}
                   >
-                    <AppButton type="add" iconName="plus" />
+                    <AppButton
+                      type="add"
+                      iconName="plus"
+                      onPress={() => setAddObjectivePopUpVisible(true)}
+                    />
                   </View>
                 </View>
                 <View style={{ flexDirection: "column", gap: 16 }}>
@@ -1671,9 +1740,188 @@ export default function ClientDetailScreen() {
                       type="primary"
                       title="Archiver"
                       iconName="archive"
+                      onPress={() => setArchiveUserPopupVisible(true)}
                     />
                   </View>
                 </View>
+                {addObjectivePopUpVisible && (
+                  <Modal
+                    visible={addObjectivePopUpVisible}
+                    transparent
+                    onRequestClose={() => {
+                      setAddObjectivePopUpVisible(false);
+                    }}
+                  >
+                    <Pressable
+                      onPress={() => {
+                        setAddObjectivePopUpVisible(false);
+                      }}
+                      style={{
+                        flex: 1,
+                        backgroundColor: "rgba(0,0,0,0.5)",
+                        justifyContent: "center",
+                        padding: 24,
+                      }}
+                    >
+                      <PopUp
+                        onClose={() => {
+                          if (!objectiveLoading)
+                            setAddObjectivePopUpVisible(false);
+                        }}
+                        title="Ajouter un objectif"
+                        btnType="primary"
+                        btnText="Valider"
+                        iconName="check"
+                        closeText="Annuler"
+                        onSubmit={() => {
+                          if (selectedSportsman)
+                            handleAddSportsmanToCoach(
+                              selectedSportsman,
+                              formData
+                            );
+                        }}
+                        paragraph="Renseignez les champs ci-dessous pour ajouter un objectif à un sportif"
+                        specificBody={
+                          objectiveLoading ? (
+                            <View style={{ alignItems: "center", padding: 32 }}>
+                              <ActivityIndicator
+                                size="large"
+                                color={Colors.deepBlue}
+                              />
+                              <AppText style={{ marginTop: 16 }}>
+                                Création en cours...
+                              </AppText>
+                            </View>
+                          ) : (
+                            <View style={{ flexDirection: "column", gap: 16 }}>
+                              <Input
+                                type="text"
+                                label="Libellé de la prestation"
+                                placeholder="Libellé"
+                                value={formData.objectiveLabel || ""}
+                                onChangeText={(v) =>
+                                  handleNewObjectiveInputChange(
+                                    "objectiveLabel",
+                                    v
+                                  )
+                                }
+                              />
+                              <Input
+                                type="date"
+                                label="Date de début"
+                                placeholder="XX/XX/XXXX"
+                                value={formData.objectiveStartDate || ""}
+                                onChangeText={(v) =>
+                                  handleNewObjectiveInputChange(
+                                    "objectiveStartDate",
+                                    v
+                                  )
+                                }
+                              />
+
+                              <Input
+                                type="date"
+                                label="Date de fin"
+                                placeholder="XX/XX/XXXX"
+                                value={formData.objectiveEndDate || ""}
+                                onChangeText={(v) =>
+                                  handleNewObjectiveInputChange(
+                                    "objectiveEndDate",
+                                    v
+                                  )
+                                }
+                              />
+
+                              <View style={{ flexDirection: "column", gap: 8 }}>
+                                <AppText>
+                                  Tarification complète par défaut
+                                </AppText>
+                                <Input
+                                  type="checkbox"
+                                  label="Passer en tarification par mois"
+                                  value={formData.objectiveIsMonthly || false}
+                                  onChange={(v) =>
+                                    handleNewObjectiveInputChange(
+                                      "objectiveIsMonthly",
+                                      v
+                                    )
+                                  }
+                                />
+                              </View>
+
+                              <Input
+                                type="text"
+                                label={
+                                  formData.objectiveIsMonthly
+                                    ? "Tarification par mois"
+                                    : "Tarification totale"
+                                }
+                                placeholder={
+                                  formData.objectiveIsMonthly
+                                    ? "XX€/mois"
+                                    : "XX€"
+                                }
+                                value={
+                                  formData.objectiveIsMonthly
+                                    ? formData.billingMonthlyAmount || ""
+                                    : formData.billingTotalAmount || ""
+                                }
+                                onChangeText={(v) =>
+                                  handleNewObjectiveInputChange(
+                                    formData.objectiveIsMonthly
+                                      ? "billingMonthlyAmount"
+                                      : "billingTotalAmount",
+                                    v
+                                  )
+                                }
+                              />
+                              <Pressable
+                                onPress={() =>
+                                  setSportsmanSelectorVisible(
+                                    !sportsmanSelectorVisible
+                                  )
+                                }
+                                style={{
+                                  paddingHorizontal: 8,
+                                  paddingVertical: 6,
+                                  borderRadius: 8,
+                                  borderWidth: 1,
+                                  borderColor: Colors.deepBlue,
+                                  marginTop: 8,
+                                }}
+                              >
+                                {selectedSportsman ? (
+                                  <AppText>
+                                    {selectedSportsman.firstName}{" "}
+                                    {selectedSportsman.lastName}
+                                  </AppText>
+                                ) : (
+                                  <AppText style={{ color: Colors.grey }}>
+                                    Sélectionnez un sportif à ajouter
+                                  </AppText>
+                                )}
+                              </Pressable>
+                              <AppText>
+                                Le sportif sélectionné aura un nouvel objectif
+                                de défini
+                              </AppText>
+                            </View>
+                          )
+                        }
+                      />
+                    </Pressable>
+                  </Modal>
+                )}
+                {sportsmanSelectorVisible && (
+                  <AddContacts
+                    visible={sportsmanSelectorVisible}
+                    onClose={() =>
+                      setSportsmanSelectorVisible(!sportsmanSelectorVisible)
+                    }
+                    onSubmit={handleAddSportsmanSubmit}
+                    token={token as string}
+                  />
+                )}
               </View>
             </>
           );
@@ -1989,6 +2237,52 @@ export default function ClientDetailScreen() {
         }
       >
         {RenderProfileComponents ? RenderProfileComponents(user) : null}
+        {archiveUserPopupVisible && (
+          <Modal
+            visible={archiveUserPopupVisible}
+            transparent
+            onRequestClose={() => {
+              setArchiveUserPopupVisible(false);
+            }}
+          >
+            <Pressable
+              onPress={() => {
+                setArchiveUserPopupVisible(false);
+              }}
+              style={{
+                flex: 1,
+                backgroundColor: "rgba(0,0,0,0.5)",
+                justifyContent: "center",
+                padding: 24,
+              }}
+            >
+              <PopUp
+                onClose={() => {
+                  setArchiveUserPopupVisible(false);
+                }}
+                title="Archiver l'utilisateur"
+                btnType="primary"
+                btnText="Archiver"
+                iconName="archive"
+                closeText="Annuler"
+                onSubmit={async () => {
+                  try {
+                    await UserService.updateUserByProfileAndId(
+                      client.id,
+                      client.profileCategory,
+                      { isActive: false },
+                      token!
+                    );
+                    setArchiveUserPopupVisible(false);
+                  } catch (error) {
+                    console.error("Erreur lors de l'archivage :", error);
+                  }
+                }}
+                paragraph="Êtes-vous sûr de vouloir archiver cet utilisateur ?"
+              />
+            </Pressable>
+          </Modal>
+        )}
       </ScrollView>
     </KeyboardAvoidingView>
   );

@@ -612,7 +612,9 @@ export default function UsersScreen() {
           <View style={{ flexDirection: "column" }}>
             {usersByCategory.map((user, index) => (
               <Pressable
-                onPress={() => {}}
+                onPress={() => {
+                  navigation.navigate("ClientDetail", { client: user });
+                }}
                 key={user.id}
                 style={{
                   marginBottom: index === usersByCategory.length - 1 ? 0 : 12,
@@ -644,7 +646,9 @@ export default function UsersScreen() {
           <View style={{ flexDirection: "column" }}>
             {usersByCategory.map((user, index) => (
               <Pressable
-                onPress={() => {}}
+                onPress={() => {
+                  navigation.navigate("ClientDetail", { client: user });
+                }}
                 key={user.id}
                 style={{
                   marginBottom: index === usersByCategory.length - 1 ? 0 : 12,
