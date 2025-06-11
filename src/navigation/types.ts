@@ -32,5 +32,7 @@ export type RootStackParamList = {
     client: User;
   };
   PartnersList: undefined;
-  OffersHistory: undefined;
+  OffersHistory: {
+    companyId: number;
+  };
 };

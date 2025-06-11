@@ -63,7 +63,7 @@ export class CompanyService {
     companyData: UpdateCompanyPayload,
     token: string
   ): Promise<UpdateCompanyResponse> {
-    return apiClient.put<UpdateCompanyResponse>(
+    return apiClient.patch<UpdateCompanyResponse>(
       `/companies/${companyId}`,
       companyData,
       token

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -10,9 +10,51 @@ import {
 import GlobalStyles from "../styles/styles";
 import OfferCard from "../components/OfferCard";
 import AppText from "../components/AppText";
+import { RouteProp, useRoute } from "@react-navigation/native";
+import { RootStackParamList } from "../navigation/types";
+import { useAuth } from "../hooks/useAuth";
+import { useInactiveCompanyOffers } from "../hooks/useCompanyOffers";
+import { Company } from "../models/company";
+import { CompanyService } from "../services/api/company-service";
+import { OfferCategory } from "../models/offer";
+
+type OffersHistorytDetailRouteProp = RouteProp<
+  RootStackParamList,
+  "OffersHistory"
+>;
 
 export default function OffersHistoryScreen() {
   const screenWidth = Dimensions.get("window").width;
+  const route = useRoute<OffersHistorytDetailRouteProp>();
+  const { companyId } = route.params;
+  const { token } = useAuth();
+
+  const [company, setCompany] = useState<Company>();
+
+  if (!companyId || !token) {
+    return (
+      <View style={GlobalStyles.pageStyle}>
+        <AppText style={GlobalStyles.h2}>
+          Veuillez sélectionner une entreprise.
+        </AppText>
+      </View>
+    );
+  }
+
+  const { offers, loading, error } = useInactiveCompanyOffers(companyId, token);
+
+  // Fetch the company thanks to the companyId
+  useEffect(() => {
+    async function fetchCompany() {
+      try {
+        const response = await CompanyService.getCompanyById(companyId, token!);
+        setCompany(response);
+      } catch (e: any) {
+        console.error(e);
+      }
+    }
+    fetchCompany();
+  }, [companyId, token]);
 
   return (
     <KeyboardAvoidingView
@@ -31,27 +73,33 @@ export default function OffersHistoryScreen() {
       >
         <View style={{ flexDirection: "column", gap: 24 }}>
           <AppText style={GlobalStyles.h2}>HISTORIQUE DES OFFRES</AppText>
-          <OfferCard
-            companyName="Nutrisport"
-            companyImgUrl="users/companies/nutrisport-logo"
-            title="Abonnement Acces +"
-            paragraph="-20% pour les 3 premiers mois sur l'abonnement Acces + et frais d'adhésion offert. "
-            conditions="Bon à usage unique."
-            startDate={new Date("2025-03-30")}
-            endDate={new Date("2025-04-30")}
-            isSponsorship={false}
-            labelTxt="-20%"
-          />
-          <OfferCard
-            companyName="Nutrisport"
-            companyImgUrl="users/companies/nutrisport-logo"
-            title="Marathon de Vannes"
-            paragraph="Offre de sponsoring pour le marathon de Vannes. T-shirt running et dossard offert."
-            conditions="Plan d'entrainement running sur Hyperion Connect requis."
-            startDate={new Date("2025-03-30")}
-            endDate={new Date("2025-04-30")}
-            isSponsorship
-          />
+          {loading ? (
+            <AppText>Chargement...</AppText>
+          ) : error ? (
+            <AppText>{error}</AppText>
+          ) : offers.length === 0 ? (
+            <AppText>Aucune offre inactive</AppText>
+          ) : (
+            company &&
+            offers.map((offer) => (
+              <OfferCard
+                key={offer.id}
+                companyName={company.name}
+                companyImgUrl={company.fileImageCompany?.url || ""}
+                title={offer.title}
+                paragraph={offer.description}
+                conditions={offer.conditions || ""}
+                startDate={new Date(offer.startDate)}
+                endDate={new Date(offer.endDate)}
+                isSponsorship={offer.offerCategory === "sponsorship"}
+                labelTxt={
+                  offer.offerCategory === OfferCategory.DISCOUNT
+                    ? `-${String(offer.discountDetails.amount).slice(0, -3)}%`
+                    : "Sponsor"
+                }
+              />
+            ))
+          )}
         </View>
       </ScrollView>
     </KeyboardAvoidingView>

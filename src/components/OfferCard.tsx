@@ -65,7 +65,8 @@ export default function OfferCard({
         </View>
         <Label
           title={isSponsorship ? "Sponsor" : labelTxt}
-          type={isSponsorship ? "blue" : "green"}
+          backgroundColor={isSponsorship ? "#D6EBFF" : "#DEFFD6"}
+          textColor={isSponsorship ? Colors.deepBlue : Colors.green}
           size="large"
         />
       </View>

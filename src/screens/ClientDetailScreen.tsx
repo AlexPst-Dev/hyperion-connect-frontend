@@ -18,7 +18,6 @@ import UserCard from "../components/UserCard";
 import AppText from "../components/AppText";
 import ViewController from "../components/ViewController";
 import {
-  CoachProfile,
   getMonthStartDates,
   ProfileCategory,
   SportsmanProfile,
@@ -68,6 +67,11 @@ import { useCoachClients } from "../hooks/useCoachClients";
 import { addSportsmanToCoachObjective } from "../utils/objective-utils";
 import { useMedicClients } from "../hooks/useMedicClients";
 import { addMedicToSportsman } from "../utils/sportsman-utils";
+import { usePartnerAndCompany } from "../hooks/usePartnerAndCompany";
+import { useCompanyOffers } from "../hooks/useCompanyOffers";
+import { OfferCategory } from "../models/offer";
+import { handleCreateOffer } from "../utils/offer-utils";
+import { CompanyService } from "../services/api/company-service";
 
 type ClientDetailRouteProp = RouteProp<RootStackParamList, "ClientDetail">;
 
@@ -1291,17 +1295,8 @@ export default function ClientDetailScreen() {
     admin: (user) => {
       const [editNewOfferPopUpVisible, setEditNewOfferPopUpVisible] =
         useState(false);
-      const [newOfferType, setNewOfferType] = useState("commerciale");
-      const handleTypeNewOffer = () => {
-        if (newOfferType === "commerciale") {
-          setNewOfferType("sponsoring");
-        } else if (newOfferType === "sponsoring") {
-          setNewOfferType("commerciale");
-        }
-      };
-      const handleEditNewOfferPopUp = () => {
-        setEditNewOfferPopUpVisible(!editNewOfferPopUpVisible);
-      };
+      const [editCompanyPopUpVisible, setEditCompanyPopUpVisible] =
+        useState(false);
 
       switch (client.profileCategory) {
         case "sportsman":
@@ -1926,17 +1921,93 @@ export default function ClientDetailScreen() {
             </>
           );
         case "partner":
+          const { partner, company, partnerAndCompanyLoading, error } =
+            usePartnerAndCompany(client.id, token!);
+          const { offers, companyOffersLoading, errorCompanyOffers } =
+            useCompanyOffers(company?.id, token!);
+
+          const [newOfferType, setNewOfferType] = useState<
+            OfferCategory.DISCOUNT | OfferCategory.SPONSORSHIP
+          >(OfferCategory.DISCOUNT);
+          const [offerForm, setOfferForm] = useState({
+            title: "",
+            description: "",
+            conditions: "",
+            startDate: "",
+            endDate: "",
+            discountAmount: "",
+            discountLink: "",
+            sponsorshipNbPersonMax: "",
+            sponsorshipSportCategory: "",
+          });
+
+          const handleOfferFormChange = (field: string, value: string) => {
+            setOfferForm((prev) => ({ ...prev, [field]: value }));
+          };
+          const handleEditNewOfferPopUp = async () => {
+            try {
+              await handleCreateOffer(
+                company!,
+                token!,
+                newOfferType,
+                offerForm,
+                sportCategories
+              );
+              setEditNewOfferPopUpVisible(false);
+              setOfferForm({
+                title: "",
+                description: "",
+                conditions: "",
+                startDate: "",
+                endDate: "",
+                discountAmount: "",
+                discountLink: "",
+                sponsorshipNbPersonMax: "",
+                sponsorshipSportCategory: "",
+              });
+              // Optionally refresh offers list here
+            } catch (e) {
+              // Show error to user
+              console.error(e);
+            }
+            setEditNewOfferPopUpVisible(!editNewOfferPopUpVisible);
+          };
+
+          const [companyForm, setCompanyForm] = useState({
+            dateEndMembership: "",
+          });
+
+          // Sync form state when company changes
+          useEffect(() => {
+            if (company) {
+              setCompanyForm({
+                dateEndMembership: company.dateEndMembership || "",
+              });
+            }
+          }, [company]);
+
+          if (partnerAndCompanyLoading) return <AppText>Chargement...</AppText>;
+          if (companyOffersLoading)
+            return <AppText>Chargement des offres...</AppText>;
+          if (error) return <AppText>{error}</AppText>;
+          if (!partner) return <AppText>Partenaire introuvable</AppText>;
+          if (!company) return <AppText>Entreprise introuvable</AppText>;
+
           return (
             <>
               <View style={{ flexDirection: "column", gap: 32 }}>
                 <View style={{ flexDirection: "column", gap: 24 }}>
                   <UserCard
-                    companyName={client.firstName}
-                    companyAdress="10 rue François Mitterand 56000 Vannes"
-                    profilePictureUrl="users/companies/nutrisport-logo"
-                    companyLink="https://nutrisport.com"
+                    companyName={company.name}
+                    companyAdress={`${company.street} ${company.postalCode} ${company.city}`}
+                    profilePictureUrl={
+                      company.fileImageCompany?.url || undefined
+                    }
+                    companyLink={company.linkWebsite}
                   />
-                  <AppText>Adhésion valide jusqu'au XX/XX/XXXX</AppText>
+                  <AppText>
+                    Adhésion valide jusqu'au {company.dateEndMembership}
+                  </AppText>
                   <View
                     style={{ flexDirection: "row", justifyContent: "flex-end" }}
                   >
@@ -1944,50 +2015,178 @@ export default function ClientDetailScreen() {
                       type="primary"
                       title="Modifier"
                       iconName="pencil"
+                      onPress={() => setEditCompanyPopUpVisible(true)}
                     />
                   </View>
+                  {(company.linkFacebook ||
+                    company.linkInstagram ||
+                    company.linkLinkedin ||
+                    company.linkTiktok ||
+                    company.linkYoutube) && (
+                    <>
+                      <AppText>Réseaux sociaux entreprise</AppText>
+                      <View style={{ flexDirection: "row", gap: 16 }}>
+                        {company.linkFacebook && (
+                          <View
+                            style={{
+                              width: 64,
+                              height: 64,
+                              borderRadius: 16,
+                              overflow: "hidden",
+                            }}
+                          >
+                            <Image
+                              source={{
+                                uri: "https://reactnative.dev/img/tiny_logo.png",
+                              }}
+                              style={{ height: "100%" }}
+                            />
+                          </View>
+                        )}
+                        {company.linkInstagram && (
+                          <View
+                            style={{
+                              width: 64,
+                              height: 64,
+                              borderRadius: 16,
+                              overflow: "hidden",
+                            }}
+                          >
+                            <Image
+                              source={{
+                                uri: "https://reactnative.dev/img/tiny_logo.png",
+                              }}
+                              style={{ height: "100%" }}
+                            />
+                          </View>
+                        )}
+                        {company.linkLinkedin && (
+                          <View
+                            style={{
+                              width: 64,
+                              height: 64,
+                              borderRadius: 16,
+                              overflow: "hidden",
+                            }}
+                          >
+                            <Image
+                              source={{
+                                uri: "https://reactnative.dev/img/tiny_logo.png",
+                              }}
+                              style={{ height: "100%" }}
+                            />
+                          </View>
+                        )}
+                        {company.linkTiktok && (
+                          <View
+                            style={{
+                              width: 64,
+                              height: 64,
+                              borderRadius: 16,
+                              overflow: "hidden",
+                            }}
+                          >
+                            <Image
+                              source={{
+                                uri: "https://reactnative.dev/img/tiny_logo.png",
+                              }}
+                              style={{ height: "100%" }}
+                            />
+                          </View>
+                        )}
+                        {company.linkYoutube && (
+                          <View
+                            style={{
+                              width: 64,
+                              height: 64,
+                              borderRadius: 16,
+                              overflow: "hidden",
+                            }}
+                          >
+                            <Image
+                              source={{
+                                uri: "https://reactnative.dev/img/tiny_logo.png",
+                              }}
+                              style={{ height: "100%" }}
+                            />
+                          </View>
+                        )}
+                      </View>
+                    </>
+                  )}
                   <AppText style={GlobalStyles.h3}>REPRESENTANT</AppText>
                   <UserCard
                     detailled
                     canBeContacted
-                    firstName="firstName"
-                    lastName="LastName"
+                    firstName={client.firstName}
+                    lastName={client.lastName}
                     email={client.email}
-                    phone="0606060606"
-                    age="24"
-                    profilePictureUrl="users/profilePicture/img-profile-1"
+                    phone={client.phone}
+                    age={getAge(client.birthDate)}
+                    profilePictureUrl={client.image || undefined}
                   />
-                  <AppText>Réseaux sociaux entreprise</AppText>
-                  <View style={{ flexDirection: "row", gap: 16 }}>
-                    <View style={{ width: 64, height: 64, borderRadius: 16 }}>
-                      <Image
-                        source={{
-                          uri: "https://reactnative.dev/img/tiny_logo.png",
-                        }}
-                        style={{ height: "100%" }}
-                      />
-                    </View>
-                    <View style={{ width: 64, height: 64, borderRadius: 16 }}>
-                      <Image
-                        source={{
-                          uri: "https://reactnative.dev/img/tiny_logo.png",
-                        }}
-                        style={{ height: "100%" }}
-                      />
-                    </View>
-                    <View style={{ width: 64, height: 64, borderRadius: 16 }}>
-                      <Image
-                        source={{
-                          uri: "https://reactnative.dev/img/tiny_logo.png",
-                        }}
-                        style={{ height: "100%" }}
-                      />
-                    </View>
-                  </View>
+                  {(client.facebookLink ||
+                    client.instagramLink ||
+                    client.linkedinLink) && (
+                    <>
+                      <AppText>Réseaux sociaux</AppText>
+                      <View style={{ flexDirection: "row", gap: 16 }}>
+                        {client.facebookLink && (
+                          <View
+                            style={{
+                              width: 64,
+                              height: 64,
+                              borderRadius: 16,
+                              overflow: "hidden",
+                            }}
+                          >
+                            <Image
+                              source={{
+                                uri: "https://reactnative.dev/img/tiny_logo.png",
+                              }}
+                              style={{ height: "100%" }}
+                            />
+                          </View>
+                        )}
+                        {client.instagramLink && (
+                          <View
+                            style={{
+                              width: 64,
+                              height: 64,
+                              borderRadius: 16,
+                              overflow: "hidden",
+                            }}
+                          >
+                            <Image
+                              source={{
+                                uri: "https://reactnative.dev/img/tiny_logo.png",
+                              }}
+                              style={{ height: "100%" }}
+                            />
+                          </View>
+                        )}
+                        {client.linkedinLink && (
+                          <View
+                            style={{
+                              width: 64,
+                              height: 64,
+                              borderRadius: 16,
+                              overflow: "hidden",
+                            }}
+                          >
+                            <Image
+                              source={{
+                                uri: "https://reactnative.dev/img/tiny_logo.png",
+                              }}
+                              style={{ height: "100%" }}
+                            />
+                          </View>
+                        )}
+                      </View>
+                    </>
+                  )}
                   <AppText>
-                    Nutrisport a pour but d'offrir des produits nutritionnels de
-                    qualité aux sportifs et promouvoir la marque via des
-                    événements et des sponsorings.
+                    {client.description || "Aucune description renseignée."}
                   </AppText>
                 </View>
                 <View style={{ flexDirection: "column", gap: 24 }}>
@@ -2000,43 +2199,56 @@ export default function ClientDetailScreen() {
                       title="Historique"
                       iconName="eye"
                       onPress={() => {
-                        navigation.navigate("OffersHistory");
+                        navigation.navigate("OffersHistory", {
+                          companyId: company.id,
+                        });
                       }}
                     />
                   </View>
                   <View style={{ flexDirection: "column", gap: 16 }}>
-                    <OfferCard
-                      companyName={client.firstName}
-                      companyImgUrl="users/companies/nutrisport-logo"
-                      title="Abonnement Acces +"
-                      paragraph="-20% pour les 3 premiers mois sur l'abonnement Acces + et frais d'adhésion offert. "
-                      conditions="Bon à usage unique."
-                      startDate={new Date("2025-03-30")}
-                      endDate={new Date("2025-04-30")}
-                      isSponsorship={false}
-                      labelTxt="-20%"
-                      onPress={() => {}}
-                      iconName="link"
-                    />
-                    <OfferCard
-                      companyName={client.firstName}
-                      companyImgUrl="users/companies/nutrisport-logo"
-                      title="Marathon de Vannes"
-                      paragraph="Offre de sponsoring pour le marathon de Vannes. T-shirt running et dossard offert."
-                      conditions="Plan d'entrainement running sur Hyperion Connect requis."
-                      startDate={new Date("2025-03-30")}
-                      endDate={new Date("2025-04-30")}
-                      isSponsorship
-                      onPress={() => {}}
-                      iconName="send"
-                    />
+                    {offers.length === 0 ? (
+                      <AppText>Aucune offre pour cette entreprise.</AppText>
+                    ) : (
+                      offers
+                        .filter((o) => o.isActive)
+                        .map((offer) => (
+                          <OfferCard
+                            key={offer.id}
+                            companyName={company.name}
+                            title={offer.title}
+                            paragraph={offer.description}
+                            companyImgUrl={company.fileImageCompany?.url || ""}
+                            conditions={offer.conditions || ""}
+                            startDate={new Date(offer.startDate)}
+                            endDate={new Date(offer.endDate)}
+                            isSponsorship={
+                              offer.offerCategory === OfferCategory.SPONSORSHIP
+                                ? true
+                                : false
+                            }
+                            labelTxt={
+                              offer.offerCategory === OfferCategory.DISCOUNT
+                                ? `-${String(
+                                    offer.discountDetails.amount
+                                  ).slice(0, -3)}%`
+                                : undefined
+                            }
+                            onPress={() => {}}
+                            iconName={
+                              offer.offerCategory === OfferCategory.DISCOUNT
+                                ? "link"
+                                : "send"
+                            }
+                          />
+                        ))
+                    )}
                     <View
                       style={{ flexDirection: "row", justifyContent: "center" }}
                     >
                       <AppButton
                         type="add"
                         iconName="plus"
-                        onPress={handleEditNewOfferPopUp}
+                        onPress={() => setEditNewOfferPopUpVisible(true)}
                       />
                     </View>
                   </View>
@@ -2053,6 +2265,7 @@ export default function ClientDetailScreen() {
                       type="primary"
                       title="Archiver"
                       iconName="archive"
+                      onPress={() => setArchiveUserPopupVisible(true)}
                     />
                   </View>
                 </View>
@@ -2060,11 +2273,14 @@ export default function ClientDetailScreen() {
               <Modal
                 visible={editNewOfferPopUpVisible}
                 transparent
-                onRequestClose={handleEditNewOfferPopUp}
+                onRequestClose={() => setEditNewOfferPopUpVisible(false)}
+                style={{ flex: 1 }}
               >
                 <ScrollView>
                   <Pressable
-                    onPress={handleEditNewOfferPopUp}
+                    onPress={() =>
+                      setEditNewOfferPopUpVisible(!editNewOfferPopUpVisible)
+                    }
                     style={{
                       flex: 1,
                       backgroundColor: "rgba(0,0,0,0.5)",
@@ -2075,7 +2291,7 @@ export default function ClientDetailScreen() {
                     <PopUp
                       title="Editer une offre partenaire"
                       paragraph="De quelle type d'offre s'agit t'il ? "
-                      onClose={handleEditNewOfferPopUp}
+                      onClose={() => setEditNewOfferPopUpVisible(false)}
                       closeText="Annuler"
                       onSubmit={handleEditNewOfferPopUp}
                       btnText="Valider"
@@ -2090,63 +2306,87 @@ export default function ClientDetailScreen() {
                               options={[
                                 {
                                   label: "Offre commerciale",
-                                  value: "commerciale",
+                                  value: OfferCategory.DISCOUNT,
                                 },
                                 {
                                   label: "Offre de sponsoring",
-                                  value: "sponsoring",
+                                  value: OfferCategory.SPONSORSHIP,
                                 },
                               ]}
-                              onChangeText={() => handleTypeNewOffer()}
+                              value={newOfferType}
+                              onChangeText={(v) =>
+                                setNewOfferType(v as OfferCategory)
+                              }
                             />
-                            {newOfferType === "commerciale" && (
+                            {newOfferType === OfferCategory.DISCOUNT && (
                               <Input
                                 type="text"
                                 label="Taux de réduction"
                                 placeholder="10%"
+                                value={offerForm.discountAmount}
+                                onChangeText={(v) =>
+                                  handleOfferFormChange("discountAmount", v)
+                                }
                               />
                             )}
-                            {newOfferType === "sponsoring" && (
+                            {newOfferType === OfferCategory.SPONSORSHIP && (
                               <Input
                                 type="selector"
                                 label="Pour quelle catégorie de sport ?"
                                 placeholder="Running"
-                                options={[
-                                  {
-                                    label: "Running",
-                                    value: "running",
-                                  },
-                                  {
-                                    label: "Natation",
-                                    value: "natation",
-                                  },
-                                ]}
+                                options={sportCategories.map((cat) => ({
+                                  label: cat.label,
+                                  value: String(cat.id),
+                                }))}
+                                value={offerForm.sponsorshipSportCategory}
+                                onChangeText={(v) =>
+                                  handleOfferFormChange(
+                                    "sponsorshipSportCategory",
+                                    v
+                                  )
+                                }
                               />
                             )}
                           </View>
                           <View style={{ flexDirection: "column", gap: 8 }}>
                             <AppText>Détails de l'offre</AppText>
-                            {newOfferType === "commerciale" && (
+                            {newOfferType === OfferCategory.DISCOUNT && (
                               <>
                                 <Input
                                   type="text"
                                   label="Libellé"
                                   placeholder="Nom du magasin, ..."
+                                  value={offerForm.title}
+                                  onChangeText={(v) =>
+                                    handleOfferFormChange("title", v)
+                                  }
                                 />
                                 <Input
-                                  type="text"
+                                  type="textarea"
                                   label="Descritpion"
                                   placeholder="Comment fonctionne l'offre..."
+                                  value={offerForm.description}
+                                  onChangeText={(v) =>
+                                    handleOfferFormChange("description", v)
+                                  }
                                 />
                                 <Input
                                   type="text"
                                   label="Conditions"
                                   placeholder="Jusqu'à quand ? Conditions d'utilistations..."
+                                  value={offerForm.conditions}
+                                  onChangeText={(v) =>
+                                    handleOfferFormChange("conditions", v)
+                                  }
                                 />
                                 <Input
                                   type="text"
                                   label="Lien de l'offre"
                                   placeholder="https://www..."
+                                  value={offerForm.discountLink}
+                                  onChangeText={(v) =>
+                                    handleOfferFormChange("discountLink", v)
+                                  }
                                 />
                                 <View style={{ flexDirection: "row", gap: 16 }}>
                                   <View style={{ width: "48%" }}>
@@ -2154,6 +2394,10 @@ export default function ClientDetailScreen() {
                                       type="date"
                                       label="Date de début"
                                       placeholder="XX/XX/XXX"
+                                      value={offerForm.startDate}
+                                      onChangeText={(v) =>
+                                        handleOfferFormChange("startDate", v)
+                                      }
                                     />
                                   </View>
                                   <View style={{ width: "48%" }}>
@@ -2161,27 +2405,55 @@ export default function ClientDetailScreen() {
                                       type="date"
                                       label="Date de fin"
                                       placeholder="XX/XX/XXX"
+                                      value={offerForm.endDate}
+                                      onChangeText={(v) =>
+                                        handleOfferFormChange("endDate", v)
+                                      }
                                     />
                                   </View>
                                 </View>
                               </>
                             )}
-                            {newOfferType === "sponsoring" && (
+                            {newOfferType === OfferCategory.SPONSORSHIP && (
                               <>
                                 <Input
                                   type="text"
                                   label="Libellé"
                                   placeholder="Nom du contrat"
+                                  value={offerForm.title}
+                                  onChangeText={(v) =>
+                                    handleOfferFormChange("title", v)
+                                  }
                                 />
                                 <Input
-                                  type="text"
+                                  type="textarea"
                                   label="Descritpion"
                                   placeholder="Résumé de l'offre"
+                                  value={offerForm.description}
+                                  onChangeText={(v) =>
+                                    handleOfferFormChange("description", v)
+                                  }
                                 />
                                 <Input
                                   type="text"
-                                  label="Contrat"
-                                  placeholder="Choisir un fichier"
+                                  label="Conditions de l'offre"
+                                  placeholder="Conditions d'utilisations, ... "
+                                  value={offerForm.conditions}
+                                  onChangeText={(v) =>
+                                    handleOfferFormChange("conditions", v)
+                                  }
+                                />
+                                <Input
+                                  type="number"
+                                  label="Nombre de personnes maximum"
+                                  placeholder="10"
+                                  value={offerForm.sponsorshipNbPersonMax}
+                                  onChangeText={(v) =>
+                                    handleOfferFormChange(
+                                      "sponsorshipNbPersonMax",
+                                      v
+                                    )
+                                  }
                                 />
                                 <View style={{ flexDirection: "row", gap: 16 }}>
                                   <View style={{ width: "48%" }}>
@@ -2189,6 +2461,10 @@ export default function ClientDetailScreen() {
                                       type="date"
                                       label="Date de début"
                                       placeholder="XX/XX/XXX"
+                                      value={offerForm.startDate}
+                                      onChangeText={(v) =>
+                                        handleOfferFormChange("startDate", v)
+                                      }
                                     />
                                   </View>
                                   <View style={{ width: "48%" }}>
@@ -2196,6 +2472,10 @@ export default function ClientDetailScreen() {
                                       type="date"
                                       label="Date de fin"
                                       placeholder="XX/XX/XXX"
+                                      value={offerForm.endDate}
+                                      onChangeText={(v) =>
+                                        handleOfferFormChange("endDate", v)
+                                      }
                                     />
                                   </View>
                                 </View>
@@ -2208,6 +2488,68 @@ export default function ClientDetailScreen() {
                   </Pressable>
                 </ScrollView>
               </Modal>
+              {editCompanyPopUpVisible && company && (
+                <Modal
+                  visible={editCompanyPopUpVisible}
+                  transparent
+                  onRequestClose={() => setEditCompanyPopUpVisible(false)}
+                  style={{ flex: 1 }}
+                >
+                  <Pressable
+                    onPress={() => setEditCompanyPopUpVisible(false)}
+                    style={{
+                      flex: 1,
+                      backgroundColor: "rgba(0,0,0,0.5)",
+                      justifyContent: "center",
+                      padding: 24,
+                    }}
+                  >
+                    <PopUp
+                      title="Modifier l'entreprise"
+                      paragraph={`Modifiez la date de fin d'adhésion de l'entreprise ${company.name}.`}
+                      onClose={() => setEditCompanyPopUpVisible(false)}
+                      closeText="Annuler"
+                      onSubmit={async () => {
+                        try {
+                          await CompanyService.updateCompany(
+                            company.id,
+                            {
+                              dateEndMembership: companyForm.dateEndMembership,
+                            },
+                            token!
+                          );
+                          setEditCompanyPopUpVisible(false);
+                          // Optionally refresh company data here
+                        } catch (e) {
+                          // Handle error (show toast, etc.)
+                          console.error(e);
+                        }
+                      }}
+                      btnText="Enregistrer"
+                      btnType="primary"
+                      iconName="check"
+                      specificBody={
+                        <View style={{ flexDirection: "column", gap: 16 }}>
+                          <Input
+                            type="date"
+                            label="Date d'expiration de l'adhésion de l'entreprise"
+                            placeholder={
+                              companyForm.dateEndMembership || "XX/XX/XXXX"
+                            }
+                            value={companyForm.dateEndMembership}
+                            onChangeText={(v) =>
+                              setCompanyForm((prev) => ({
+                                ...prev,
+                                dateEndMembership: v,
+                              }))
+                            }
+                          />
+                        </View>
+                      }
+                    />
+                  </Pressable>
+                </Modal>
+              )}
             </>
           );
         default:
