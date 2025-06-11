@@ -90,8 +90,18 @@ export default function ExerciceDetailScreen() {
           </View>
           <View style={{ flexDirection: "row", gap: 16 }}>
             {/* labels */}
-            <Label title="Jambes" type="blue" size="normal" />
-            <Label title="Cardio" type="blue" size="normal" />
+            <Label
+              title="Jambes"
+              textColor="#1E3A8A"
+              backgroundColor="#D6EBFF"
+              size="normal"
+            />
+            <Label
+              title="Cardio"
+              textColor="#1E3A8A"
+              backgroundColor="#D6EBFF"
+              size="normal"
+            />
           </View>
           <View>
             <AppText>

@@ -161,8 +161,18 @@ export default function SessionDetailScreen() {
           </View>
           <View style={{ flexDirection: "row", gap: 16 }}>
             {/* labels */}
-            <Label title="Jambes" type="blue" size="normal" />
-            <Label title="Cardio" type="blue" size="normal" />
+            <Label
+              title="Jambes"
+              textColor="#1E3A8A"
+              backgroundColor="#D6EBFF"
+              size="normal"
+            />
+            <Label
+              title="Cardio"
+              textColor="#1E3A8A"
+              backgroundColor="#D6EBFF"
+              size="normal"
+            />
           </View>
           <View>
             {/* recommandations */}
@@ -230,7 +240,14 @@ export default function SessionDetailScreen() {
               isExercice
               title="Course lente"
               durationTime={10}
-              labels={<Label title="Jambes" type="blue" size="small" />}
+              labels={
+                <Label
+                  title="Jambes"
+                  textColor="#1E3A8A"
+                  backgroundColor="#D6EBFF"
+                  size="small"
+                />
+              }
               onPress={() =>
                 navigation.navigate("ExerciceDetail", {
                   exercice: {
@@ -245,7 +262,14 @@ export default function SessionDetailScreen() {
               isExercice
               title="Exercices dynamiques"
               durationTime={18}
-              labels={<Label title="Cardio" type="blue" size="small" />}
+              labels={
+                <Label
+                  title="Cardio"
+                  textColor="#1E3A8A"
+                  backgroundColor="#D6EBFF"
+                  size="small"
+                />
+              }
               onPress={() =>
                 navigation.navigate("ExerciceDetail", {
                   exercice: {

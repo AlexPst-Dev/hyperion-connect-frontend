@@ -247,8 +247,18 @@ export default function HomeScreen() {
             nbExercises={3}
             labels={
               <>
-                <Label title="Cardio" type="blue" size="small" />
-                <Label title="Jambes" type="orange" size="small" />
+                <Label
+                  title="Cardio"
+                  textColor="#1E3A8A"
+                  backgroundColor="#D6EBFF"
+                  size="small"
+                />
+                <Label
+                  title="Jambes"
+                  textColor="#F97316"
+                  backgroundColor="#FFF9F4"
+                  size="small"
+                />
               </>
             }
             imageUrl="sessions/img-running"
@@ -498,8 +508,18 @@ export default function HomeScreen() {
               nbExercises={3}
               labels={
                 <>
-                  <Label title="Cardio" type="blue" size="small" />
-                  <Label title="Jambes" type="orange" size="small" />
+                  <Label
+                    title="Cardio"
+                    textColor="#1E3A8A"
+                    backgroundColor="#D6EBFF"
+                    size="small"
+                  />
+                  <Label
+                    title="Jambes"
+                    textColor="#F97316"
+                    backgroundColor="#FFF9F4"
+                    size="small"
+                  />
                 </>
               }
               imageUrl="sessions/img-running"
@@ -510,8 +530,18 @@ export default function HomeScreen() {
               nbExercises={3}
               labels={
                 <>
-                  <Label title="Cardio" type="blue" size="small" />
-                  <Label title="Jambes" type="orange" size="small" />
+                  <Label
+                    title="Cardio"
+                    textColor="#1E3A8A"
+                    backgroundColor="#D6EBFF"
+                    size="small"
+                  />
+                  <Label
+                    title="Jambes"
+                    textColor="#F97316"
+                    backgroundColor="#FFF9F4"
+                    size="small"
+                  />
                 </>
               }
               imageUrl="sessions/img-running"
@@ -523,8 +553,18 @@ export default function HomeScreen() {
                 nbExercises={3}
                 labels={
                   <>
-                    <Label title="Cardio" type="blue" size="small" />
-                    <Label title="Jambes" type="orange" size="small" />
+                    <Label
+                      title="Cardio"
+                      textColor="#1E3A8A"
+                      backgroundColor="#D6EBFF"
+                      size="small"
+                    />
+                    <Label
+                      title="Jambes"
+                      textColor="#F97316"
+                      backgroundColor="#FFF9F4"
+                      size="small"
+                    />
                   </>
                 }
                 imageUrl="sessions/img-running"

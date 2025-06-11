@@ -115,7 +115,14 @@ export default function SessionsScreen() {
                   },
                 })
               }
-              labels={<Label title="Cardio" type="blue" size="small" />}
+              labels={
+                <Label
+                  title="Cardio"
+                  textColor="#1E3A8A"
+                  backgroundColor="#D6EBFF"
+                  size="small"
+                />
+              }
             />
             <Session
               title="Séance de fractionné"
@@ -125,13 +132,15 @@ export default function SessionsScreen() {
                 <Label
                   key={"cardio"}
                   title="Cardio"
-                  type="blue"
+                  textColor="#1E3A8A"
+                  backgroundColor="#D6EBFF"
                   size="small"
                 />,
                 <Label
                   key={"jambes"}
                   title="Jambes"
-                  type="blue"
+                  textColor="#1E3A8A"
+                  backgroundColor="#D6EBFF"
                   size="small"
                 />,
               ]}
@@ -140,7 +149,14 @@ export default function SessionsScreen() {
               title="Séance de Tempo Run"
               nbExercises={3}
               durationTime={50}
-              labels={<Label title="Cardio" type="blue" size="small" />}
+              labels={
+                <Label
+                  title="Cardio"
+                  textColor="#1E3A8A"
+                  backgroundColor="#D6EBFF"
+                  size="small"
+                />
+              }
             />
           </View>
         </View>,
@@ -231,13 +247,15 @@ export default function SessionsScreen() {
                   <Label
                     key={"cardio"}
                     title="Cardio"
-                    type="blue"
+                    textColor="#1E3A8A"
+                    backgroundColor="#D6EBFF"
                     size="small"
                   />,
                   <Label
                     key={"jambes"}
                     title="Jambes"
-                    type="blue"
+                    textColor="#1E3A8A"
+                    backgroundColor="#D6EBFF"
                     size="small"
                   />,
                 ]}
@@ -246,7 +264,14 @@ export default function SessionsScreen() {
                 title="Séance de Tempo Run"
                 nbExercises={3}
                 durationTime={50}
-                labels={<Label title="Cardio" type="blue" size="small" />}
+                labels={
+                  <Label
+                    title="Cardio"
+                    textColor="#1E3A8A"
+                    backgroundColor="#D6EBFF"
+                    size="small"
+                  />
+                }
               />
             </View>
           </View>
@@ -597,7 +622,14 @@ export default function SessionsScreen() {
                     },
                   })
                 }
-                labels={<Label title="Cardio" type="blue" size="small" />}
+                labels={
+                  <Label
+                    title="Cardio"
+                    textColor="#1E3A8A"
+                    backgroundColor="#D6EBFF"
+                    size="small"
+                  />
+                }
               />
               <Session
                 title="Séance de fractionné"
@@ -607,13 +639,15 @@ export default function SessionsScreen() {
                   <Label
                     key={"cardio"}
                     title="Cardio"
-                    type="blue"
+                    textColor="#1E3A8A"
+                    backgroundColor="#D6EBFF"
                     size="small"
                   />,
                   <Label
                     key={"jambes"}
                     title="Jambes"
-                    type="blue"
+                    textColor="#1E3A8A"
+                    backgroundColor="#D6EBFF"
                     size="small"
                   />,
                 ]}
@@ -622,7 +656,14 @@ export default function SessionsScreen() {
                 title="Séance de Tempo Run"
                 nbExercises={3}
                 durationTime={50}
-                labels={<Label title="Cardio" type="blue" size="small" />}
+                labels={
+                  <Label
+                    title="Cardio"
+                    textColor="#1E3A8A"
+                    backgroundColor="#D6EBFF"
+                    size="small"
+                  />
+                }
               />
               <View style={{ flexDirection: "row", justifyContent: "center" }}>
                 <AppButton
@@ -858,7 +899,14 @@ export default function SessionsScreen() {
                     },
                   })
                 }
-                labels={<Label title="Cardio" type="blue" size="small" />}
+                labels={
+                  <Label
+                    title="Cardio"
+                    textColor="#1E3A8A"
+                    backgroundColor="#D6EBFF"
+                    size="small"
+                  />
+                }
               />
               <Session
                 title="Séance de fractionné"
@@ -868,13 +916,15 @@ export default function SessionsScreen() {
                   <Label
                     key={"cardio"}
                     title="Cardio"
-                    type="blue"
+                    textColor="#1E3A8A"
+                    backgroundColor="#D6EBFF"
                     size="small"
                   />,
                   <Label
                     key={"jambes"}
                     title="Jambes"
-                    type="blue"
+                    textColor="#1E3A8A"
+                    backgroundColor="#D6EBFF"
                     size="small"
                   />,
                 ]}
@@ -883,7 +933,14 @@ export default function SessionsScreen() {
                 title="Séance de Tempo Run"
                 nbExercises={3}
                 durationTime={50}
-                labels={<Label title="Cardio" type="blue" size="small" />}
+                labels={
+                  <Label
+                    title="Cardio"
+                    textColor="#1E3A8A"
+                    backgroundColor="#D6EBFF"
+                    size="small"
+                  />
+                }
               />
               <View style={{ flexDirection: "row", justifyContent: "center" }}>
                 <AppButton
@@ -1084,7 +1141,14 @@ export default function SessionsScreen() {
                 title="Séance de Tempo Run"
                 nbExercises={3}
                 durationTime={50}
-                labels={<Label title="Cardio" type="blue" size="small" />}
+                labels={
+                  <Label
+                    title="Cardio"
+                    textColor="#1E3A8A"
+                    backgroundColor="#D6EBFF"
+                    size="small"
+                  />
+                }
               />
               <Session
                 title="Séance de fractionné"
@@ -1094,13 +1158,15 @@ export default function SessionsScreen() {
                   <Label
                     key={"cardio"}
                     title="Cardio"
-                    type="blue"
+                    textColor="#1E3A8A"
+                    backgroundColor="#D6EBFF"
                     size="small"
                   />,
                   <Label
                     key={"jambes"}
                     title="Jambes"
-                    type="blue"
+                    textColor="#1E3A8A"
+                    backgroundColor="#D6EBFF"
                     size="small"
                   />,
                 ]}
@@ -1112,8 +1178,18 @@ export default function SessionsScreen() {
                   nbExercises={3}
                   labels={
                     <>
-                      <Label title="Cardio" type="blue" size="small" />
-                      <Label title="Jambes" type="orange" size="small" />
+                      <Label
+                        title="Cardio"
+                        textColor="#1E3A8A"
+                        backgroundColor="#D6EBFF"
+                        size="small"
+                      />
+                      <Label
+                        title="Jambes"
+                        textColor="#F97316"
+                        backgroundColor="#FFF9F4"
+                        size="small"
+                      />
                     </>
                   }
                   imageUrl="sessions/img-running"
@@ -1192,7 +1268,14 @@ export default function SessionsScreen() {
                     },
                   })
                 }
-                labels={<Label title="Cardio" type="blue" size="small" />}
+                labels={
+                  <Label
+                    title="Cardio"
+                    textColor="#1E3A8A"
+                    backgroundColor="#D6EBFF"
+                    size="small"
+                  />
+                }
               />
               <Session
                 title="Séance de fractionné"
@@ -1202,13 +1285,15 @@ export default function SessionsScreen() {
                   <Label
                     key={"cardio"}
                     title="Cardio"
-                    type="blue"
+                    textColor="#1E3A8A"
+                    backgroundColor="#D6EBFF"
                     size="small"
                   />,
                   <Label
                     key={"jambes"}
                     title="Jambes"
-                    type="blue"
+                    textColor="#1E3A8A"
+                    backgroundColor="#D6EBFF"
                     size="small"
                   />,
                 ]}
@@ -1217,7 +1302,14 @@ export default function SessionsScreen() {
                 title="Séance de Tempo Run"
                 nbExercises={3}
                 durationTime={50}
-                labels={<Label title="Cardio" type="blue" size="small" />}
+                labels={
+                  <Label
+                    title="Cardio"
+                    textColor="#1E3A8A"
+                    backgroundColor="#D6EBFF"
+                    size="small"
+                  />
+                }
               />
               <View style={{ flexDirection: "row", justifyContent: "center" }}>
                 <AppButton

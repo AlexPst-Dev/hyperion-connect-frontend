@@ -138,7 +138,14 @@ export default function Session({
         </View>
         <View style={styles.rightPart}>
           {isDone && <Label title="Fait" type="green" size="small" />}
-          {isToDo && <Label title="À faire" type="orange" size="small" />}
+          {isToDo && (
+            <Label
+              title="À faire"
+              textColor="#F97316"
+              backgroundColor="#FFF9F4"
+              size="small"
+            />
+          )}
           {isExercice && !isDone && !isToDo && !hideIcon && (
             <Icon
               name="eye"
