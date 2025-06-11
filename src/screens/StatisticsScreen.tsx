@@ -1,4 +1,4 @@
-import React, { JSX, useState } from "react";
+import React, { JSX, useEffect, useState } from "react";
 import {
   KeyboardAvoidingView,
   Modal,
@@ -18,12 +18,14 @@ import { RootStackParamList } from "../navigation/types";
 import { useNavigation } from "@react-navigation/native";
 import OfferCard from "../components/OfferCard";
 import PopUp from "../components/PopUp";
-import { User } from "../models/user";
+import { User, UserResponse } from "../models/user";
 import ProgressGraph from "../components/ProgressGraph";
 import { LoggedUser } from "../models/auth";
+import { getDynamicMonthLabels } from "../models/graph";
+import { UserService } from "../services/api/user-service";
 
 export default function StatisticsScreen() {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
 
   if (!user) return null;
 
@@ -79,7 +81,7 @@ export default function StatisticsScreen() {
           type="linkNormal"
           title="Historique"
           iconName="eye"
-          onPress={() => navigation.navigate("OffersHistory")}
+          onPress={() => navigation.navigate("OffersHistory", { companyId: 1 })}
         />
       </View>
       <OfferCard
@@ -100,6 +102,84 @@ export default function StatisticsScreen() {
     useState(false);
 
   type StatisticsPageProfilePageRenderer = (user: LoggedUser) => JSX.Element;
+
+  const [usersByMonth, setUsersByMonth] = useState<
+    { month: string; value: number }[]
+  >([]);
+
+  useEffect(() => {
+    async function fetchUsersStats() {
+      if (user?.profileCategory !== "admin" || !token) return;
+      const users = await UserService.getAllUsers(token);
+
+      // Parse createdAt and group by month
+      const monthMap: Record<string, number> = {};
+      let minDate: Date | null = null;
+      let maxDate: Date | null = null;
+
+      const usersResponse: User[] | { users: User[] } =
+        await UserService.getAllUsers(token);
+      const usersArray = Array.isArray(usersResponse)
+        ? usersResponse
+        : (usersResponse as { users: User[] }).users || [];
+      usersArray.forEach((u) => {
+        const date = new Date(u.createdAt);
+        const key = `${date.getFullYear()}-${String(
+          date.getMonth() + 1
+        ).padStart(2, "0")}`;
+        monthMap[key] = (monthMap[key] || 0) + 1;
+        if (!minDate || date < minDate) minDate = date;
+        if (!maxDate || date > maxDate) maxDate = date;
+      });
+
+      if (!minDate || !maxDate) {
+        setUsersByMonth([]);
+        return;
+      }
+
+      // Generate all months between minDate and maxDate
+      const months: string[] = [];
+      let current = new Date(
+        (minDate as Date).getFullYear(),
+        (minDate as Date).getMonth(),
+        1
+      );
+      const end = new Date(
+        (maxDate as Date).getFullYear(),
+        (maxDate as Date).getMonth(),
+        1
+      );
+      while (current <= end) {
+        months.push(
+          `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(
+            2,
+            "0"
+          )}`
+        );
+        current.setMonth(current.getMonth() + 1);
+      }
+
+      // Get month labels (e.g., ["Avr", "Mai", ...])
+      const monthLabels = getDynamicMonthLabels(
+        `${(minDate as Date).getFullYear()}-${String(
+          (minDate as Date).getMonth() + 1
+        ).padStart(2, "0")}-01`,
+        months.length
+      );
+
+      // Get values and normalize between 0 and 100
+      const values = months.map((m) => monthMap[m] || 0);
+
+      setUsersByMonth(
+        monthLabels.map((label, i) => ({
+          month: label,
+          value: values[i],
+        }))
+      );
+    }
+
+    fetchUsersStats();
+  }, [user, token]);
 
   const StatisticsPageByProfile: Record<
     string,
@@ -202,12 +282,16 @@ export default function StatisticsScreen() {
         </View>
         <ProgressGraph
           title="Nombre d'utilisateurs"
-          data={[
-            { month: "Jan", value: 55 },
-            { month: "Fév", value: 62 },
-            { month: "Mar", value: 70 },
-            { month: "Avr", value: 68 },
-          ]}
+          data={
+            usersByMonth.length > 0
+              ? usersByMonth
+              : [
+                  { month: "Jan", value: 55 },
+                  { month: "Fév", value: 62 },
+                  { month: "Mar", value: 70 },
+                  { month: "Avr", value: 68 },
+                ]
+          }
         />
       </View>
     ),
