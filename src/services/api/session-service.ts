@@ -12,13 +12,17 @@ export class SessionService {
   /**
    * Create a new session
    */
-  async createSession(
+  static async createSession(
     data: CreateSessionRequest,
     token?: string
   ): Promise<{ message: string; session: Session }> {
     const { label, numberOfExercises, durationTime } = data;
 
-    if (!label || !numberOfExercises || !durationTime) {
+    if (
+      !label ||
+      typeof numberOfExercises !== "number" ||
+      typeof durationTime !== "string"
+    ) {
       throw new Error("label, numberOfExercises et durationTime sont requis.");
     }
 
@@ -37,7 +41,7 @@ export class SessionService {
   /**
    * Retrieve all actives session
    */
-  async getAllSessions(token?: string): Promise<Session[]> {
+  static async getAllSessions(token?: string): Promise<Session[]> {
     try {
       return await apiClient.get<Session[]>("/sessions", token);
     } catch (error) {
@@ -49,7 +53,10 @@ export class SessionService {
   /**
    * Retrieve a session by it's id with the picture
    */
-  async getSessionById(id: number, token?: string): Promise<SessionWithFile> {
+  static async getSessionById(
+    id: number,
+    token?: string
+  ): Promise<SessionWithFile> {
     if (isNaN(id)) {
       throw new Error("ID de session invalide");
     }
@@ -65,7 +72,7 @@ export class SessionService {
   /**
    * Update a session by it's id
    */
-  async updateSessionById(
+  static async updateSessionById(
     id: number,
     data: UpdateSessionRequest,
     token?: string
@@ -75,7 +82,7 @@ export class SessionService {
     }
 
     try {
-      return await apiClient.put<{ message: string; session: Session }>(
+      return await apiClient.patch<{ message: string; session: Session }>(
         `/sessions/${id}`,
         data,
         token
@@ -89,7 +96,7 @@ export class SessionService {
   /**
    * Sof delete
    */
-  async softDeleteSessionById(
+  static async softDeleteSessionById(
     id: number,
     token?: string
   ): Promise<{ message: string; session: Session }> {
@@ -112,7 +119,7 @@ export class SessionService {
   /**
    * Hard delete
    */
-  async deleteSessionById(
+  static async deleteSessionById(
     id: number,
     token?: string
   ): Promise<{ message: string }> {
@@ -134,9 +141,9 @@ export class SessionService {
   /**
    * Find all exercises of a session with details
    */
-  async getExercisesBySessionId(
+  static async getExercisesBySessionId(
     id: number,
-    token?: string
+    token: string
   ): Promise<SessionExercisesResponse> {
     if (isNaN(id)) {
       throw new Error("ID de session invalide");
@@ -156,7 +163,7 @@ export class SessionService {
   /**
    * Find all sessions of a sportsman
    */
-  async getSessionsBySportsman(
+  static async getSessionsBySportsman(
     sportsmanId: number,
     token?: string
   ): Promise<LinkedSessions[]> {
@@ -183,7 +190,7 @@ export class SessionService {
   /**
    * Add a session to the list of a sportsman
    */
-  async addSessionToSportsman(
+  static async addSessionToSportsman(
     sportsmanId: number,
     sessionId: number,
     token?: string
@@ -208,7 +215,7 @@ export class SessionService {
   /**
    * Set a session as "isDone"
    */
-  async markSessionAsDone(
+  static async markSessionAsDone(
     id: number,
     token?: string
   ): Promise<{ message: string; session: Session }> {
@@ -218,7 +225,7 @@ export class SessionService {
   /**
    * Set a session as "unDone"
    */
-  async markSessionAsUndone(
+  static async markSessionAsUndone(
     id: number,
     token?: string
   ): Promise<{ message: string; session: Session }> {
@@ -228,7 +235,7 @@ export class SessionService {
   /**
    * Set a session to active
    */
-  async activateSession(
+  static async activateSession(
     id: number,
     token?: string
   ): Promise<{ message: string; session: Session }> {
@@ -238,7 +245,7 @@ export class SessionService {
   /**
    * Set a session to unactive
    */
-  async deactivateSession(
+  static async deactivateSession(
     id: number,
     token?: string
   ): Promise<{ message: string; session: Session }> {
@@ -251,3 +258,19 @@ export function getMinutesFromDuration(durationTime: string): number {
   const [hours, minutes] = durationTime.split(":").map(Number);
   return (hours || 0) * 60 + (minutes || 0);
 }
+
+export const {
+  createSession,
+  getAllSessions,
+  getExercisesBySessionId,
+  getSessionById,
+  getSessionsBySportsman,
+  updateSessionById,
+  markSessionAsDone,
+  markSessionAsUndone,
+  activateSession,
+  addSessionToSportsman,
+  deactivateSession,
+  deleteSessionById,
+  softDeleteSessionById,
+} = SessionService;

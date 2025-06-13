@@ -137,7 +137,14 @@ export default function Session({
           <View style={styles.categoryLabels}>{labels && <>{labels}</>}</View>
         </View>
         <View style={styles.rightPart}>
-          {isDone && <Label title="Fait" type="green" size="small" />}
+          {isDone && (
+            <Label
+              title="Fait"
+              textColor={Colors.green}
+              backgroundColor="#DEFFD6"
+              size="small"
+            />
+          )}
           {isToDo && (
             <Label
               title="À faire"

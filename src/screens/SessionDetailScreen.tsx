@@ -1,5 +1,5 @@
 // src/screens/SessionDetailScreen.tsx
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -9,6 +9,7 @@ import {
   Modal,
   Pressable,
   Dimensions,
+  ActivityIndicator,
 } from "react-native";
 import AppText from "@/src/components/AppText";
 import { RouteProp, useRoute } from "@react-navigation/native";
@@ -20,14 +21,23 @@ import Label from "../components/Label";
 import AppButton from "../components/AppButton";
 import Input from "../components/Input";
 import PopUp from "../components/PopUp";
-import AddSessions, {
-  TempInterfaceSession,
-} from "../components/popups/AddSession";
+import AddSessions from "../components/popups/AddSession";
 import * as DocumentPicker from "expo-document-picker";
 import AddContacts from "../components/popups/AddContacts";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useAuth } from "../hooks/useAuth";
+import {
+  getMinutesFromDuration,
+  SessionService,
+} from "../services/api/session-service";
+import { fileService } from "../services/api/file-service";
+import { FileCategory } from "../models/file";
+import { UpdateSessionRequest } from "../models/session";
+import { getImageSource } from "../utils/imgSrcHandler";
+import { exerciseService } from "../services/api/exercise-service";
+import { ExerciseWithDetails } from "../models/exercise";
+import { Category, CategoryType } from "../models/category";
 
 type SessionDetailRouteProp = RouteProp<RootStackParamList, "SessionDetail">;
 
@@ -67,49 +77,127 @@ export default function SessionDetailScreen() {
   >;
   const navigation = useNavigation<NavigationProp>();
 
-  const tempListOfExercises: TempInterfaceSession[] = [
-    {
-      id: 1,
-      title: "Course lente",
-      durationTime: 50,
-      muscleGroups: [
-        {
-          title: "Jambes",
-          color: "blue",
-        },
-        {
-          title: "Cardio",
-          color: "orange",
-        },
-      ],
-    },
-    {
-      id: 2,
-      title: "Course fractionné",
-      durationTime: 68,
-      muscleGroups: [
-        {
-          title: "Jambes",
-          color: "blue",
-        },
-      ],
-    },
-  ];
+  const { user, token } = useAuth();
 
-  const { user } = useAuth();
+  if (!user || !token) return null;
 
-  if (!user) return null;
-
-  let isExerciceEditable: boolean = false;
+  let isEditable: boolean = false;
   if (
     user.profileCategory !== "sportsman" &&
     user.profileCategory !== "free" &&
     user.profileCategory !== "partner"
   ) {
-    isExerciceEditable = true;
+    isEditable = true;
   }
 
   const screenWidth = Dimensions.get("window").width;
+
+  const [editSessionPopUpVisible, setEditSessionPopUpVisible] = useState(false);
+  const [sessionEditionLoading, setSessionEditionLoading] = useState(false);
+  const [sessionForm, setSessionForm] = useState({
+    label: "",
+    filePictureUrl: "",
+    recommendations: "",
+    contributions: "",
+  });
+
+  const [exercisesOfSession, setExercisesOfSession] = useState<
+    ExerciseWithDetails[]
+  >([]);
+
+  type ExerciseWithMuscleGroups = {
+    exercise: ExerciseWithDetails;
+    muscleGroups: Category[];
+  };
+  const [muscleGroupsByExercise, setMuscleGroupsByExercise] = useState<
+    ExerciseWithMuscleGroups[]
+  >([]);
+  const handleSessionFormChange = (field: string, value: any) => {
+    setSessionForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleEditSessionSubmit = async () => {
+    setSessionEditionLoading(true);
+    if (token && sessionForm) {
+      const newSessionImageFile = await fileService.updateFile(
+        session.filePictureId,
+        {
+          url:
+            sessionForm.filePictureUrl !== session.filePicture.url
+              ? sessionForm.filePictureUrl
+              : session.filePicture.url,
+        },
+        token
+      );
+
+      const baseData: UpdateSessionRequest = {
+        label:
+          sessionForm.label !== session.label
+            ? sessionForm.label
+            : session.label,
+        filePictureId: newSessionImageFile.file.id,
+        recommendations:
+          sessionForm.recommendations !== session.recommendations
+            ? sessionForm.recommendations
+            : session.recommendations,
+        contributions:
+          sessionForm.contributions !== session.contributions
+            ? sessionForm.contributions
+            : session.contributions,
+      };
+
+      try {
+        await SessionService.updateSessionById(session.id, baseData, token);
+      } catch (error) {
+        console.log("Error while trying to updating session : ", error);
+      } finally {
+        setSessionEditionLoading(false);
+        setEditSessionPopUpVisible(false);
+      }
+    }
+  };
+
+  const handleFetchExercises = async (sessionId: number) => {
+    try {
+      const resExercises = await SessionService.getExercisesBySessionId(
+        sessionId,
+        token
+      );
+      setExercisesOfSession(resExercises.exercises);
+
+      if (resExercises.exercises.length > 0) {
+        const exercisesWithMuscleGroups = await Promise.all(
+          resExercises.exercises.map(async (exercise) => {
+            const resMuscleGroups =
+              await exerciseService.getMuscleGroupsForExercise(
+                exercise.id,
+                token
+              );
+            return {
+              exercise,
+              muscleGroups: resMuscleGroups.muscleGroups,
+            };
+          })
+        );
+
+        setMuscleGroupsByExercise(exercisesWithMuscleGroups);
+      }
+    } catch (e) {
+      console.log("Error while fetching exercises of the session", e);
+    }
+  };
+
+  useEffect(() => {
+    if (session) {
+      setSessionForm({
+        label: session.label || "",
+        filePictureUrl: session.filePicture.url || "",
+        recommendations: session.recommendations || "",
+        contributions: session.contributions || "",
+      });
+      handleFetchExercises(session.id);
+    }
+  }, [session]);
 
   return (
     <KeyboardAvoidingView
@@ -135,14 +223,14 @@ export default function SessionDetailScreen() {
             }}
           >
             <Image
-              source={require("../assets/images/sessions/img-running.png")}
+              source={getImageSource(session.filePicture.url)}
               style={{ borderRadius: 8 }}
             />
           </View>
           <View
             style={{ flexDirection: "row", justifyContent: "space-between" }}
           >
-            <AppText style={GlobalStyles.h3}>{session.title}</AppText>
+            <AppText style={GlobalStyles.h3}>{session.label}</AppText>
             <View
               style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
             >
@@ -155,7 +243,7 @@ export default function SessionDetailScreen() {
                 height={12}
               />
               <AppText style={[GlobalStyles.span, { color: Colors.grey }]}>
-                {session.durationTime} min
+                {getMinutesFromDuration(session.durationTime)} min
               </AppText>
             </View>
           </View>
@@ -174,46 +262,110 @@ export default function SessionDetailScreen() {
               size="normal"
             />
           </View>
-          <View>
+          <View style={{ flexDirection: "column", gap: 8 }}>
             {/* recommandations */}
             <AppText style={{ fontWeight: "bold" }}>Recommandations</AppText>
-            <AppText>
-              Hydratation : Boire de l'eau régulièrement avant, pendant et après
-              la séance.
-            </AppText>
-            <AppText>
-              Écoute du corps : Adapter l'intensité si nécessaire pour éviter
-              les blessures.
-            </AppText>
-            <AppText>
-              Suivi : Noter les sensations et les performances après la séance
-              pour ajuster les futurs entraînements.
-            </AppText>
-            {session.isEditable && (
-              <View
-                style={{ flexDirection: "row", justifyContent: "flex-end" }}
-              >
-                <AppButton title="Modifier" iconName="pencil" type="primary" />
-              </View>
-            )}
+            <AppText>{session.recommendations}</AppText>
           </View>
-          <View>
+          <View style={{ flexDirection: "column", gap: 8 }}>
             {/* interets */}
             <AppText style={{ fontWeight: "bold" }}>Apports & Interets</AppText>
-            <AppText>
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
-              eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut
-              enim ad minim veniam, quis nostrud exercitation ullamco laboris
-              nisi ut aliquip ex ea commodo consequat.
-            </AppText>
-            {session.isEditable && (
-              <View
-                style={{ flexDirection: "row", justifyContent: "flex-end" }}
-              >
-                <AppButton title="Modifier" iconName="pencil" type="primary" />
-              </View>
-            )}
+            <AppText>{session.contributions}</AppText>
           </View>
+          {isEditable && (
+            <View style={{ flexDirection: "row", justifyContent: "flex-end" }}>
+              <AppButton
+                title="Modifier"
+                iconName="pencil"
+                type="primary"
+                onPress={() => setEditSessionPopUpVisible(true)}
+              />
+            </View>
+          )}
+
+          <Modal
+            transparent
+            visible={editSessionPopUpVisible}
+            onRequestClose={() => setEditSessionPopUpVisible(false)}
+          >
+            <Pressable
+              onPress={() => setEditSessionPopUpVisible(false)}
+              style={{
+                flex: 1,
+                backgroundColor: "rgba(0,0,0,0.5)",
+                justifyContent: "center",
+                padding: 24,
+              }}
+            >
+              <Pressable
+                onPress={() => {}}
+                style={{ borderRadius: 16, overflow: "hidden" }}
+              >
+                <PopUp
+                  onClose={() => setEditSessionPopUpVisible(false)}
+                  title="Editer la session"
+                  paragraph="Vous pouvez modifier dans les champs ci-dessous la session"
+                  closeText="Annuler"
+                  btnText="Modifier"
+                  iconName="pencil"
+                  btnType="primary"
+                  onSubmit={handleEditSessionSubmit}
+                  inputs={
+                    sessionEditionLoading ? (
+                      <ActivityIndicator />
+                    ) : (
+                      <>
+                        <Input
+                          type="text"
+                          placeholder={
+                            sessionForm.label || "Nom du plan d'entrainement"
+                          }
+                          label="Label"
+                          value={sessionForm.label}
+                          onChangeText={(v) =>
+                            handleSessionFormChange("label", v)
+                          }
+                        />
+                        <Input
+                          type="text"
+                          placeholder={"https://"}
+                          label="Lien image"
+                          value={sessionForm.filePictureUrl}
+                          onChangeText={(v) =>
+                            handleSessionFormChange("filePictureUrl", v)
+                          }
+                        />
+                        <Input
+                          type="textarea"
+                          placeholder={
+                            sessionForm.recommendations ||
+                            "Conseils, mises en garde..."
+                          }
+                          label="Recommandations"
+                          value={sessionForm.recommendations}
+                          onChangeText={(v) =>
+                            handleSessionFormChange("recommendations", v)
+                          }
+                        />
+                        <Input
+                          type="textarea"
+                          placeholder={
+                            sessionForm.contributions ||
+                            "Apports et intérêts du programme"
+                          }
+                          label="Contributions"
+                          value={sessionForm.contributions}
+                          onChangeText={(v) =>
+                            handleSessionFormChange("contributions", v)
+                          }
+                        />
+                      </>
+                    )
+                  }
+                />
+              </Pressable>
+            </Pressable>
+          </Modal>
 
           <View
             style={{ flexDirection: "row", justifyContent: "space-between" }}
@@ -231,56 +383,44 @@ export default function SessionDetailScreen() {
                 height={12}
               />
               <AppText style={[GlobalStyles.span, { color: Colors.grey }]}>
-                {session.nbExercises} exercices
+                {session.numberOfExercises} exercices
               </AppText>
             </View>
           </View>
+          {/* Exercises */}
           <View style={{ flexDirection: "column", gap: 8 }}>
-            <Session
-              isExercice
-              title="Course lente"
-              durationTime={10}
-              labels={
-                <Label
-                  title="Jambes"
-                  textColor="#1E3A8A"
-                  backgroundColor="#D6EBFF"
-                  size="small"
-                />
-              }
-              onPress={() =>
-                navigation.navigate("ExerciceDetail", {
-                  exercice: {
-                    title: "Course lente",
-                    durationTime: 10,
-                    isEditable: isExerciceEditable,
-                  },
-                })
-              }
-            />
-            <Session
-              isExercice
-              title="Exercices dynamiques"
-              durationTime={18}
-              labels={
-                <Label
-                  title="Cardio"
-                  textColor="#1E3A8A"
-                  backgroundColor="#D6EBFF"
-                  size="small"
-                />
-              }
-              onPress={() =>
-                navigation.navigate("ExerciceDetail", {
-                  exercice: {
-                    title: "Exercices dynamiques",
-                    durationTime: 18,
-                    isEditable: isExerciceEditable,
-                  },
-                })
-              }
-            />
-            {session.isEditable && (
+            {muscleGroupsByExercise.length > 0 ? (
+              muscleGroupsByExercise.map((item) => {
+                return (
+                  <Session
+                    key={item.exercise.id}
+                    isExercice
+                    title={item.exercise.label}
+                    durationTime={getMinutesFromDuration(
+                      item.exercise.durationTime
+                    )}
+                    labels={item.muscleGroups.map((muscleGroup) => (
+                      <Label
+                        key={muscleGroup.id}
+                        title={muscleGroup.label}
+                        textColor={muscleGroup.textColor}
+                        backgroundColor={muscleGroup.backgroundColor}
+                        size="small"
+                      />
+                    ))}
+                    onPress={() =>
+                      navigation.navigate("ExerciceDetail", {
+                        exercise: item.exercise,
+                        muscleGroups: item.muscleGroups,
+                      })
+                    }
+                  />
+                );
+              })
+            ) : (
+              <AppText>Aucun exercises dans ce plan d'entrainement</AppText>
+            )}
+            {isEditable && (
               <View style={{ flexDirection: "row", justifyContent: "center" }}>
                 <AppButton
                   iconName="plus"
@@ -291,7 +431,7 @@ export default function SessionDetailScreen() {
             )}
           </View>
 
-          {session.isEditable && (
+          {isEditable && (
             <View
               style={{
                 flexDirection: "row",
@@ -418,7 +558,7 @@ export default function SessionDetailScreen() {
                 />
               )}
 
-              {modalStep === "catalog" && (
+              {/* {modalStep === "catalog" && (
                 <AddSessions
                   visible={true}
                   listOfSession={tempListOfExercises}
@@ -429,7 +569,7 @@ export default function SessionDetailScreen() {
                   }}
                   isExercises
                 />
-              )}
+              )} */}
 
               {modalStep === "custom" && (
                 <PopUp

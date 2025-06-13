@@ -1,4 +1,4 @@
-import React, { JSX, useState } from "react";
+import React, { JSX, useEffect, useState } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -7,6 +7,7 @@ import {
   Modal,
   Pressable,
   StyleSheet,
+  ActivityIndicator,
 } from "react-native";
 import GlobalStyles, { Colors, shadowStyles } from "../styles/styles";
 import AppText from "../components/AppText";
@@ -23,13 +24,21 @@ import Kpi from "../components/Kpi";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../navigation/types";
-import AddSessions, {
-  TempInterfaceSession,
-} from "../components/popups/AddSession";
+import AddSessions from "../components/popups/AddSession";
 import * as DocumentPicker from "expo-document-picker";
 import { BlurView } from "expo-blur";
 import ProgressGraph from "../components/ProgressGraph";
 import { LoggedUser } from "../models/auth";
+import {
+  getMinutesFromDuration,
+  SessionService,
+} from "../services/api/session-service";
+import {
+  CreateSessionRequest,
+  Session as SessionModel,
+} from "../models/session";
+import { fileService } from "../services/api/file-service";
+import { FileCategory } from "../models/file";
 
 export default function SessionsScreen() {
   type SessionPageRenderer = (user: LoggedUser) => JSX.Element;
@@ -106,15 +115,6 @@ export default function SessionsScreen() {
               title="Séance de Tempo Run"
               nbExercises={3}
               durationTime={50}
-              onPress={() =>
-                navigation.navigate("SessionDetail", {
-                  session: {
-                    title: "SEANCE DE TEMPO RUN",
-                    nbExercises: 3,
-                    durationTime: 50,
-                  },
-                })
-              }
               labels={
                 <Label
                   title="Cardio"
@@ -546,37 +546,6 @@ export default function SessionsScreen() {
       );
     },
     coach: (user) => {
-      const tempListOfSession: TempInterfaceSession[] = [
-        {
-          id: 1,
-          title: "Séance de Tempo Run",
-          nbExercises: 3,
-          durationTime: 50,
-          muscleGroups: [
-            {
-              title: "Jambes",
-              color: "blue",
-            },
-            {
-              title: "Cardio",
-              color: "orange",
-            },
-          ],
-        },
-        {
-          id: 2,
-          title: "Séance de fractionné",
-          nbExercises: 6,
-          durationTime: 68,
-          muscleGroups: [
-            {
-              title: "Jambes",
-              color: "blue",
-            },
-          ],
-        },
-      ];
-
       type ModalStep = "selector" | "catalog" | "custom" | "import";
 
       const [modalStep, setModalStep] = useState<ModalStep | null>(null);
@@ -612,16 +581,6 @@ export default function SessionsScreen() {
                 title="Séance de Tempo Run"
                 nbExercises={3}
                 durationTime={50}
-                onPress={() =>
-                  navigation.navigate("SessionDetail", {
-                    session: {
-                      title: "SEANCE DE TEMPO RUN",
-                      nbExercises: 3,
-                      durationTime: 50,
-                      isEditable: true,
-                    },
-                  })
-                }
                 labels={
                   <Label
                     title="Cardio"
@@ -766,7 +725,7 @@ export default function SessionsScreen() {
                   />
                 )}
 
-                {modalStep === "catalog" && (
+                {/* {modalStep === "catalog" && (
                   <AddSessions
                     visible={true}
                     listOfSession={tempListOfSession}
@@ -776,7 +735,7 @@ export default function SessionsScreen() {
                       closeModal();
                     }}
                   />
-                )}
+                )} */}
 
                 {modalStep === "custom" && (
                   <PopUp
@@ -823,37 +782,6 @@ export default function SessionsScreen() {
       );
     },
     medic: (user) => {
-      const tempListOfSession: TempInterfaceSession[] = [
-        {
-          id: 1,
-          title: "Séance de Tempo Run",
-          nbExercises: 3,
-          durationTime: 50,
-          muscleGroups: [
-            {
-              title: "Jambes",
-              color: "blue",
-            },
-            {
-              title: "Cardio",
-              color: "orange",
-            },
-          ],
-        },
-        {
-          id: 2,
-          title: "Séance de fractionné",
-          nbExercises: 6,
-          durationTime: 68,
-          muscleGroups: [
-            {
-              title: "Jambes",
-              color: "blue",
-            },
-          ],
-        },
-      ];
-
       type ModalStep = "selector" | "catalog" | "custom" | "import";
 
       const [modalStep, setModalStep] = useState<ModalStep | null>(null);
@@ -889,16 +817,6 @@ export default function SessionsScreen() {
                 title="Séance de Tempo Run"
                 nbExercises={3}
                 durationTime={50}
-                onPress={() =>
-                  navigation.navigate("SessionDetail", {
-                    session: {
-                      title: "SEANCE DE TEMPO RUN",
-                      nbExercises: 3,
-                      durationTime: 50,
-                      isEditable: true,
-                    },
-                  })
-                }
                 labels={
                   <Label
                     title="Cardio"
@@ -1043,7 +961,7 @@ export default function SessionsScreen() {
                   />
                 )}
 
-                {modalStep === "catalog" && (
+                {/* {modalStep === "catalog" && (
                   <AddSessions
                     visible={true}
                     listOfSession={tempListOfSession}
@@ -1053,7 +971,7 @@ export default function SessionsScreen() {
                       closeModal();
                     }}
                   />
-                )}
+                )} */}
 
                 {modalStep === "custom" && (
                   <PopUp
@@ -1208,40 +1126,84 @@ export default function SessionsScreen() {
       );
     },
     admin: (user) => {
-      const tempListOfSession: TempInterfaceSession[] = [
-        {
-          id: 1,
-          title: "Séance de Tempo Run",
-          nbExercises: 3,
-          durationTime: 50,
-          muscleGroups: [
-            {
-              title: "Jambes",
-              color: "blue",
-            },
-            {
-              title: "Cardio",
-              color: "orange",
-            },
-          ],
-        },
-        {
-          id: 2,
-          title: "Séance de fractionné",
-          nbExercises: 6,
-          durationTime: 68,
-          muscleGroups: [
-            {
-              title: "Jambes",
-              color: "blue",
-            },
-          ],
-        },
-      ];
-
       const [editSessionPopUp, setEditSessionPopUp] = useState(false);
 
       const closeModal = () => setEditSessionPopUp(!editSessionPopUp);
+
+      const { token } = useAuth();
+      const [sessions, setSessions] = useState<SessionModel[]>([]);
+      const [loading, setLoading] = useState(true);
+      const [filter, setFilter] = useState("");
+
+      useEffect(() => {
+        let isMounted = true;
+        async function fetchSessions() {
+          setLoading(true);
+          try {
+            const all = await SessionService.getAllSessions(token!);
+            if (isMounted) setSessions(all);
+          } catch (e) {
+            if (isMounted) setSessions([]);
+          } finally {
+            if (isMounted) setLoading(false);
+          }
+        }
+        fetchSessions();
+        return () => {
+          isMounted = false;
+        };
+      }, [token]);
+
+      // Filter sessions by label (case-insensitive)
+      const filteredSessions = sessions.filter((s) =>
+        s.label.toLowerCase().includes(filter.toLowerCase())
+      );
+
+      const [sessionForm, setSessionForm] = useState({
+        label: "",
+        filePictureUrl: "",
+        recommendations: "",
+        contributions: "",
+      });
+
+      const [sessionEditionLoading, setSessionEditionLoading] = useState(false);
+
+      const handleSessionFormChange = (field: string, value: any) => {
+        setSessionForm((prev) => ({ ...prev, [field]: value }));
+      };
+
+      const handleEditSessionSubmit = async () => {
+        setSessionEditionLoading(true);
+        if (token && sessionForm) {
+          const newSessionImageFile = await fileService.createFile(
+            {
+              label: `${sessionForm.label.toLowerCase().trim()}-image`,
+              url: sessionForm.filePictureUrl,
+              fileCategory: FileCategory.IMAGE,
+            },
+            token
+          );
+
+          const baseData: CreateSessionRequest = {
+            label: sessionForm.label,
+            numberOfExercises: 1,
+            durationTime: "00:01:00",
+            filePictureId: newSessionImageFile.id,
+            listExercises: "0;",
+            recommendations: sessionForm.recommendations,
+            contributions: sessionForm.contributions,
+          };
+
+          try {
+            await SessionService.createSession(baseData, token);
+          } catch (error) {
+            console.log("Error while trying to create session : ", error);
+          } finally {
+            setSessionEditionLoading(false);
+            setEditSessionPopUp(false);
+          }
+        }
+      };
 
       return (
         <>
@@ -1254,63 +1216,46 @@ export default function SessionsScreen() {
               </AppText>
             </View>
             <View style={{ flexDirection: "column", gap: 16 }}>
-              <Session
-                title="Séance de Tempo Run"
-                nbExercises={3}
-                durationTime={50}
-                onPress={() =>
-                  navigation.navigate("SessionDetail", {
-                    session: {
-                      title: "SEANCE DE TEMPO RUN",
-                      nbExercises: 3,
-                      durationTime: 50,
-                      isEditable: true,
-                    },
-                  })
-                }
-                labels={
-                  <Label
-                    title="Cardio"
-                    textColor="#1E3A8A"
-                    backgroundColor="#D6EBFF"
-                    size="small"
-                  />
-                }
+              <Input
+                type="text"
+                label="Filtrer par nom de séance"
+                placeholder="Nom de la séance..."
+                value={filter}
+                onChangeText={setFilter}
               />
-              <Session
-                title="Séance de fractionné"
-                nbExercises={5}
-                durationTime={68}
-                labels={[
-                  <Label
-                    key={"cardio"}
-                    title="Cardio"
-                    textColor="#1E3A8A"
-                    backgroundColor="#D6EBFF"
-                    size="small"
-                  />,
-                  <Label
-                    key={"jambes"}
-                    title="Jambes"
-                    textColor="#1E3A8A"
-                    backgroundColor="#D6EBFF"
-                    size="small"
-                  />,
-                ]}
-              />
-              <Session
-                title="Séance de Tempo Run"
-                nbExercises={3}
-                durationTime={50}
-                labels={
-                  <Label
-                    title="Cardio"
-                    textColor="#1E3A8A"
-                    backgroundColor="#D6EBFF"
-                    size="small"
-                  />
-                }
-              />
+              {loading ? (
+                <ActivityIndicator size="large" />
+              ) : (
+                <ScrollView style={{ maxHeight: 350 }}>
+                  {filteredSessions.length === 0 ? (
+                    <AppText>Aucune séance trouvée.</AppText>
+                  ) : (
+                    filteredSessions.map((session) => (
+                      <View style={{ marginBottom: 8 }} key={session.id}>
+                        <Session
+                          key={session.id}
+                          title={session.label}
+                          nbExercises={session.numberOfExercises}
+                          durationTime={getMinutesFromDuration(
+                            session.durationTime
+                          )}
+                          imageUrl={
+                            session.filePicture
+                              ? session.filePicture.url
+                              : undefined
+                          }
+                          labels={[]}
+                          onPress={() => {
+                            navigation.navigate("SessionDetail", {
+                              session,
+                            });
+                          }}
+                        />
+                      </View>
+                    ))
+                  )}
+                </ScrollView>
+              )}
               <View style={{ flexDirection: "row", justifyContent: "center" }}>
                 <AppButton
                   type="add"
@@ -1344,33 +1289,51 @@ export default function SessionsScreen() {
                   btnText="Editer"
                   iconName="pencil"
                   closeText="Annuler"
-                  onSubmit={() => setEditSessionPopUp}
+                  onSubmit={handleEditSessionSubmit}
                   btnType="primary"
                   inputs={
-                    <>
-                      <Input
-                        type="text"
-                        placeholder="Nom du programme"
-                        label="Nom"
-                      />
-                      <Input
-                        type="text"
-                        placeholder="https://"
-                        label="Lien image"
-                      />
-                      <Input type="text" placeholder="Adresse" label="Lieu" />
-                      <Input type="date" label="Date" />
-                      <Input
-                        type="text"
-                        placeholder="08:00"
-                        label="Heure de début"
-                      />
-                      <Input
-                        type="text"
-                        placeholder="09:00"
-                        label="Heure de fin"
-                      />
-                    </>
+                    sessionEditionLoading ? (
+                      <ActivityIndicator />
+                    ) : (
+                      <>
+                        <Input
+                          type="text"
+                          placeholder="Nom du plan d'entrainement"
+                          label="Label"
+                          value={sessionForm.label}
+                          onChangeText={(v) =>
+                            handleSessionFormChange("label", v)
+                          }
+                        />
+                        <Input
+                          type="text"
+                          placeholder="https://"
+                          label="Lien image"
+                          value={sessionForm.filePictureUrl}
+                          onChangeText={(v) =>
+                            handleSessionFormChange("filePictureUrl", v)
+                          }
+                        />
+                        <Input
+                          type="textarea"
+                          placeholder="Conseils, mises en garde..."
+                          label="Recommandations"
+                          value={sessionForm.recommendations}
+                          onChangeText={(v) =>
+                            handleSessionFormChange("recommendations", v)
+                          }
+                        />
+                        <Input
+                          type="textarea"
+                          placeholder="Apports et intérêts du programme"
+                          label="Contributions"
+                          value={sessionForm.contributions}
+                          onChangeText={(v) =>
+                            handleSessionFormChange("contributions", v)
+                          }
+                        />
+                      </>
+                    )
                   }
                   onClose={closeModal}
                 />

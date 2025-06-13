@@ -1,5 +1,6 @@
 import { apiClient } from "./client";
 import { Exercise, ExerciseWithDetails } from "../../models/exercise";
+import { Category } from "@/src/models/category";
 
 export const exerciseService = {
   async createExercise(
@@ -65,8 +66,8 @@ export const exerciseService = {
   async getMuscleGroupsForExercise(
     id: number,
     token: string
-  ): Promise<{ muscleGroups: any[] }> {
-    return apiClient.get<{ muscleGroups: any[] }>(
+  ): Promise<{ muscleGroups: Category[] }> {
+    return apiClient.get<{ muscleGroups: Category[] }>(
       `/exercises/${id}/muscle-groups`,
       token
     );

@@ -200,7 +200,7 @@ export default function ClientDetailScreen() {
             await Promise.all([
               ObjectivesApiService.getObjectivesBySportsman(client.id, token),
               GraphService.getGraphsByUserId(client.id, token),
-              new SessionService().getAllSessions(token),
+              SessionService.getAllSessions(token),
               exerciseService.getAllExercises(token),
             ]);
           if (!isMounted) return;
@@ -311,12 +311,12 @@ export default function ClientDetailScreen() {
           // Active sessions
           try {
             const sessionService = new SessionService();
-            const linkedSessions = await sessionService.getSessionsBySportsman(
+            const linkedSessions = await SessionService.getSessionsBySportsman(
               client.id,
               token
             );
             const sessionPromises = linkedSessions.map((ls) =>
-              sessionService.getSessionById(ls.sessionId, token)
+              SessionService.getSessionById(ls.sessionId, token)
             );
             const allActiveSessions = await Promise.all(sessionPromises);
             const onlyActive = allActiveSessions.filter(
@@ -1120,7 +1120,7 @@ export default function ClientDetailScreen() {
                 onClose={() => setAddSessionPopUpVisible(false)}
                 onSubmit={(selectedSessions) => {
                   selectedSessions.map(async (s) => {
-                    await new SessionService().addSessionToSportsman(
+                    await SessionService.addSessionToSportsman(
                       client.id,
                       s.session.id,
                       token as string

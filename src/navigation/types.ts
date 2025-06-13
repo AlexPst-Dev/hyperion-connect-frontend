@@ -1,3 +1,6 @@
+import { Category } from "../models/category";
+import { ExerciseWithDetails } from "../models/exercise";
+import { Session } from "../models/session";
 import { User } from "../models/user";
 
 export type RootStackParamList = {
@@ -10,19 +13,11 @@ export type RootStackParamList = {
   Legals: undefined;
   Settings: undefined;
   SessionDetail: {
-    session: {
-      title: string;
-      nbExercises: number;
-      durationTime: number;
-      isEditable?: boolean;
-    };
+    session: Session;
   };
   ExerciceDetail: {
-    exercice: {
-      title: string;
-      durationTime: number;
-      isEditable?: boolean;
-    };
+    exercise: ExerciseWithDetails;
+    muscleGroups: Category[];
   };
   PlanningHistory: undefined;
   ContactDetail: {

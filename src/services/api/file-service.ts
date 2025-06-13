@@ -29,7 +29,7 @@ export const fileService = {
     data: Partial<Pick<File, "label" | "url" | "fileCategory">>,
     token: string
   ): Promise<{ message: string; file: File }> {
-    return apiClient.put<{ message: string; file: File }>(
+    return apiClient.patch<{ message: string; file: File }>(
       `/files/${id}`,
       data,
       token

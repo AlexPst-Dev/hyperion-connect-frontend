@@ -6,8 +6,6 @@ import {
   ScrollView,
   View,
   Image,
-  Modal,
-  Pressable,
   Dimensions,
 } from "react-native";
 import AppText from "@/src/components/AppText";
@@ -15,22 +13,21 @@ import { RouteProp, useRoute } from "@react-navigation/native";
 import { RootStackParamList } from "@/src/navigation/types";
 import GlobalStyles, { Colors } from "../styles/styles";
 import Icon from "../components/Icon";
-import Session from "../components/Session";
 import Label from "../components/Label";
 import AppButton from "../components/AppButton";
-import Input from "../components/Input";
-import PopUp from "../components/PopUp";
-import AddSessions, {
-  TempInterfaceSession,
-} from "../components/popups/AddSession";
-import * as DocumentPicker from "expo-document-picker";
 import AddContacts from "../components/popups/AddContacts";
+import { useAuth } from "../hooks/useAuth";
+import { getImageSource } from "../utils/imgSrcHandler";
+import { getMinutesFromDuration } from "../services/api/session-service";
 
 type ExerciceDetailRouteProp = RouteProp<RootStackParamList, "ExerciceDetail">;
 
 export default function ExerciceDetailScreen() {
   const route = useRoute<ExerciceDetailRouteProp>();
-  const { exercice } = route.params;
+  const { exercise, muscleGroups } = route.params;
+  const { user, token } = useAuth();
+
+  if (!user || !token) return null;
 
   const [addContactPopUpVisible, setAddContactPopUpVisible] = useState(false);
 
@@ -39,6 +36,15 @@ export default function ExerciceDetailScreen() {
   };
 
   const screenWidth = Dimensions.get("window").width;
+
+  let isEditable: boolean = false;
+  if (
+    user.profileCategory !== "sportsman" &&
+    user.profileCategory !== "free" &&
+    user.profileCategory !== "partner"
+  ) {
+    isEditable = true;
+  }
 
   return (
     <KeyboardAvoidingView
@@ -64,14 +70,14 @@ export default function ExerciceDetailScreen() {
             }}
           >
             <Image
-              source={require("../assets/images/sessions/img-running.png")}
+              source={getImageSource(exercise.filePicture.url)}
               style={{ borderRadius: 8 }}
             />
           </View>
           <View
             style={{ flexDirection: "row", justifyContent: "space-between" }}
           >
-            <AppText style={GlobalStyles.h3}>{exercice.title}</AppText>
+            <AppText style={GlobalStyles.h3}>{exercise.label}</AppText>
             <View
               style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
             >
@@ -84,45 +90,33 @@ export default function ExerciceDetailScreen() {
                 height={12}
               />
               <AppText style={[GlobalStyles.span, { color: Colors.grey }]}>
-                {exercice.durationTime} min
+                {getMinutesFromDuration(exercise.durationTime)} min
               </AppText>
             </View>
           </View>
           <View style={{ flexDirection: "row", gap: 16 }}>
             {/* labels */}
-            <Label
-              title="Jambes"
-              textColor="#1E3A8A"
-              backgroundColor="#D6EBFF"
-              size="normal"
-            />
-            <Label
-              title="Cardio"
-              textColor="#1E3A8A"
-              backgroundColor="#D6EBFF"
-              size="normal"
-            />
+            {muscleGroups.map((muscleGroup) => (
+              <Label
+                key={muscleGroup.id}
+                title={muscleGroup.label}
+                textColor={muscleGroup.textColor}
+                backgroundColor={muscleGroup.backgroundColor}
+                size="normal"
+              />
+            ))}
           </View>
           <View>
-            <AppText>
-              Talons-fesses (30 secondes) Montées de genoux (30 secondes)
-              Rotations de hanches (30 secondes) Étirements des mollets et des
-              ischio-jambiers (30 secondes chacun)
-            </AppText>
+            <AppText>{exercise.description}</AppText>
           </View>
           <View>
             {/* recommandations */}
             <AppText style={{ fontWeight: "bold" }}>
               Notes & Recommandations
             </AppText>
-            <AppText>
-              Commencez par une course lente de 5 à 10 minutes pour augmenter
-              progressivement votre fréquence cardiaque et préparer vos muscles
-              à l'effort..Buvez de l'eau avant, pendant et après les exercices
-              pour rester bien hydraté et optimiser vos performances.
-            </AppText>
+            <AppText>{exercise.recommendations}</AppText>
 
-            {exercice.isEditable && (
+            {isEditable && (
               <View
                 style={{ flexDirection: "row", justifyContent: "flex-end" }}
               >
@@ -131,7 +125,7 @@ export default function ExerciceDetailScreen() {
             )}
           </View>
 
-          {exercice.isEditable && (
+          {isEditable && (
             <View
               style={{
                 flexDirection: "row",
@@ -169,7 +163,7 @@ export default function ExerciceDetailScreen() {
         <AddContacts
           visible={addContactPopUpVisible}
           onClose={handleAddContactPopUpVisible}
-          token=""
+          token={token}
         />
       </ScrollView>
     </KeyboardAvoidingView>

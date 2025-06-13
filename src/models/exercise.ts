@@ -1,3 +1,6 @@
+import { Category } from "./category";
+import { File as FileModel } from "./file";
+
 export interface Exercise {
   id: number;
   label: string;
@@ -5,7 +8,7 @@ export interface Exercise {
   durationTime: string;
   description: string;
   recommendations: string;
-  filePicture: File;
+  filePicture: FileModel;
   filePictureId: number;
   isActive: boolean;
   createdAt: string;
@@ -13,6 +16,6 @@ export interface Exercise {
 }
 
 export interface ExerciseWithDetails extends Exercise {
-  filePicture: File;
-  muscleGroups: any[];
+  filePicture: FileModel;
+  muscleGroups: Category[];
 }
