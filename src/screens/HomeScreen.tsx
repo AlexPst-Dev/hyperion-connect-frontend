@@ -675,7 +675,7 @@ export default function HomeScreen() {
                     event={closestEvent}
                     hyperlinkProps={
                       closestEvent.eventCategory === EventCategory.HYPERLINK
-                        ? closestEvent.hyperlinkDetails
+                        ? closestEvent.specificEvent
                         : undefined
                     }
                     userConnected={user}
@@ -759,9 +759,7 @@ export default function HomeScreen() {
         showsVerticalScrollIndicator={false}
       >
         {RenderProfileComponents ? RenderProfileComponents(user) : null}
-        {(user.profileCategory === "admin" ||
-          user.profileCategory === "free" ||
-          user.profileCategory === "sporstman") && (
+        {user.profileCategory === "admin" && (
           <Modal
             visible={editNewsVisible}
             transparent

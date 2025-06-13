@@ -10,21 +10,31 @@ import Icon from "../Icon";
 import { Colors } from "@/src/styles/styles";
 import { LoggedUser } from "@/src/models/auth";
 import {
+  CoachingEventResponse,
   Event,
   EventCategory,
+  HyperionEventResponse,
   HyperlinkEventResponse,
+  MedicalEventResponse,
+  SportingActivityEventResponse,
 } from "@/src/models/event";
 import { getImageSource } from "@/src/utils/imgSrcHandler";
 import EditEvent from "./EditEvent";
+import { eventService } from "@/src/services/api/event-service";
 
 interface Props {
   visible: boolean;
   event: Event;
   hyperlinkProps?: HyperlinkEventResponse;
+  hyperionProps?: HyperionEventResponse;
+  sportingActivityProps?: SportingActivityEventResponse;
+  coachingProps?: CoachingEventResponse;
+  medicalProps?: MedicalEventResponse;
   userConnected: LoggedUser;
   listOfUser: User[];
   onClose: () => void;
   onSubmit?: () => void;
+  onRefused?: () => void;
   token?: string;
 }
 
@@ -32,16 +42,55 @@ export default function DisplayEvent({
   visible,
   event,
   hyperlinkProps,
+  sportingActivityProps,
   userConnected,
   listOfUser,
   onClose,
   onSubmit,
+  onRefused,
   token,
 }: Props) {
   /*
    * Form for editing an event
    */
   const [editEventPopUpVisible, setEditEventPopUpVisible] = useState(false);
+  const [
+    sportingActivityValidationLoading,
+    setSportingActivityValidationLoading,
+  ] = useState(false);
+
+  // Handler for refusing (deleting) the event
+  const handleRefuse = async () => {
+    if (!event?.id || !token) return;
+    setSportingActivityValidationLoading(true);
+    try {
+      await eventService.deleteEvent(event.id, token);
+      if (onRefused) onRefused();
+      onClose();
+    } catch (err) {
+      // Optionally show an error message
+      console.error("Failed to delete event", err);
+    } finally {
+      setSportingActivityValidationLoading(false);
+    }
+  };
+
+  // Handler for validating (activating) the event
+  const handleValidate = async () => {
+    if (!event?.id || !token) return;
+    setSportingActivityValidationLoading(true);
+    try {
+      await eventService.updateEvent(event.id, { isActive: true }, token);
+      if (onSubmit) onSubmit();
+      onClose();
+    } catch (err) {
+      // Optionally show an error message
+      console.error("Failed to validate event", err);
+    } finally {
+      setSportingActivityValidationLoading(false);
+    }
+  };
+
   const handleSubmit = () => {
     onClose();
   };
@@ -52,6 +101,7 @@ export default function DisplayEvent({
     | "editable"
     | "addToCalendar"
     | "applyToSportingActivity"
+    | "validateSportingActivity"
     | "closeOnly";
 
   function getEventActionType(
@@ -59,13 +109,20 @@ export default function DisplayEvent({
     eventType: string
   ): EventActionType {
     if (
+      eventType === EventCategory.SPORTING_ACTIVITY &&
+      userConnected.profileCategory === "admin" &&
+      eventOwnerId !== userConnected.id
+    ) {
+      return "validateSportingActivity";
+    }
+    if (
       userConnected.id === eventOwnerId ||
       userConnected.profileCategory === "admin"
     ) {
       return "editable";
     }
     if (
-      eventType === "sportingActivity" &&
+      eventType === EventCategory.SPORTING_ACTIVITY &&
       userConnected.profileCategory === "sportsman" &&
       eventOwnerId !== userConnected.id
     ) {
@@ -151,16 +208,33 @@ export default function DisplayEvent({
                         </AppText>
                       </View>
                       {EventCategory.SPORTING_ACTIVITY && event.link && (
-                        <View style={styles.eventInfo}>
-                          <Icon
-                            name="link"
-                            fillColor="white"
-                            strokeColor={Colors.deepBlue}
-                            strokeWidth={2}
-                          />
-                          <AppText>{event.link}</AppText>
-                        </View>
+                        <>
+                          <View style={styles.eventInfo}>
+                            <Icon
+                              name="link"
+                              fillColor="white"
+                              strokeColor={Colors.deepBlue}
+                              strokeWidth={2}
+                            />
+                            <AppText>{event.link}</AppText>
+                          </View>
+                        </>
                       )}
+                      {EventCategory.SPORTING_ACTIVITY &&
+                        sportingActivityProps &&
+                        sportingActivityProps.maxParticipants && (
+                          <View style={styles.eventInfo}>
+                            <Icon
+                              name="user"
+                              fillColor="white"
+                              strokeColor={Colors.deepBlue}
+                              strokeWidth={2}
+                            />
+                            <AppText>
+                              {sportingActivityProps.maxParticipants}
+                            </AppText>
+                          </View>
+                        )}
                     </View>
 
                     <View style={styles.descriptionContainer}>
@@ -203,7 +277,6 @@ export default function DisplayEvent({
                         />
                       </>
                     )}
-
                     {actionType === "applyToSportingActivity" && (
                       <>
                         <Pressable onPress={onClose}>
@@ -219,6 +292,44 @@ export default function DisplayEvent({
                           }}
                         />
                       </>
+                    )}
+                    {actionType === "validateSportingActivity" && (
+                      <View
+                        style={{ flexDirection: "column", gap: 8, flex: 1 }}
+                      >
+                        <View
+                          style={{
+                            flexDirection: "row",
+                            justifyContent: "space-between",
+                          }}
+                        >
+                          <AppButton
+                            type="primary"
+                            title="Refuser"
+                            iconName="close"
+                            buttonStyle={{ backgroundColor: Colors.red }}
+                            onPress={() => handleRefuse()}
+                            disabled={sportingActivityValidationLoading}
+                          />
+                          <AppButton
+                            type="primary"
+                            title="Valider"
+                            iconName="check"
+                            onPress={() => handleValidate()}
+                            disabled={sportingActivityValidationLoading}
+                          />
+                        </View>
+                        <View
+                          style={{
+                            flexDirection: "row",
+                            justifyContent: "center",
+                          }}
+                        >
+                          <Pressable onPress={onClose}>
+                            <AppText>Fermer</AppText>
+                          </Pressable>
+                        </View>
+                      </View>
                     )}
 
                     {actionType === "closeOnly" && (

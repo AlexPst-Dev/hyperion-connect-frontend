@@ -5,7 +5,7 @@ export enum EventCategory {
   HYPERLINK = "hyperlink_event",
   MEDICAL = "medical_event",
   COACHING = "coaching_event",
-  SPORTING_ACTIVITY = "sporting_activity",
+  SPORTING_ACTIVITY = "sporting_activity_event",
 }
 
 export interface Event {
@@ -105,27 +105,27 @@ export interface CreateSportingActivityEvent {
 
 export interface CreateEventWithHyperion extends CreateEvent {
   eventCategory: EventCategory.HYPERION;
-  hyperionDetails?: CreateHyperionEvent;
+  specificEvent?: CreateHyperionEvent;
 }
 
 export interface CreateEventWithHyperlink extends CreateEvent {
   eventCategory: EventCategory.HYPERLINK;
-  hyperlinkDetails?: CreateHyperlinkEvent;
+  specificEvent?: CreateHyperlinkEvent;
 }
 
 export interface CreateEventWithCoaching extends CreateEvent {
   eventCategory: EventCategory.COACHING;
-  coachingDetails?: CreateCoachingEvent;
+  specificEvent?: CreateCoachingEvent;
 }
 
 export interface CreateEventWithMedical extends CreateEvent {
   eventCategory: EventCategory.MEDICAL;
-  medicalDetails?: CreateMedicalEvent;
+  specificEvent?: CreateMedicalEvent;
 }
 
 export interface CreateEventWithSportingActivity extends CreateEvent {
   eventCategory: EventCategory.SPORTING_ACTIVITY;
-  sportingActivityDetails?: CreateSportingActivityEvent;
+  specificEvent?: CreateSportingActivityEvent;
 }
 
 export type CreateEventComplete =
@@ -224,27 +224,27 @@ export interface SportingActivityEventResponse {
 
 export interface EventWithHyperionResponse extends EventResponse {
   eventCategory: EventCategory.HYPERION;
-  hyperionDetails: HyperionEventResponse;
+  specificEvent: HyperionEventResponse;
 }
 
 export interface EventWithHyperlinkResponse extends EventResponse {
   eventCategory: EventCategory.HYPERLINK;
-  hyperlinkDetails: HyperlinkEventResponse;
+  specificEvent: HyperlinkEventResponse;
 }
 
 export interface EventWithCoachingResponse extends EventResponse {
   eventCategory: EventCategory.COACHING;
-  coachingDetails: CoachingEventResponse;
+  specificEvent: CoachingEventResponse;
 }
 
 export interface EventWithMedicalResponse extends EventResponse {
   eventCategory: EventCategory.MEDICAL;
-  medicalDetails: MedicalEventResponse;
+  specificEvent: MedicalEventResponse;
 }
 
 export interface EventWithSportingActivityResponse extends EventResponse {
   eventCategory: EventCategory.SPORTING_ACTIVITY;
-  sportingActivityDetails: SportingActivityEventResponse;
+  specificEvent: SportingActivityEventResponse;
 }
 
 export type EventCompleteResponse =
@@ -253,22 +253,6 @@ export type EventCompleteResponse =
   | EventWithCoachingResponse
   | EventWithMedicalResponse
   | EventWithSportingActivityResponse;
-
-export const mapEventResponse = (response: EventResponse): Event => ({
-  id: response.id,
-  eventCategory: response.eventCategory,
-  responsibleIds: response.responsibleIds,
-  personOngoingIds: response.personOngoingIds,
-  title: response.title,
-  location: response.location,
-  date: response.date ? new Date(response.date).toString() : null,
-  time: response.time,
-  description: response.description,
-  link: response.link,
-  isActive: response.isActive,
-  createdAt: new Date(response.createdAt).toString(),
-  updatedAt: new Date(response.updatedAt).toString(),
-});
 
 export const mapHyperionEventResponse = (
   response: HyperionEventResponse,

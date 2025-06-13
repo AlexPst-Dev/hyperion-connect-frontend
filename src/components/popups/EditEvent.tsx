@@ -6,6 +6,11 @@ import { User } from "@/src/models/user";
 import AppText from "../AppText";
 import { Colors } from "@/src/styles/styles";
 import {
+  CreateEventWithCoaching,
+  CreateEventWithHyperion,
+  CreateEventWithHyperlink,
+  CreateEventWithMedical,
+  CreateEventWithSportingActivity,
   Event,
   EventCategory,
   parseIds,
@@ -35,7 +40,7 @@ export default function EditEvent({
   existingEvent,
 }: Props) {
   const [addContactPopUpVisible, setAddContactPopUpVisible] = useState(false);
-  const [selectedUsers, setSelectedUser] = useState<User[] | []>([]);
+  const [selectedUsers, setSelectedUser] = useState<User[]>([]);
 
   // Form states
   const [eventTitle, setEventTitle] = useState(existingEvent?.title ?? "");
@@ -52,11 +57,18 @@ export default function EditEvent({
   const [eventDate, setEventDate] = useState(existingEvent?.date ?? "");
   const [eventTheme, setEventTheme] = useState(
     eventType === EventCategory.HYPERLINK &&
-      (existingEvent as any)?.hyperlinkDetails?.theme
-      ? (existingEvent as any).hyperlinkDetails.theme
+      (existingEvent as any)?.specificEvent?.theme
+      ? (existingEvent as any).specificEvent.theme
       : ""
   );
+  const [eventMaxParticipants, setEventMaxParticipants] = useState(
+    eventType === EventCategory.SPORTING_ACTIVITY &&
+      (existingEvent as any)?.specificEvent?.maxParticipants
+      ? (existingEvent as any).specificEvent.maxParticipants
+      : 0
+  );
 
+  // Fetch responsible users when the popup opens or event changes
   useEffect(() => {
     async function fetchResponsibleUsers() {
       if (!existingEvent?.responsibleIds || !token) {
@@ -75,24 +87,35 @@ export default function EditEvent({
         setSelectedUser([]);
       }
     }
-    fetchResponsibleUsers();
-  }, [existingEvent, token]);
+    if (visible && existingEvent) {
+      fetchResponsibleUsers();
+    }
+  }, [existingEvent, token, visible]);
 
+  // Reset form fields when event changes
   useEffect(() => {
     setEventTitle(existingEvent?.title ?? "");
     setEventLocation(existingEvent?.location ?? "");
     setEventTime(existingEvent?.time ? existingEvent.time.slice(0, 5) : "");
     setEventDate(existingEvent?.date ?? "");
+    setEventDescription(existingEvent?.description ?? "");
+    setEventLink(existingEvent?.link ?? "");
     setEventTheme(
       eventType === EventCategory.HYPERLINK &&
-        (existingEvent as any)?.hyperlinkDetails?.theme
-        ? (existingEvent as any).hyperlinkDetails.theme
+        (existingEvent as any)?.specificEvent?.theme
+        ? (existingEvent as any).specificEvent.theme
+        : ""
+    );
+    setEventTheme(
+      eventType === EventCategory.SPORTING_ACTIVITY &&
+        (existingEvent as any)?.specificEvent?.maxParticipants
+        ? (existingEvent as any).specificEvent.maxParticipants
         : ""
     );
   }, [existingEvent, eventType]);
 
-  const handleAddContactsSubmit = (selectedUsers: User[]) => {
-    setSelectedUser(selectedUsers);
+  const handleAddContactsSubmit = (users: User[]) => {
+    setSelectedUser(users);
     setAddContactPopUpVisible(false);
   };
 
@@ -103,8 +126,7 @@ export default function EditEvent({
   const formattedTime = eventTime.length === 5 ? `${eventTime}:00` : eventTime;
 
   const handleSubmit = async () => {
-    if (!existingEvent) return;
-    const updateData: UpdateEvent & { hyperlinkDetails?: { theme: string } } = {
+    const baseData = {
       title: eventTitle,
       description: eventDescription,
       link: eventLink,
@@ -114,17 +136,43 @@ export default function EditEvent({
       ...(responsibleIds && { responsibleIds }),
     };
 
-    // Add theme if it's a hyperlink event
-    if (eventType === EventCategory.HYPERLINK) {
-      updateData.theme = eventTheme;
-    }
-
     try {
-      await eventService.updateEvent(existingEvent.id, updateData, token);
-      if (onSubmit) onSubmit([existingEvent]);
-      onClose();
+      if (existingEvent) {
+        // UPDATE
+        const updateData: UpdateEvent & {
+          theme?: string;
+          maxParticipants?: string;
+        } = {
+          ...baseData,
+        };
+        if (eventType === EventCategory.HYPERLINK) {
+          updateData.theme = eventTheme;
+        }
+        if (eventType === EventCategory.SPORTING_ACTIVITY) {
+          updateData.maxParticipants = eventMaxParticipants;
+        }
+        await eventService.updateEvent(existingEvent.id, updateData, token);
+        if (onSubmit) onSubmit([existingEvent]);
+        onClose();
+      } else {
+        // CREATE
+        let createData: any = {
+          eventCategory: eventType,
+          ...baseData,
+        };
+        if (eventType === EventCategory.HYPERLINK) {
+          createData.theme = eventTheme;
+        }
+        if (eventType === EventCategory.SPORTING_ACTIVITY) {
+          createData.maxParticipants = Number(eventMaxParticipants);
+        }
+
+        const res = await eventService.createEvent(createData, token);
+        if (onSubmit) onSubmit([res.specificEvent]);
+        onClose();
+      }
     } catch (error) {
-      console.error("Failed to update event", error);
+      console.error("Failed to submit event", error);
     }
   };
 
@@ -190,7 +238,9 @@ export default function EditEvent({
                     value={eventDescription}
                     onChangeText={setEventDescription}
                   />
-                  {eventType === EventCategory.HYPERION && (
+                  {/* Allow adding contacts for both HYPERION and HYPERLINK */}
+                  {(eventType === EventCategory.HYPERION ||
+                    eventType === EventCategory.HYPERLINK) && (
                     <Pressable
                       onPress={() =>
                         setAddContactPopUpVisible(!addContactPopUpVisible)
@@ -226,6 +276,15 @@ export default function EditEvent({
                       onChangeText={setEventTheme}
                     />
                   )}
+                  {eventType === EventCategory.SPORTING_ACTIVITY && (
+                    <Input
+                      type="text"
+                      label="Nombre maximum de participants"
+                      placeholder="10"
+                      value={eventMaxParticipants}
+                      onChangeText={setEventMaxParticipants}
+                    />
+                  )}
                 </View>
               }
             />
@@ -236,7 +295,7 @@ export default function EditEvent({
         <AddContacts
           visible={addContactPopUpVisible}
           token={token}
-          onClose={() => setAddContactPopUpVisible(!addContactPopUpVisible)}
+          onClose={() => setAddContactPopUpVisible(false)}
           onSubmit={handleAddContactsSubmit}
           initialSelectedUserIds={selectedUsers.map((u) => u.id)}
         />
