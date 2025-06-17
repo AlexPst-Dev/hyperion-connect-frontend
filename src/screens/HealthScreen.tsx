@@ -7,6 +7,7 @@ import Event from "../components/Event";
 import { ProfileCategory, User } from "../models/user";
 import Icon from "../components/Icon";
 import ItemUser from "../components/ItemUser";
+import { EventCategory } from "../models/event";
 
 export default function HealthScreen() {
   const medicUser: User = {
@@ -25,7 +26,7 @@ export default function HealthScreen() {
     <View style={{ flexDirection: "column", gap: 24 }}>
       <AppText>Préparez-vous pour vos prochains rendez-vous médicaux.</AppText>
       <Event
-        type="medical"
+        type={EventCategory.MEDICAL}
         title="Analyse sanguine"
         personsInvolved={medicUser}
         location="Centre d'analyse de Vannes"
@@ -33,7 +34,7 @@ export default function HealthScreen() {
         hour="14h"
       />
       <Event
-        type="medical"
+        type={EventCategory.MEDICAL}
         title="Analyse sanguine"
         personsInvolved={medicUser}
         location="Centre d'analyse de Vannes"
@@ -44,7 +45,7 @@ export default function HealthScreen() {
         Consultez vos rendez-vous précédents pour suivre votre historique.
       </AppText>
       <Event
-        type="medical"
+        type={EventCategory.MEDICAL}
         title="Analyse sanguine"
         personsInvolved={medicUser}
         location="Centre d'analyse de Vannes"
@@ -52,7 +53,7 @@ export default function HealthScreen() {
         hour="14h"
       />
       <Event
-        type="medical"
+        type={EventCategory.MEDICAL}
         title="Analyse sanguine"
         personsInvolved={medicUser}
         location="Centre d'analyse de Vannes"
@@ -140,23 +141,44 @@ export default function HealthScreen() {
       </AppText>
       <View style={{ flexDirection: "column", gap: 16 }}>
         <ItemUser
-          firstName="Sophie"
-          lastName="Lemoine"
-          job="Médecin du sport"
+          user={{
+            firstName: "Sophie",
+            lastName: "Lemoine",
+            email: "mail@mail.com",
+            profileCategory: ProfileCategory.MEDIC,
+            id: 1,
+            isActive: true,
+            createdAt: new Date().toString(),
+            updatedAt: new Date().toString(),
+          }}
           iconName="send"
           isCompany={false}
         />
         <ItemUser
-          firstName="Sophie"
-          lastName="Lemoine"
-          job="Médecin du sport"
+          user={{
+            firstName: "Sophie",
+            lastName: "Lemoine",
+            email: "mail@mail.com",
+            profileCategory: ProfileCategory.MEDIC,
+            id: 2,
+            isActive: true,
+            createdAt: new Date().toString(),
+            updatedAt: new Date().toString(),
+          }}
           iconName="send"
           isCompany={false}
         />
         <ItemUser
-          firstName="Sophie"
-          lastName="Lemoine"
-          job="Médecin du sport"
+          user={{
+            firstName: "Sophie",
+            lastName: "Lemoine",
+            email: "mail@mail.com",
+            profileCategory: ProfileCategory.MEDIC,
+            id: 3,
+            isActive: true,
+            createdAt: new Date().toString(),
+            updatedAt: new Date().toString(),
+          }}
           iconName="send"
           isCompany={false}
         />

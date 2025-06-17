@@ -17,12 +17,12 @@ import { useAuth } from "../hooks/useAuth";
 import AppButton from "../components/AppButton";
 import PopUp from "../components/PopUp";
 import Input from "../components/Input";
-import DisplayEvent from "../components/popups/DisplayEvent";
 import ItemUser from "../components/ItemUser";
-import { NavigationProp, useNavigation } from "@react-navigation/native";
+import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../navigation/types";
 import { LoggedUser } from "../models/auth";
+import { EventCategory } from "../models/event";
 
 export default function CommunityScreen() {
   type NavigationProp = NativeStackNavigationProp<
@@ -152,7 +152,7 @@ export default function CommunityScreen() {
               <AppText style={GlobalStyles.h3}>PROCHAINS EVENEMENTS</AppText>
               <Event
                 title="Evénement Hyperion Vannes"
-                type="hyperion"
+                type={EventCategory.HYPERION}
                 personsInvolved={tempAdminUser}
                 location="Parc de Vannes"
                 date={new Date("2025-10-10")}
@@ -160,7 +160,7 @@ export default function CommunityScreen() {
               />
               <Event
                 title="Evénement Hyperion Vannes"
-                type="hyperion"
+                type={EventCategory.HYPERION}
                 personsInvolved={tempAdminUser}
                 location="Parc de Vannes"
                 date={new Date("2025-10-10")}
@@ -171,7 +171,7 @@ export default function CommunityScreen() {
               <AppText style={GlobalStyles.h3}>ACTIVITES PROPOSEES</AppText>
               <Event
                 title="Sortie running Vannes 10km"
-                type="sportingActivity"
+                type={EventCategory.SPORTING_ACTIVITY}
                 personsInvolved={tempAdminUser}
                 location="Parc de Vannes"
                 date={new Date("2025-10-10")}
@@ -318,8 +318,7 @@ export default function CommunityScreen() {
                   >
                     <ItemUser
                       key={user.id}
-                      firstName={user.firstName}
-                      lastName={user.lastName}
+                      user={user}
                       isCompany={false}
                       iconName="send"
                     />
@@ -346,10 +345,10 @@ export default function CommunityScreen() {
             onClose={displayAddContactPopUp}
           />
         )}
-        {eventDetailVisible && (
+        {/* {eventDetailVisible && (
           <DisplayEvent
             visible={!!eventDetailVisible}
-            userConnected={1}
+            userConnected={user}
             listOfUser={[eventDetailVisible.personsInvolved]}
             onClose={() => displayEventDetailPopup()}
             title={eventDetailVisible.title}
@@ -362,7 +361,7 @@ export default function CommunityScreen() {
             infoDescription={eventDetailVisible.infoDescription}
             createdBy={eventDetailVisible.personsInvolved.id}
           />
-        )}
+        )} */}
       </ScrollView>
     </KeyboardAvoidingView>
   );

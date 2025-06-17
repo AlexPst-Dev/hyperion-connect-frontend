@@ -17,8 +17,8 @@ export const exerciseService = {
     );
   },
 
-  async getAllExercises(token: string): Promise<Exercise[]> {
-    return apiClient.get<Exercise[]>("/exercises", token);
+  async getAllExercises(token: string): Promise<ExerciseWithDetails[]> {
+    return apiClient.get<ExerciseWithDetails[]>("/exercises", token);
   },
 
   async getExerciseById(
@@ -38,7 +38,7 @@ export const exerciseService = {
     >,
     token: string
   ): Promise<{ message: string; exercice: Exercise }> {
-    return apiClient.put<{ message: string; exercice: Exercise }>(
+    return apiClient.patch<{ message: string; exercice: Exercise }>(
       `/exercises/${id}`,
       data,
       token

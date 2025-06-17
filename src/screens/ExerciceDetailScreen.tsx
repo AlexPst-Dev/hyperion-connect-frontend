@@ -1,5 +1,5 @@
 // src/screens/SessionDetailScreen.tsx
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -7,6 +7,9 @@ import {
   View,
   Image,
   Dimensions,
+  ActivityIndicator,
+  Modal,
+  Pressable,
 } from "react-native";
 import AppText from "@/src/components/AppText";
 import { RouteProp, useRoute } from "@react-navigation/native";
@@ -18,6 +21,13 @@ import AppButton from "../components/AppButton";
 import AddContacts from "../components/popups/AddContacts";
 import { useAuth } from "../hooks/useAuth";
 import { getImageSource } from "../utils/imgSrcHandler";
+import { exerciseService } from "../services/api/exercise-service";
+import Input from "../components/Input";
+import PopUp from "../components/PopUp";
+import { Category, CategoryType } from "../models/category";
+import { categoryService } from "../services/api/category-service";
+import { fileService } from "../services/api/file-service";
+import { UpdateExerciseRequest } from "../models/exercise";
 import { getMinutesFromDuration } from "../services/api/session-service";
 
 type ExerciceDetailRouteProp = RouteProp<RootStackParamList, "ExerciceDetail">;
@@ -27,13 +37,146 @@ export default function ExerciceDetailScreen() {
   const { exercise, muscleGroups } = route.params;
   const { user, token } = useAuth();
 
+  const [currentExercise, setCurrentExercise] = useState({
+    ...exercise,
+    filePicture: exercise.filePicture || null,
+  });
+  const [currentMuscleGroups, setCurrentMuscleGroups] = useState<Category[]>(
+    muscleGroups || []
+  );
+
   if (!user || !token) return null;
 
   const [addContactPopUpVisible, setAddContactPopUpVisible] = useState(false);
 
+  const [editExercisePopUpVisible, setEditExercisePopUpVisible] =
+    useState(false);
+  const [exerciseEditionLoading, setExerciseEditionLoading] = useState(false);
+  const [exerciseForm, setExerciseForm] = useState<{
+    label: string;
+    filePictureUrl: string;
+    muscleGroups: Category[];
+    duration: string;
+    description: string;
+    recommendations: string;
+  }>({
+    label: "",
+    filePictureUrl: "",
+    muscleGroups: [] as Category[],
+    duration: "",
+    description: "",
+    recommendations: "",
+  });
+
+  const [allMuscleGroups, setAllMuscleGroups] = useState<Category[]>([]);
+
   const handleAddContactPopUpVisible = () => {
     setAddContactPopUpVisible(!addContactPopUpVisible);
   };
+
+  const handleExerciseFormChange = (field: string, value: any) => {
+    setExerciseForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  // Fetch and update session after edit
+  const refreshExercise = async () => {
+    try {
+      const updated = await exerciseService.getExerciseById(exercise.id, token);
+      setCurrentExercise({
+        ...updated.exercice,
+        filePicture: updated.filePicture || updated.exercice.filePicture,
+        muscleGroups: muscleGroups || [],
+      });
+      const updatedMuscleGroups =
+        await exerciseService.getMuscleGroupsForExercise(exercise.id, token);
+      setCurrentMuscleGroups(updatedMuscleGroups.muscleGroups);
+    } catch (e) {
+      console.error("Failed to refresh session:", e);
+    }
+  };
+
+  const handleEditExerciseSubmit = async () => {
+    setExerciseEditionLoading(true);
+    if (token && exerciseForm) {
+      const newExerciseImageFile = await fileService.updateFile(
+        exercise.filePictureId,
+        {
+          url:
+            exerciseForm.filePictureUrl !== exercise.filePicture.url
+              ? exerciseForm.filePictureUrl
+              : exercise.filePicture.url,
+        },
+        token
+      );
+
+      const baseData: UpdateExerciseRequest = {
+        label:
+          exerciseForm.label !== exercise.label
+            ? exerciseForm.label
+            : exercise.label,
+        filePictureId: newExerciseImageFile.file.id,
+        recommendations:
+          exerciseForm.recommendations !== exercise.recommendations
+            ? exerciseForm.recommendations
+            : exercise.recommendations,
+        description:
+          exerciseForm.description !== exercise.description
+            ? exerciseForm.description
+            : exercise.description,
+        listMuscleGroupIds:
+          exerciseForm.muscleGroups.length > 0
+            ? exerciseForm.muscleGroups
+                .map((muscleGroup) => muscleGroup.id)
+                .join(";")
+            : exercise.listMuscleGroupIds,
+        durationTime:
+          exerciseForm.duration !==
+          getMinutesFromDuration(exercise.durationTime).toString()
+            ? `${Math.floor(Number(exerciseForm.duration) / 60)}:${
+                Number(exerciseForm.duration) % 60
+              }`
+            : exercise.durationTime,
+      };
+
+      try {
+        await exerciseService.updateExerciseById(exercise.id, baseData, token);
+        await refreshExercise();
+      } catch (error) {
+        console.log("Error while trying to updating exercise : ", error);
+      } finally {
+        setExerciseEditionLoading(false);
+        setEditExercisePopUpVisible(false);
+      }
+    }
+  };
+
+  useEffect(() => {
+    if (exercise) {
+      setExerciseForm({
+        label: exercise.label || "",
+        filePictureUrl: exercise.filePicture?.url || "",
+        muscleGroups: muscleGroups || [],
+        duration: getMinutesFromDuration(exercise.durationTime).toString(),
+        description: exercise.description || "",
+        recommendations: exercise.recommendations || "",
+      });
+    }
+    const fetchAllMuscleGroups = async () => {
+      await categoryService
+        .getCategoriesByType(CategoryType.MUSCLE_GROUP, token)
+        .then((res) => {
+          if (res) {
+            setAllMuscleGroups(res);
+          } else {
+            console.error("Expected an array of categories, got:", res);
+          }
+        })
+        .catch((error) => {
+          console.error("Error fetching muscle groups:", error);
+        });
+    };
+    fetchAllMuscleGroups();
+  }, [exercise, muscleGroups]);
 
   const screenWidth = Dimensions.get("window").width;
 
@@ -62,22 +205,24 @@ export default function ExerciceDetailScreen() {
         }
       >
         <View style={{ flexDirection: "column", gap: 24 }}>
-          <View
-            style={{
-              height: 192,
-              backgroundColor: Colors.grey,
-              borderRadius: 8,
-            }}
-          >
-            <Image
-              source={getImageSource(exercise.filePicture.url)}
-              style={{ borderRadius: 8 }}
-            />
-          </View>
+          {currentExercise.filePicture && (
+            <View
+              style={{
+                height: 192,
+                backgroundColor: Colors.grey,
+                borderRadius: 8,
+              }}
+            >
+              <Image
+                source={getImageSource(currentExercise.filePicture.url)}
+                style={{ borderRadius: 8 }}
+              />
+            </View>
+          )}
           <View
             style={{ flexDirection: "row", justifyContent: "space-between" }}
           >
-            <AppText style={GlobalStyles.h3}>{exercise.label}</AppText>
+            <AppText style={GlobalStyles.h3}>{currentExercise.label}</AppText>
             <View
               style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
             >
@@ -90,42 +235,162 @@ export default function ExerciceDetailScreen() {
                 height={12}
               />
               <AppText style={[GlobalStyles.span, { color: Colors.grey }]}>
-                {getMinutesFromDuration(exercise.durationTime)} min
+                {getMinutesFromDuration(currentExercise.durationTime)} min
               </AppText>
             </View>
           </View>
           <View style={{ flexDirection: "row", gap: 16 }}>
             {/* labels */}
-            {muscleGroups.map((muscleGroup) => (
+            {currentMuscleGroups.map((item) => (
               <Label
-                key={muscleGroup.id}
-                title={muscleGroup.label}
-                textColor={muscleGroup.textColor}
-                backgroundColor={muscleGroup.backgroundColor}
+                key={item.id}
+                title={item.label}
+                textColor={item.textColor}
+                backgroundColor={item.backgroundColor}
                 size="normal"
               />
             ))}
           </View>
           <View>
-            <AppText>{exercise.description}</AppText>
+            <AppText>{currentExercise.description}</AppText>
           </View>
           <View>
             {/* recommandations */}
             <AppText style={{ fontWeight: "bold" }}>
               Notes & Recommandations
             </AppText>
-            <AppText>{exercise.recommendations}</AppText>
+            <AppText>{currentExercise.recommendations}</AppText>
 
             {isEditable && (
               <View
                 style={{ flexDirection: "row", justifyContent: "flex-end" }}
               >
-                <AppButton title="Modifier" iconName="pencil" type="primary" />
+                <AppButton
+                  title="Modifier"
+                  iconName="pencil"
+                  type="primary"
+                  onPress={() => setEditExercisePopUpVisible(true)}
+                />
               </View>
             )}
+            <Modal
+              transparent
+              visible={editExercisePopUpVisible}
+              onRequestClose={() => setEditExercisePopUpVisible(false)}
+            >
+              <Pressable
+                onPress={() => setEditExercisePopUpVisible(false)}
+                style={{
+                  flex: 1,
+                  backgroundColor: "rgba(0,0,0,0.5)",
+                  justifyContent: "center",
+                  padding: 24,
+                }}
+              >
+                <Pressable
+                  onPress={() => {}}
+                  style={{ borderRadius: 16, overflow: "hidden" }}
+                >
+                  <PopUp
+                    onClose={() => setEditExercisePopUpVisible(false)}
+                    title="Editer l'exercice"
+                    paragraph="Vous pouvez modifier dans les champs ci-dessous l'exercice."
+                    closeText="Annuler"
+                    btnText="Modifier"
+                    iconName="pencil"
+                    btnType="primary"
+                    onSubmit={handleEditExerciseSubmit}
+                    inputs={
+                      exerciseEditionLoading ? (
+                        <ActivityIndicator />
+                      ) : (
+                        <>
+                          <Input
+                            type="text"
+                            placeholder={
+                              exerciseForm.label || "Nom de l'exercice"
+                            }
+                            label="Label"
+                            value={exerciseForm.label}
+                            onChangeText={(v) =>
+                              handleExerciseFormChange("label", v)
+                            }
+                          />
+                          <Input
+                            type="multiSelector"
+                            label="Groupes musculaires"
+                            placeholder="Jambes"
+                            value={exerciseForm.muscleGroups.map((mg) =>
+                              String(mg.id)
+                            )}
+                            onChangeText={(idsString: string) => {
+                              // Convert comma-separated string to array of IDs
+                              const ids = idsString.split(",").filter(Boolean);
+                              // Map IDs to Category objects from allMuscleGroups
+                              const selected = allMuscleGroups.filter((mg) =>
+                                ids.includes(String(mg.id))
+                              );
+                              setExerciseForm((prev) => ({
+                                ...prev,
+                                muscleGroups: selected,
+                              }));
+                            }}
+                            options={allMuscleGroups.map((mg) => ({
+                              label: mg.label,
+                              value: String(mg.id),
+                            }))}
+                          />
+                          <Input
+                            type="text"
+                            placeholder={"https://"}
+                            label="Lien image"
+                            value={exerciseForm.filePictureUrl}
+                            onChangeText={(v) =>
+                              handleExerciseFormChange("filePictureUrl", v)
+                            }
+                          />
+                          <Input
+                            type="text"
+                            placeholder={"45"}
+                            label="Durée en minutes"
+                            value={exerciseForm.duration}
+                            onChangeText={(v) =>
+                              handleExerciseFormChange("duration", v)
+                            }
+                          />
+                          <Input
+                            type="textarea"
+                            placeholder={
+                              exerciseForm.recommendations ||
+                              "Conseils, mises en garde..."
+                            }
+                            label="Recommandations"
+                            value={exerciseForm.recommendations}
+                            onChangeText={(v) =>
+                              handleExerciseFormChange("recommendations", v)
+                            }
+                          />
+                          <Input
+                            type="textarea"
+                            placeholder={
+                              "Description de l'exercice, comment le réaliser..."
+                            }
+                            label="Description"
+                            value={exerciseForm.description}
+                            onChangeText={(v) =>
+                              handleExerciseFormChange("description", v)
+                            }
+                          />
+                        </>
+                      )
+                    }
+                  />
+                </Pressable>
+              </Pressable>
+            </Modal>
           </View>
 
-          {isEditable && (
+          {/* {isEditable && (
             <View
               style={{
                 flexDirection: "row",
@@ -157,7 +422,7 @@ export default function ExerciceDetailScreen() {
                 onPress={handleAddContactPopUpVisible}
               />
             </View>
-          )}
+          )} */}
         </View>
 
         <AddContacts

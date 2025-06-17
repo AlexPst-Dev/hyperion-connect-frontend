@@ -15,6 +15,16 @@ export interface Exercise {
   updatedAt: string;
 }
 
+export interface UpdateExerciseRequest {
+  label?: string;
+  listMuscleGroupIds?: string;
+  durationTime?: string;
+  description?: string;
+  recommendations?: string;
+  filePictureId?: number;
+  isActive?: boolean;
+}
+
 export interface ExerciseWithDetails extends Exercise {
   filePicture: FileModel;
   muscleGroups: Category[];

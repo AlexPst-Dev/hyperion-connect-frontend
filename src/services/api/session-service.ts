@@ -259,6 +259,37 @@ export function getMinutesFromDuration(durationTime: string): number {
   return (hours || 0) * 60 + (minutes || 0);
 }
 
+export function addExercisesToSessionList(
+  currentList: string,
+  newIds: number[]
+): string {
+  // Split current list into array, filter out empty strings, and convert to numbers
+  const currentIds = currentList
+    .split(";")
+    .map((id) => id.trim())
+    .filter((id) => id !== "")
+    .map(Number);
+
+  // Create a Set to avoid duplicates
+  const idSet = new Set(currentIds);
+
+  // Add new IDs
+  newIds.forEach((id) => idSet.add(id));
+
+  // Join back to string with "; " separator and a trailing ";"
+  return Array.from(idSet).join("; ") + ";";
+}
+
+export function isDuplicateLinkedSession(
+  linkedSessions: LinkedSessions[],
+  sessionId: number,
+  sportsmanId: number
+): boolean {
+  return linkedSessions.some(
+    (ls) => ls.sessionId === sessionId && ls.sportsmanId === sportsmanId
+  );
+}
+
 export const {
   createSession,
   getAllSessions,

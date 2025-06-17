@@ -12,6 +12,7 @@ import Event from "../components/Event";
 import { ProfileCategory, User } from "../models/user";
 import { RouteProp, useRoute } from "@react-navigation/native";
 import { RootStackParamList } from "../navigation/types";
+import { EventCategory } from "../models/event";
 
 type PlanningHistoryRouteProp = RouteProp<
   RootStackParamList,
@@ -52,7 +53,7 @@ export default function PlanningHistoryScreen() {
           <AppText style={GlobalStyles.h3}>HISTORIQUE</AppText>
           <Event
             title="Evénement Hyperion Vannes"
-            type="hyperion"
+            type={EventCategory.HYPERION}
             personsInvolved={tempAdminUser}
             location="Parc de Vannes"
             date={new Date("2025-10-10")}
@@ -60,7 +61,7 @@ export default function PlanningHistoryScreen() {
           />
           <Event
             title="Evénement Hyperion Vannes"
-            type="hyperion"
+            type={EventCategory.HYPERION}
             personsInvolved={tempAdminUser}
             location="Parc de Vannes"
             date={new Date("2025-10-10")}

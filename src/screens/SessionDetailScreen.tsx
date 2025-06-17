@@ -21,29 +21,36 @@ import Label from "../components/Label";
 import AppButton from "../components/AppButton";
 import Input from "../components/Input";
 import PopUp from "../components/PopUp";
-import AddSessions from "../components/popups/AddSession";
 import * as DocumentPicker from "expo-document-picker";
 import AddContacts from "../components/popups/AddContacts";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useAuth } from "../hooks/useAuth";
 import {
+  addExercisesToSessionList,
   getMinutesFromDuration,
   SessionService,
 } from "../services/api/session-service";
 import { fileService } from "../services/api/file-service";
-import { FileCategory } from "../models/file";
 import { UpdateSessionRequest } from "../models/session";
 import { getImageSource } from "../utils/imgSrcHandler";
 import { exerciseService } from "../services/api/exercise-service";
 import { ExerciseWithDetails } from "../models/exercise";
-import { Category, CategoryType } from "../models/category";
+import { Category } from "../models/category";
+import AddExercises from "../components/popups/AddExercise";
+import { ProfileCategory, User } from "../models/user";
+import { UserService } from "../services/api/user-service";
 
 type SessionDetailRouteProp = RouteProp<RootStackParamList, "SessionDetail">;
 
 export default function SessionDetailScreen() {
   const route = useRoute<SessionDetailRouteProp>();
   const { session } = route.params;
+
+  const [currentSession, setCurrentSession] = useState({
+    ...session,
+    filePicture: session.filePicture || null,
+  });
 
   type ModalStep = "selector" | "catalog" | "custom" | "import";
 
@@ -69,6 +76,59 @@ export default function SessionDetailScreen() {
 
   const handleAddContactPopUpVisible = () => {
     setAddContactPopUpVisible(!addContactPopUpVisible);
+  };
+  const handleAddContactSubmit = async (selectedUsers: User[]) => {
+    if (!session || !selectedUsers || selectedUsers.length === 0 || !token)
+      return;
+
+    for (const selectedUser of selectedUsers) {
+      const completeUserProfile = await UserService.getUserById(
+        selectedUser.id,
+        token
+      );
+      if (!completeUserProfile || !completeUserProfile.profile) {
+        console.warn(
+          `User with ID ${selectedUser.id} does not have a complete profile.`
+        );
+        continue;
+      }
+      const linkedSessionsOfSelectedUser =
+        await SessionService.getSessionsBySportsman(
+          completeUserProfile.profile.id,
+          token
+        );
+
+      // Ensure correct types for comparison
+      const isDuplicate = linkedSessionsOfSelectedUser.some(
+        (ls) =>
+          Number(ls.sessionId) === Number(session.id) &&
+          Number(ls.sportsmanId) === Number(completeUserProfile.profile?.id)
+      );
+
+      if (
+        selectedUser.profileCategory !== ProfileCategory.SPORTSMAN ||
+        isDuplicate
+      ) {
+        console.warn(
+          `User ${selectedUser.firstName} ${selectedUser.lastName} is not a sportsman or already linked to this session.`
+        );
+        continue;
+      }
+
+      try {
+        await SessionService.addSessionToSportsman(
+          completeUserProfile.profile.id,
+          session.id,
+          token
+        );
+        console.log(
+          `Session ${session.label} added to sportsman ${selectedUser.firstName} ${selectedUser.lastName}.`
+        );
+      } catch (error) {
+        console.error("Error adding session to sportsman:", error);
+      }
+    }
+    setAddContactPopUpVisible(false);
   };
 
   type NavigationProp = NativeStackNavigationProp<
@@ -109,11 +169,25 @@ export default function SessionDetailScreen() {
     exercise: ExerciseWithDetails;
     muscleGroups: Category[];
   };
+
   const [muscleGroupsByExercise, setMuscleGroupsByExercise] = useState<
     ExerciseWithMuscleGroups[]
   >([]);
   const handleSessionFormChange = (field: string, value: any) => {
     setSessionForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  // Fetch and update session after edit
+  const refreshSession = async () => {
+    try {
+      const updated = await SessionService.getSessionById(session.id, token);
+      setCurrentSession({
+        ...updated.session,
+        filePicture: updated.filePicture || updated.session.filePicture,
+      });
+    } catch (e) {
+      console.error("Failed to refresh session:", e);
+    }
   };
 
   const handleEditSessionSubmit = async () => {
@@ -148,6 +222,7 @@ export default function SessionDetailScreen() {
 
       try {
         await SessionService.updateSessionById(session.id, baseData, token);
+        await refreshSession();
       } catch (error) {
         console.log("Error while trying to updating session : ", error);
       } finally {
@@ -187,17 +262,44 @@ export default function SessionDetailScreen() {
     }
   };
 
-  useEffect(() => {
-    if (session) {
-      setSessionForm({
-        label: session.label || "",
-        filePictureUrl: session.filePicture.url || "",
-        recommendations: session.recommendations || "",
-        contributions: session.contributions || "",
-      });
-      handleFetchExercises(session.id);
+  const handleAddNewExercisesToSession = async (
+    exercises: ExerciseWithDetails[]
+  ) => {
+    if (!token || !session) return;
+
+    try {
+      const exerciseIds = exercises.map((ex) => ex.id);
+      if (exerciseIds.length === 0) {
+        console.log("No exercises selected to add to the session.");
+        return;
+      }
+      const newExercises = await SessionService.updateSessionById(
+        session.id,
+        {
+          listExercises: addExercisesToSessionList(
+            session.listExercises,
+            exerciseIds
+          ),
+        },
+        token
+      );
+      await handleFetchExercises(session.id);
+    } catch (error) {
+      console.error("Error adding exercises to session:", error);
     }
-  }, [session]);
+  };
+
+  useEffect(() => {
+    if (currentSession) {
+      setSessionForm({
+        label: currentSession.label || "",
+        filePictureUrl: currentSession.filePicture.url || "",
+        recommendations: currentSession.recommendations || "",
+        contributions: currentSession.contributions || "",
+      });
+      handleFetchExercises(currentSession.id);
+    }
+  }, [currentSession]);
 
   return (
     <KeyboardAvoidingView
@@ -215,22 +317,24 @@ export default function SessionDetailScreen() {
         }
       >
         <View style={{ flexDirection: "column", gap: 24 }}>
-          <View
-            style={{
-              height: 192,
-              backgroundColor: Colors.grey,
-              borderRadius: 8,
-            }}
-          >
-            <Image
-              source={getImageSource(session.filePicture.url)}
-              style={{ borderRadius: 8 }}
-            />
-          </View>
+          {currentSession.filePicture && (
+            <View
+              style={{
+                height: 192,
+                backgroundColor: Colors.grey,
+                borderRadius: 8,
+              }}
+            >
+              <Image
+                source={getImageSource(currentSession.filePicture.url)}
+                style={{ borderRadius: 8 }}
+              />
+            </View>
+          )}
           <View
             style={{ flexDirection: "row", justifyContent: "space-between" }}
           >
-            <AppText style={GlobalStyles.h3}>{session.label}</AppText>
+            <AppText style={GlobalStyles.h3}>{currentSession.label}</AppText>
             <View
               style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
             >
@@ -243,7 +347,7 @@ export default function SessionDetailScreen() {
                 height={12}
               />
               <AppText style={[GlobalStyles.span, { color: Colors.grey }]}>
-                {getMinutesFromDuration(session.durationTime)} min
+                {getMinutesFromDuration(currentSession.durationTime)} min
               </AppText>
             </View>
           </View>
@@ -265,12 +369,12 @@ export default function SessionDetailScreen() {
           <View style={{ flexDirection: "column", gap: 8 }}>
             {/* recommandations */}
             <AppText style={{ fontWeight: "bold" }}>Recommandations</AppText>
-            <AppText>{session.recommendations}</AppText>
+            <AppText>{currentSession.recommendations}</AppText>
           </View>
           <View style={{ flexDirection: "column", gap: 8 }}>
             {/* interets */}
             <AppText style={{ fontWeight: "bold" }}>Apports & Interets</AppText>
-            <AppText>{session.contributions}</AppText>
+            <AppText>{currentSession.contributions}</AppText>
           </View>
           {isEditable && (
             <View style={{ flexDirection: "row", justifyContent: "flex-end" }}>
@@ -383,7 +487,7 @@ export default function SessionDetailScreen() {
                 height={12}
               />
               <AppText style={[GlobalStyles.span, { color: Colors.grey }]}>
-                {session.numberOfExercises} exercices
+                {currentSession.numberOfExercises} exercices
               </AppText>
             </View>
           </View>
@@ -558,18 +662,17 @@ export default function SessionDetailScreen() {
                 />
               )}
 
-              {/* {modalStep === "catalog" && (
-                <AddSessions
+              {modalStep === "catalog" && (
+                <AddExercises
                   visible={true}
-                  listOfSession={tempListOfExercises}
                   onClose={closeModal}
-                  onSubmit={(sessions) => {
-                    console.log("Sessions sélectionnées :", sessions);
+                  onSubmit={(exercises) => {
+                    handleAddNewExercisesToSession(exercises);
+                    console.log("Sessions sélectionnées :", exercises);
                     closeModal();
                   }}
-                  isExercises
                 />
-              )} */}
+              )}
 
               {modalStep === "custom" && (
                 <PopUp
@@ -642,7 +745,10 @@ export default function SessionDetailScreen() {
         <AddContacts
           visible={addContactPopUpVisible}
           onClose={handleAddContactPopUpVisible}
-          token=""
+          token={token}
+          onSubmit={(selectedUsers) => {
+            handleAddContactSubmit(selectedUsers);
+          }}
         />
       </ScrollView>
     </KeyboardAvoidingView>

@@ -7,7 +7,6 @@ import {
   View,
 } from "react-native";
 import GlobalStyles from "../styles/styles";
-import ItemUser from "../components/ItemUser";
 
 export default function PartnersListScreen() {
   const screenWidth = Dimensions.get("window").width;
@@ -29,9 +28,13 @@ export default function PartnersListScreen() {
           }
         >
           <View style={{ flexDirection: "column", gap: 16 }}>
-            <ItemUser
+            {/* <ItemUser
               isCompany
-              companyName="Nutrisport"
+              company={{
+                name: "Nutrisport",
+                id: 1,
+
+              }}
               iconName="link"
               profilePictureUrl="users/companies/nutrisport-logo"
             />
@@ -46,7 +49,7 @@ export default function PartnersListScreen() {
               companyName="Nutrisport"
               iconName="link"
               profilePictureUrl="users/companies/nutrisport-logo"
-            />
+            /> */}
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
