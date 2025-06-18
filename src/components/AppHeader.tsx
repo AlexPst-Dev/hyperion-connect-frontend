@@ -23,6 +23,7 @@ import {
   updateNotification,
 } from "../services/api/notification-service";
 import { NotificationCategory, Notification } from "../models/notification";
+import { notify } from "./NotificationContainer";
 
 interface Props {
   profilePictureUrl?: string;
@@ -94,6 +95,8 @@ export default function AppHeader({
         );
         if (notifications && notifications.length > 0) {
           setNotification(notifications[notifications.length - 1]);
+          setNewsTitle(notifications[notifications.length - 1].title || "");
+          setNewsText(notifications[notifications.length - 1].text || "");
         }
       } catch (error) {
         console.error("Error fetching notifications:", error);
@@ -126,7 +129,12 @@ export default function AppHeader({
       setNewsTitle(title);
       setNewsText(text);
       setEditNewsVisible(false);
+      notify({ title: "PopUp d'accueil mise à jour avec succès", type: "success" });
     } catch (error) {
+      notify({
+        title: "Une erreur est survenue lors de la mise à jour",
+        type: "error",
+      });
       console.error("Error updating notification:", error);
     }
   };
@@ -203,14 +211,16 @@ export default function AppHeader({
                       <Input
                         type="text"
                         label="Titre"
-                        placeholder="ex : Message de l'équipe Hyperion"
+                        placeholder={
+                          newsTitle || "ex : Message de l'équipe Hyperion"
+                        }
                         value={newsTitle}
                         onChangeText={setNewsTitle}
                       />
                       <Input
-                        type="text"
+                        type="textarea"
                         label="Message"
-                        placeholder="Contenu du message"
+                        placeholder={newsText || "Contenu du message"}
                         value={newsText}
                         onChangeText={setNewsText}
                       />

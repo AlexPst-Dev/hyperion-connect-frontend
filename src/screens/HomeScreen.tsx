@@ -37,6 +37,7 @@ import {
 import { eventService } from "../services/api/event-service";
 import { UserService } from "../services/api/user-service";
 import DisplayEvent from "../components/popups/DisplayEvent";
+import { notify } from "../components/NotificationContainer";
 
 export default function HomeScreen() {
   const tempCoachUser: User = {
@@ -83,6 +84,7 @@ export default function HomeScreen() {
   const [newsTitle, setNewsTitle] = useState("");
   const [newsText, setNewsText] = useState("");
   const [notification, setNotification] = useState<Notification | null>(null);
+
   const [editNewsVisible, setEditNewsVisible] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -108,6 +110,8 @@ export default function HomeScreen() {
         );
         if (notifications && notifications.length > 0) {
           setNotification(notifications[notifications.length - 1]);
+          setNewsTitle(notifications[notifications.length - 1].title || "");
+          setNewsText(notifications[notifications.length - 1].text || "");
         }
       } catch (error) {
         console.error("Error fetching notifications:", error);
@@ -120,64 +124,67 @@ export default function HomeScreen() {
 
   useEffect(() => {
     if (!user || !token) return;
-    async function fetchUserEvents() {
-      if (!user) return;
+
+    async function fetchEventsAndUsers() {
       try {
+        if (!user) return;
         const { events } = await eventService.getEventsByUserId(
           user.id as number,
           token as string
         );
         setUserEvents(events);
 
-        // Find the event with the closest future date
+        // Find the closest event
         const now = new Date();
         const sorted = events
           .filter((e) => e.date && new Date(e.date) >= now)
           .sort(
             (a, b) => new Date(a.date!).getTime() - new Date(b.date!).getTime()
           );
-        setClosestEvent(sorted[0] || null);
+        const closest = sorted[0] || null;
+        setClosestEvent(closest);
+
+        // Fetch event users if closest event exists
+        if (closest && token) {
+          let idsToParse: string = "";
+          if (
+            closest.eventCategory === EventCategory.HYPERION ||
+            closest.eventCategory === EventCategory.HYPERLINK
+          ) {
+            idsToParse = closest.responsibleIds as string;
+          } else {
+            idsToParse = closest.personOngoingIds as string;
+          }
+          if (idsToParse) {
+            const ids = parseIds(idsToParse);
+            const users = await Promise.all(
+              ids.map((id) =>
+                UserService.getUserById(id, token).then((res) => res.user)
+              )
+            );
+            setEventUsers(users);
+          } else {
+            setEventUsers([]);
+          }
+        } else {
+          setEventUsers([]);
+        }
       } catch (error) {
-        console.error("Error fetching user events:", error);
+        console.error("Error fetching events or users:", error);
+        setEventUsers([]);
       }
     }
-    fetchUserEvents();
+
+    fetchEventsAndUsers();
   }, [user, token]);
 
-  useEffect(() => {
-    // Fetch users for the closest event
-    async function fetchEventUsers() {
-      let idsToParse: string = "";
-      if (
-        closestEvent &&
-        (closestEvent.eventCategory === EventCategory.HYPERION ||
-          closestEvent.eventCategory === EventCategory.HYPERLINK)
-      ) {
-        idsToParse = closestEvent.responsibleIds as string;
-      } else {
-        idsToParse = closestEvent?.personOngoingIds as string;
-      }
-      if (!closestEvent || idsToParse === "" || !token) {
-        setEventUsers([]);
-        return;
-      }
-      const ids = parseIds(idsToParse);
-      try {
-        const users = await Promise.all(
-          ids.map((id) =>
-            UserService.getUserById(id, token).then((res) => res.user)
-          )
-        );
-        setEventUsers(users);
-      } catch (error) {
-        console.error("Error fetching event users:", error);
-        setEventUsers([]);
-      }
-    }
-    fetchEventUsers();
-  }, [closestEvent, token]);
-
-  if (!user) return null;
+  if (!user) {
+    return (
+      <View style={GlobalStyles.pageStyle}>
+        <AppText style={GlobalStyles.h3}>Veuillez vous connecter</AppText>
+      </View>
+    );
+  }
 
   // Function to update the latest notification
   const handleUpdateNotification = async (title: string, text: string) => {
@@ -201,7 +208,12 @@ export default function HomeScreen() {
       setNewsTitle(title);
       setNewsText(text);
       setEditNewsVisible(false);
+      notify({ title: "Section mise à jour avec succès", type: "success" });
     } catch (error) {
+      notify({
+        title: "Une erreur est survenue lors de la modification",
+        type: "error",
+      });
       console.error("Error updating notification:", error);
     }
   };
@@ -782,14 +794,14 @@ export default function HomeScreen() {
                     <Input
                       type="text"
                       label="Titre"
-                      placeholder="ex : A la une"
+                      placeholder={newsTitle || "ex : A la une"}
                       value={newsTitle}
                       onChangeText={setNewsTitle}
                     />
                     <Input
-                      type="text"
+                      type="textarea"
                       label="Message"
-                      placeholder="Contenu du message"
+                      placeholder={newsText || "Contenu du message"}
                       value={newsText}
                       onChangeText={setNewsText}
                     />

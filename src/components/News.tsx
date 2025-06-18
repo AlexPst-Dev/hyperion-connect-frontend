@@ -3,9 +3,8 @@ import { View, StyleSheet, Pressable, ActivityIndicator } from "react-native";
 import GlobalStyles, { Colors } from "../styles/styles";
 import AppText from "./AppText";
 import Icon from "./Icon";
-import { getNotificationsByCategory } from "../services/api/notification-service";
 import { useAuth } from "../hooks/useAuth";
-import { NotificationCategory, Notification } from "../models/notification";
+import { ProfileCategory } from "../models/user";
 
 interface Props {
   onPress: () => void;
@@ -15,18 +14,22 @@ interface Props {
 }
 
 export default function News({ onPress, onClose, title, text }: Props) {
+  const { user } = useAuth();
+
   return (
     <Pressable style={styles.newsContainer} onPress={onPress}>
-      <Pressable style={styles.closeBtn} onPress={onClose}>
-        <Icon
-          name="close"
-          fillColor="transparent"
-          strokeColor={Colors.orange}
-          strokeWidth={2}
-          width={16}
-          height={16}
-        />
-      </Pressable>
+      {user?.profileCategory !== ProfileCategory.ADMIN && (
+        <Pressable style={styles.closeBtn} onPress={onClose}>
+          <Icon
+            name="close"
+            fillColor="transparent"
+            strokeColor={Colors.orange}
+            strokeWidth={2}
+            width={16}
+            height={16}
+          />
+        </Pressable>
+      )}
       <View style={styles.header}>
         <Icon
           fillColor="transparent"
