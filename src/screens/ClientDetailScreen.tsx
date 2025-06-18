@@ -72,6 +72,7 @@ import { useCompanyOffers } from "../hooks/useCompanyOffers";
 import { OfferCategory } from "../models/offer";
 import { handleCreateOffer } from "../utils/offer-utils";
 import { CompanyService } from "../services/api/company-service";
+import { notify } from "../components/NotificationContainer";
 
 type ClientDetailRouteProp = RouteProp<RootStackParamList, "ClientDetail">;
 
@@ -103,8 +104,6 @@ export default function ClientDetailScreen() {
   const [medicFiles, setMedicFiles] = useState<File[]>([]);
 
   const [objectives, setObjectives] = useState<ObjectiveModel[]>([]);
-  const [currentObjective, setCurrentObjective] =
-    useState<ObjectiveModel | null>(null);
 
   const [activeSessions, setActiveSessions] = useState<SessionWithFile[]>([]);
 
@@ -205,9 +204,10 @@ export default function ClientDetailScreen() {
             ]);
           if (!isMounted) return;
           setObjectives(objectives);
-          const activeObjective =
-            objectives.find((o) => o.isActive) || objectives[0] || null;
-          setCurrentObjective(activeObjective);
+
+          setSportsmanNotes(
+            getAllNotes((client.profile as SportsmanProfile)?.listMedicNotes)
+          );
 
           const sessionsWithFiles: SessionWithFile[] = await Promise.all(
             allSessions.map(async (session) => ({
@@ -425,6 +425,7 @@ export default function ClientDetailScreen() {
 
   const notesString = (client.profile as SportsmanProfile)?.listMedicNotes;
   const allNotes = getAllNotes(notesString);
+  const [sportsmanNotes, setSportsmanNotes] = useState(allNotes);
 
   const handleAddNote = async () => {
     if (!newNoteContent.trim()) return;
@@ -460,11 +461,15 @@ export default function ClientDetailScreen() {
         { listMedicNotes: updatedNotes },
         token as string
       );
-      // Optionally, refresh client/profile data here
       setEditNotesPopUpVisible(false);
       setNewNoteContent("");
-      // Refresh the notes
+      setSportsmanNotes(getAllNotes(updatedNotes));
+      notify({ title: "Note ajoutée avec succès", type: "success" });
     } catch (e) {
+      notify({
+        title: "Une erreur est survenue lors de l'ajout d'une note",
+        type: "error",
+      });
       console.error("Erreur lors de l'ajout de la note :", e);
     }
   };
@@ -494,6 +499,7 @@ export default function ClientDetailScreen() {
           token
         );
         createdObjective = objectiveRes.objective;
+        setObjectives((prev) => [...prev, createdObjective as ObjectiveModel]);
       }
 
       if (
@@ -540,9 +546,16 @@ export default function ClientDetailScreen() {
         }
       }
       setAddObjectivePopUpVisible(false);
-      // Optionally refresh objectives/billings here
+      notify({
+        title: "Objectif créé avec succès",
+        type: "success",
+      });
     } catch (e) {
-      // Optionally show an error message
+      notify({
+        title: "L'objectif n'a pas pu être créé",
+        type: "error",
+      });
+      console.error("Erreur lors de la création de l'objectif :", e);
     } finally {
       setObjectiveLoading(false);
     }
@@ -820,8 +833,8 @@ export default function ClientDetailScreen() {
         <View style={{ flexDirection: "column", gap: 16 }}>
           <AppText style={GlobalStyles.h2}>NOTES</AppText>
           <View>
-            {allNotes.length > 0 ? (
-              allNotes.map((note, idx) => (
+            {sportsmanNotes.length > 0 ? (
+              sportsmanNotes.map((note, idx) => (
                 <View key={idx} style={{ marginBottom: 12 }}>
                   <AppText style={{ fontWeight: "bold" }}>
                     {note.header}
@@ -1118,13 +1131,37 @@ export default function ClientDetailScreen() {
                 visible={addSessionPopUpVisible}
                 listOfSession={allSessions}
                 onClose={() => setAddSessionPopUpVisible(false)}
-                onSubmit={(selectedSessions) => {
-                  selectedSessions.map(async (s) => {
-                    await SessionService.addSessionToSportsman(
-                      client.id,
-                      s.session.id,
-                      token as string
-                    );
+                onSubmit={async (selectedSessions) => {
+                  await Promise.all(
+                    selectedSessions.map((s) =>
+                      SessionService.addSessionToSportsman(
+                        client.id,
+                        s.session.id,
+                        token as string
+                      )
+                    )
+                  );
+                  const newSessions = await Promise.all(
+                    selectedSessions.map((s) =>
+                      SessionService.getSessionById(
+                        s.session.id,
+                        token as string
+                      )
+                    )
+                  );
+                  setActiveSessions((prev) => [
+                    ...prev,
+                    ...newSessions.filter(
+                      (newSession) =>
+                        !prev.some(
+                          (s) => s.session.id === newSession.session.id
+                        )
+                    ),
+                  ]);
+                  setAddSessionPopUpVisible(false);
+                  notify({
+                    title: "Séances ajoutées avec succès",
+                    type: "success",
                   });
                 }}
                 exercises={allExercises}
@@ -1370,13 +1407,26 @@ export default function ClientDetailScreen() {
                                 }
                                 onBtnChangeStatePress={() => {
                                   if (token)
-                                    billingService.updateBilling(
-                                      billing.billingId,
-                                      {
-                                        paymentReceived: true,
-                                      },
-                                      token
-                                    );
+                                    try {
+                                      billingService.updateBilling(
+                                        billing.billingId,
+                                        {
+                                          paymentReceived: true,
+                                        },
+                                        token
+                                      );
+                                      notify({
+                                        title: "Facture marquée comme payée",
+                                        type: "success",
+                                      });
+                                    } catch (error) {
+                                      notify({
+                                        title:
+                                          "Erreur lors de la mise à jour de la facture",
+                                        type: "error",
+                                      });
+                                      console.log(error);
+                                    }
                                 }}
                               />
                             ))
@@ -1620,6 +1670,29 @@ export default function ClientDetailScreen() {
             client.id,
             token as string
           );
+          const [coachClientsList, setCoachClientsList] =
+            useState<User[]>(coachClients);
+
+          useEffect(() => {
+            setCoachClientsList(coachClients);
+          }, [coachClients]);
+
+          const addClientSportsmanToCoach = (selectedSportsman: User) => {
+            if (selectedSportsman) {
+              handleAddSportsmanToCoach(selectedSportsman, formData);
+              setCoachClientsList((prev) => [...prev, selectedSportsman]);
+              notify({
+                title: "Client ajouté avec succès",
+                type: "success",
+              });
+              setAddObjectivePopUpVisible(false);
+            } else {
+              notify({
+                title: "Aucun sportif sélectionné",
+                type: "error",
+              });
+            }
+          };
 
           return (
             <>
@@ -1705,8 +1778,8 @@ export default function ClientDetailScreen() {
                   <View style={{ flexDirection: "column", gap: 8 }}>
                     {loading ? (
                       <AppText>Chargement...</AppText>
-                    ) : coachClients.length > 0 ? (
-                      coachClients.map((user: User) => (
+                    ) : coachClientsList.length > 0 ? (
+                      coachClientsList.map((user: User) => (
                         <ItemUser key={user.id} user={user} isCompany={false} />
                       ))
                     ) : (
@@ -1769,11 +1842,9 @@ export default function ClientDetailScreen() {
                         iconName="check"
                         closeText="Annuler"
                         onSubmit={() => {
-                          if (selectedSportsman)
-                            handleAddSportsmanToCoach(
-                              selectedSportsman,
-                              formData
-                            );
+                          if (selectedSportsman) {
+                            addClientSportsmanToCoach(selectedSportsman);
+                          }
                         }}
                         paragraph="Renseignez les champs ci-dessous pour ajouter un objectif à un sportif"
                         specificBody={
@@ -2615,8 +2686,16 @@ export default function ClientDetailScreen() {
                       { isActive: false },
                       token!
                     );
+                    notify({
+                      title: "Utilisateur archivé",
+                      type: "information",
+                    });
                     setArchiveUserPopupVisible(false);
                   } catch (error) {
+                    notify({
+                      title: "Impossible d'archiver l'utilisateur",
+                      type: "error",
+                    });
                     console.error("Erreur lors de l'archivage :", error);
                   }
                 }}
