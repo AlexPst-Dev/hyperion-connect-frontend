@@ -24,7 +24,6 @@ interface Props {
 export default function AddExercises({ visible, onClose, onSubmit }: Props) {
   const [selectedExerciseIds, setSelectedExerciseIds] = useState<number[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
 
   const { token } = useAuth();
   if (!token) return;
