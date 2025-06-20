@@ -1,5 +1,5 @@
 // src/screens/SessionDetailScreen.tsx
-import React, { JSX, use, useEffect, useState } from "react";
+import React, { JSX, useEffect, useState } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -74,7 +74,6 @@ import { OfferCategory } from "../models/offer";
 import { handleCreateOffer } from "../utils/offer-utils";
 import { CompanyService } from "../services/api/company-service";
 import { notify } from "../components/NotificationContainer";
-import { Subscription } from "../models/subscription";
 
 type ClientDetailRouteProp = RouteProp<RootStackParamList, "ClientDetail">;
 
