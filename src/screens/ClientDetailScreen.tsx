@@ -1729,7 +1729,7 @@ export default function ClientDetailScreen() {
                   {client.description || "Aucune description renseignée."}
                 </AppText>
                 <View style={{ flexDirection: "column", gap: 16 }}>
-                  <AppText style={GlobalStyles.h2}>SES PATIENTS</AppText>
+                  <AppText style={GlobalStyles.h2}>SES ATHLETES</AppText>
                   <View style={{ flexDirection: "column", gap: 8 }}>
                     {patientsLoading ? (
                       <AppText>Chargement...</AppText>
@@ -1895,7 +1895,7 @@ export default function ClientDetailScreen() {
                   {client.description || "Aucune description renseignée."}
                 </AppText>
                 <View style={{ flexDirection: "column", gap: 16 }}>
-                  <AppText style={GlobalStyles.h2}>SES CLIENTS</AppText>
+                  <AppText style={GlobalStyles.h2}>SES ATHLETES</AppText>
                   <View style={{ flexDirection: "column", gap: 8 }}>
                     {loading ? (
                       <AppText>Chargement...</AppText>
