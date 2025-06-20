@@ -287,8 +287,8 @@ export default function PlanningScreen() {
             hour="14h00"
           />
           <Event
-            title="Evénement Hyperion Vannes"
-            type={EventCategory.HYPERION}
+            title="Evénement Hyperlink Vannes"
+            type={EventCategory.HYPERLINK}
             personsInvolved={tempAdminUser}
             location="Parc de Vannes"
             date={new Date("2025-10-10")}
