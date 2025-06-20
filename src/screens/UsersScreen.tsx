@@ -1198,7 +1198,7 @@ export default function UsersScreen() {
 
                   {/* Créneaux horaires */}
                   <Input
-                    type="selector"
+                    type="multiSelector"
                     label="Créneaux horaires"
                     placeholder="Sélectionnez un créneau"
                     options={[
@@ -1208,8 +1208,40 @@ export default function UsersScreen() {
                       { label: "16:00 - 19:00", value: "16-19" },
                       { label: "19:00 - 22:00", value: "19-22" },
                     ]}
-                    value={formData.availableTime || ""}
-                    onChangeText={(v) => handleInputChange("availableTime", v)}
+                    value={
+                      // Convert binary string to array of selected slots
+                      (() => {
+                        const slots = [
+                          "7-10",
+                          "10-13",
+                          "13-16",
+                          "16-19",
+                          "19-22",
+                        ];
+                        if (
+                          !formData.availableTime ||
+                          formData.availableTime.length !== 5
+                        )
+                          return [];
+                        return slots.filter(
+                          (slot, idx) => formData.availableTime![idx] === "1"
+                        );
+                      })()
+                    }
+                    onChangeText={(selected: string) => {
+                      // Convert selected slots array to binary string
+                      const slots = [
+                        "7-10",
+                        "10-13",
+                        "13-16",
+                        "16-19",
+                        "19-22",
+                      ];
+                      const binary = slots
+                        .map((slot) => (selected.includes(slot) ? "1" : "0"))
+                        .join("");
+                      handleInputChange("availableTime", binary);
+                    }}
                   />
                   <AppText style={GlobalStyles.span}>
                     Sélectionnez le créneau horaire de disponibilité (3h)
