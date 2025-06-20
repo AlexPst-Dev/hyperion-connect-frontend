@@ -21,6 +21,7 @@ import {
 import { getImageSource } from "@/src/utils/imgSrcHandler";
 import EditEvent from "./EditEvent";
 import { eventService } from "@/src/services/api/event-service";
+import { notify } from "../NotificationContainer";
 
 interface Props {
   visible: boolean;
@@ -140,6 +141,17 @@ export default function DisplayEvent({
     ? getEventActionType(firstResponsibleId as number, event.eventCategory)
     : "closeOnly";
 
+  const handleDeleteEvent = async () => {
+    if (!event?.id || !token) return;
+    try {
+      await eventService.deleteEvent(event.id, token);
+      notify({ title: "Événement supprimé", type: "success" });
+      onClose();
+    } catch (err) {
+      notify({ title: "L'événement n'a pas pu être supprimé", type: "error" });
+      console.error("Failed to delete event", err);
+    }
+  };
   return (
     <>
       <Modal
@@ -252,17 +264,49 @@ export default function DisplayEvent({
 
                   <View style={styles.controllers}>
                     {actionType === "editable" && (
-                      <>
-                        <AppButton
-                          type="secondary"
-                          title="Modifier"
-                          iconName="pencil"
-                          onPress={() => setEditEventPopUpVisible(true)}
-                        />
-                        <Pressable onPress={onClose}>
-                          <AppText>OK</AppText>
-                        </Pressable>
-                      </>
+                      <View
+                        style={{ flexDirection: "column", gap: 32, flex: 1 }}
+                      >
+                        <View
+                          style={{
+                            flexDirection: "row",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                          }}
+                        >
+                          <AppButton
+                            type="secondary"
+                            title="Modifier"
+                            iconName="pencil"
+                            onPress={() => setEditEventPopUpVisible(true)}
+                          />
+                          <Pressable onPress={onClose}>
+                            <AppText>OK</AppText>
+                          </Pressable>
+                        </View>
+                        <View style={{ alignSelf: "flex-start" }}>
+                          <Pressable
+                            onPress={handleDeleteEvent}
+                            style={{
+                              flexDirection: "row",
+                              gap: 8,
+                              paddingBottom: 1,
+                              borderBottomWidth: 1,
+                              borderBottomColor: "#C61010",
+                            }}
+                          >
+                            <AppText style={{ color: "#C61010" }}>
+                              Supprimer
+                            </AppText>
+                            <Icon
+                              name="trash"
+                              strokeColor="#C61010"
+                              fillColor="transparent"
+                              strokeWidth={1}
+                            />
+                          </Pressable>
+                        </View>
+                      </View>
                     )}
 
                     {actionType === "addToCalendar" && (
