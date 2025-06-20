@@ -1,5 +1,5 @@
 // src/screens/SessionDetailScreen.tsx
-import React, { JSX, useEffect, useState } from "react";
+import React, { JSX, use, useEffect, useState } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -10,6 +10,7 @@ import {
   Pressable,
   Dimensions,
   ActivityIndicator,
+  Linking,
 } from "react-native";
 import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
 import { RootStackParamList } from "@/src/navigation/types";
@@ -73,6 +74,7 @@ import { OfferCategory } from "../models/offer";
 import { handleCreateOffer } from "../utils/offer-utils";
 import { CompanyService } from "../services/api/company-service";
 import { notify } from "../components/NotificationContainer";
+import { Subscription } from "../models/subscription";
 
 type ClientDetailRouteProp = RouteProp<RootStackParamList, "ClientDetail">;
 
@@ -165,6 +167,15 @@ export default function ClientDetailScreen() {
   >([]);
 
   const [archiveUserPopupVisible, setArchiveUserPopupVisible] = useState(false);
+
+  const [
+    changeTrackingFileLinkPopupVisible,
+    setChangeTrackingFileLinkPopupVisible,
+  ] = useState(false);
+  const [trackingFileLink, setTrackingFileLink] = useState<string>("");
+
+  const [subscriptionFileOfSportsman, setSubscriptionFileOfSportsman] =
+    useState<File | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -259,6 +270,7 @@ export default function ClientDetailScreen() {
                   subscription.subscriptionFileId,
                   token
                 );
+                setSubscriptionFileOfSportsman(file);
                 if (isMounted) setSubscriptionFile(file);
               }
             } catch {
@@ -674,6 +686,46 @@ export default function ClientDetailScreen() {
       // Optionally show an error message
     } finally {
       setObjectiveLoading(false);
+    }
+  };
+
+  const handleChangeLinkTrackingFile = async () => {
+    if (
+      !trackingFileLink ||
+      !client.id ||
+      !token ||
+      !(client.profile as SportsmanProfile).subscriptionId
+    ) {
+      return;
+    } else {
+      const subscription = await new SubscriptionService().getSubscriptionById(
+        (client.profile as SportsmanProfile)?.subscriptionId!,
+        token
+      );
+      const subsciptionFile = await fileService.getFileById(
+        subscription.subscriptionFileId,
+        token
+      );
+      try {
+        await fileService.updateFile(
+          subsciptionFile.id,
+          {
+            url: trackingFileLink,
+          },
+          token
+        );
+        setChangeTrackingFileLinkPopupVisible(false);
+        notify({
+          title: "Lien de suivi mis à jour avec succès",
+          type: "success",
+        });
+      } catch (e) {
+        notify({
+          title: "Erreur lors de la mise à jour du lien de suivi",
+          type: "error",
+        });
+        console.error("Erreur lors de la mise à jour du lien de suivi :", e);
+      }
     }
   };
 
@@ -1204,17 +1256,86 @@ export default function ClientDetailScreen() {
           <AppText style={GlobalStyles.h3}>FORMULAIRE DE SUIVI</AppText>
           <View>
             <AppText style={{ fontWeight: "bold" }}>
-              Mis à jour le DD/MM/YYYY
+              Mis à jour le{" "}
+              {subscriptionFileOfSportsman?.updatedAt
+                ? new Date(
+                    subscriptionFileOfSportsman.updatedAt
+                  ).toLocaleDateString()
+                : "N/A"}
             </AppText>
-            <AppText>
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin id
-              volutpat sem.
-            </AppText>
+            <View
+              style={{
+                flexDirection: "row",
+                gap: 8,
+                alignItems: "flex-start",
+                marginTop: 8,
+              }}
+            >
+              <Icon
+                name="link"
+                fillColor="transparent"
+                strokeColor={Colors.deepBlue}
+                width={24}
+                height={24}
+                onPress={() => {
+                  if (subscriptionFileOfSportsman?.url) {
+                    Linking.openURL(subscriptionFileOfSportsman.url);
+                  }
+                }}
+              />
+              <AppText>
+                {subscriptionFileOfSportsman?.url
+                  ? subscriptionFileOfSportsman.url
+                  : "Aucun lien de suivi renseigné."}
+              </AppText>
+            </View>
           </View>
           <View style={{ flexDirection: "row", justifyContent: "flex-end" }}>
-            <AppButton type="primary" title="Télécharger" iconName="download" />
+            <AppButton
+              type="primary"
+              title="Editer le lien"
+              iconName="link"
+              onPress={() => setChangeTrackingFileLinkPopupVisible(true)}
+            />
           </View>
         </View>
+        <Modal
+          visible={changeTrackingFileLinkPopupVisible}
+          transparent
+          onRequestClose={() => setChangeTrackingFileLinkPopupVisible(false)}
+        >
+          <Pressable
+            onPress={() => setChangeTrackingFileLinkPopupVisible(false)}
+            style={{
+              flex: 1,
+              backgroundColor: "rgba(0,0,0,0.5)",
+              justifyContent: "center",
+              padding: 24,
+            }}
+          >
+            <PopUp
+              onClose={() => setChangeTrackingFileLinkPopupVisible(false)}
+              title={"Editer le lien du formulaire de suivi"}
+              paragraph="Renseignez ici le lien du formulaire de suivi (google docx - lien public)"
+              btnType="primary"
+              btnText="Valider"
+              iconName="check"
+              closeText="Annuler"
+              inputs={
+                <>
+                  <Input
+                    type="text"
+                    label="Lien du formulaire de suivi"
+                    placeholder={"https://docs.google.com/forms/d/..."}
+                    value={trackingFileLink}
+                    onChangeText={setTrackingFileLink}
+                  />
+                </>
+              }
+              onSubmit={handleChangeLinkTrackingFile}
+            />
+          </Pressable>
+        </Modal>
         {graph && graph.isActive && (
           <View>
             <ProgressGraph title={graph.title} data={progressGraphData} />
