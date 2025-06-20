@@ -12,7 +12,7 @@ import {
   Pressable,
 } from "react-native";
 import AppText from "@/src/components/AppText";
-import { RouteProp, useRoute } from "@react-navigation/native";
+import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
 import { RootStackParamList } from "@/src/navigation/types";
 import GlobalStyles, { Colors } from "../styles/styles";
 import Icon from "../components/Icon";
@@ -29,6 +29,7 @@ import { categoryService } from "../services/api/category-service";
 import { fileService } from "../services/api/file-service";
 import { UpdateExerciseRequest } from "../models/exercise";
 import { getMinutesFromDuration } from "../services/api/session-service";
+import { FileCategory } from "../models/file";
 
 type ExerciceDetailRouteProp = RouteProp<RootStackParamList, "ExerciceDetail">;
 
@@ -36,6 +37,7 @@ export default function ExerciceDetailScreen() {
   const route = useRoute<ExerciceDetailRouteProp>();
   const { exercise, muscleGroups } = route.params;
   const { user, token } = useAuth();
+  const navigation = useNavigation();
 
   const [currentExercise, setCurrentExercise] = useState({
     ...exercise,
@@ -98,23 +100,34 @@ export default function ExerciceDetailScreen() {
   const handleEditExerciseSubmit = async () => {
     setExerciseEditionLoading(true);
     if (token && exerciseForm) {
-      const newExerciseImageFile = await fileService.updateFile(
-        exercise.filePictureId,
-        {
-          url:
-            exerciseForm.filePictureUrl !== exercise.filePicture.url
-              ? exerciseForm.filePictureUrl
-              : exercise.filePicture.url,
-        },
-        token
-      );
-
+      const newExerciseImageFile = exercise.filePictureId
+        ? await fileService.updateFile(
+            exercise.filePictureId,
+            {
+              url:
+                exerciseForm.filePictureUrl !== exercise.filePicture.url
+                  ? exerciseForm.filePictureUrl
+                  : exercise.filePicture.url,
+            },
+            token
+          )
+        : await fileService.createFile(
+            {
+              label: `${exerciseForm.label.toLowerCase().trim()}-image`,
+              url: exerciseForm.filePictureUrl,
+              fileCategory: FileCategory.IMAGE,
+            },
+            token
+          );
       const baseData: UpdateExerciseRequest = {
         label:
           exerciseForm.label !== exercise.label
             ? exerciseForm.label
             : exercise.label,
-        filePictureId: newExerciseImageFile.file.id,
+        filePictureId:
+          "file" in newExerciseImageFile
+            ? newExerciseImageFile.file.id
+            : newExerciseImageFile.id,
         recommendations:
           exerciseForm.recommendations !== exercise.recommendations
             ? exerciseForm.recommendations
@@ -146,6 +159,17 @@ export default function ExerciceDetailScreen() {
       } finally {
         setExerciseEditionLoading(false);
         setEditExercisePopUpVisible(false);
+      }
+    }
+  };
+
+  const handleDeleteExercise = async () => {
+    if (token) {
+      try {
+        await exerciseService.deleteExerciseById(exercise.id, token);
+        navigation.goBack();
+      } catch (error) {
+        console.error("Error deleting exercise:", error);
       }
     }
   };
@@ -205,7 +229,7 @@ export default function ExerciceDetailScreen() {
         }
       >
         <View style={{ flexDirection: "column", gap: 24 }}>
-          {currentExercise.filePicture && (
+          {currentExercise.filePicture && currentExercise.filePicture.url && (
             <View
               style={{
                 height: 192,
@@ -390,15 +414,16 @@ export default function ExerciceDetailScreen() {
             </Modal>
           </View>
 
-          {/* {isEditable && (
+          {isEditable && (
             <View
               style={{
                 flexDirection: "row",
                 justifyContent: "space-between",
-                alignItems: "center",
+                alignItems: "flex-start",
               }}
             >
-              <View
+              <Pressable
+                onPress={handleDeleteExercise}
                 style={{
                   flexDirection: "row",
                   gap: 8,
@@ -414,15 +439,15 @@ export default function ExerciceDetailScreen() {
                   fillColor="transparent"
                   strokeWidth={1}
                 />
-              </View>
-              <AppButton
+              </Pressable>
+              {/* <AppButton
                 type="secondary"
                 title="Envoyer"
                 iconName="send"
                 onPress={handleAddContactPopUpVisible}
-              />
+              /> */}
             </View>
-          )} */}
+          )}
         </View>
 
         <AddContacts

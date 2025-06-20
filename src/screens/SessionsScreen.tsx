@@ -39,6 +39,7 @@ import {
 } from "../models/session";
 import { fileService } from "../services/api/file-service";
 import { FileCategory } from "../models/file";
+import { notify } from "../components/NotificationContainer";
 
 export default function SessionsScreen() {
   type SessionPageRenderer = (user: LoggedUser) => JSX.Element;
@@ -1175,14 +1176,17 @@ export default function SessionsScreen() {
       const handleEditSessionSubmit = async () => {
         setSessionEditionLoading(true);
         if (token && sessionForm) {
-          const newSessionImageFile = await fileService.createFile(
-            {
-              label: `${sessionForm.label.toLowerCase().trim()}-image`,
-              url: sessionForm.filePictureUrl,
-              fileCategory: FileCategory.IMAGE,
-            },
-            token
-          );
+          const newSessionImageFile =
+            sessionForm.filePictureUrl !== ""
+              ? await fileService.createFile(
+                  {
+                    label: `${sessionForm.label.toLowerCase().trim()}-image`,
+                    url: sessionForm.filePictureUrl,
+                    fileCategory: FileCategory.IMAGE,
+                  },
+                  token
+                )
+              : { id: undefined };
 
           const baseData: CreateSessionRequest = {
             label: sessionForm.label,
@@ -1195,8 +1199,15 @@ export default function SessionsScreen() {
           };
 
           try {
-            await SessionService.createSession(baseData, token);
+            await SessionService.createSession(baseData, token).then((res) => {
+              setSessions((prev) => [...prev, res.session]);
+              notify({ title: "Séance créée avec succès", type: "success" });
+            });
           } catch (error) {
+            notify({
+              title: "Erreur lors de la création de la séance",
+              type: "error",
+            });
             console.log("Error while trying to create session : ", error);
           } finally {
             setSessionEditionLoading(false);
@@ -1230,29 +1241,32 @@ export default function SessionsScreen() {
                   {filteredSessions.length === 0 ? (
                     <AppText>Aucune séance trouvée.</AppText>
                   ) : (
-                    filteredSessions.map((session) => (
-                      <View style={{ marginBottom: 8 }} key={session.id}>
-                        <Session
-                          key={session.id}
-                          title={session.label}
-                          nbExercises={session.numberOfExercises}
-                          durationTime={getMinutesFromDuration(
-                            session.durationTime
-                          )}
-                          imageUrl={
-                            session.filePicture
-                              ? session.filePicture.url
-                              : undefined
-                          }
-                          labels={[]}
-                          onPress={() => {
-                            navigation.navigate("SessionDetail", {
-                              session,
-                            });
-                          }}
-                        />
-                      </View>
-                    ))
+                    filteredSessions.map((session) => {
+                      let isEmptySession: boolean =
+                        session.numberOfExercises === 1 &&
+                        getMinutesFromDuration(session.durationTime) === 1
+                          ? true
+                          : false;
+                      return (
+                        <View style={{ marginBottom: 8 }} key={session.id}>
+                          <Session
+                            key={session.id}
+                            title={session.label}
+                            imageUrl={
+                              session.filePicture
+                                ? session.filePicture.url
+                                : undefined
+                            }
+                            labels={[]}
+                            onPress={() => {
+                              navigation.navigate("SessionDetail", {
+                                session,
+                              });
+                            }}
+                          />
+                        </View>
+                      );
+                    })
                   )}
                 </ScrollView>
               )}

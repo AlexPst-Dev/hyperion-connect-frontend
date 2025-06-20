@@ -1,16 +1,20 @@
 import { apiClient } from "./client";
-import { Exercise, ExerciseWithDetails } from "../../models/exercise";
+import {
+  CreateExerciseRequest,
+  Exercise,
+  ExerciseWithDetails,
+} from "../../models/exercise";
 import { Category } from "@/src/models/category";
 
 export const exerciseService = {
   async createExercise(
     data: Omit<
-      Exercise,
+      CreateExerciseRequest,
       "id" | "createdAt" | "updatedAt" | "isActive" | "filePicture"
     >,
     token: string
-  ): Promise<{ message: string; exercice: Exercise }> {
-    return apiClient.post<{ message: string; exercice: Exercise }>(
+  ): Promise<{ message: string; exercice: ExerciseWithDetails }> {
+    return apiClient.post<{ message: string; exercice: ExerciseWithDetails }>(
       "/exercises",
       data,
       token

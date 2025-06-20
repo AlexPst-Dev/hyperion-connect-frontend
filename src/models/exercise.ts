@@ -25,6 +25,15 @@ export interface UpdateExerciseRequest {
   isActive?: boolean;
 }
 
+export interface CreateExerciseRequest {
+  label?: string;
+  listMuscleGroupIds?: string;
+  durationTime?: string;
+  description?: string;
+  recommendations?: string;
+  filePictureId?: number;
+}
+
 export interface ExerciseWithDetails extends Exercise {
   filePicture: FileModel;
   muscleGroups: Category[];

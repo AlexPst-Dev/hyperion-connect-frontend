@@ -5,7 +5,11 @@ export function getImageSource(source?: string): any {
   }
 
   if (source.startsWith("http") || source.startsWith("https")) {
-    return { uri: source };
+    try {
+      return { uri: source };
+    } catch {
+      return require("../assets/images/react-logo.png");
+    }
   }
 
   // Mapping of konwn local images

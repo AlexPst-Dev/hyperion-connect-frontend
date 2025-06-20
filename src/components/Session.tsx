@@ -8,7 +8,7 @@ import AppButton from "./AppButton";
 
 interface Props {
   title: string;
-  durationTime: number;
+  durationTime?: number;
   nbExercises?: number;
   imageUrl?: string;
   isExercice?: boolean;
@@ -78,46 +78,50 @@ export default function Session({
           <AppText style={[GlobalStyles.p, { fontWeight: "bold" }]}>
             {title}
           </AppText>
-          <View style={styles.sessionDetails}>
-            {nbExercises && (
-              <View style={styles.sessionAttribute}>
-                <Icon
-                  name="dumbell"
-                  fillColor="transparent"
-                  strokeColor={Colors.grey}
-                  strokeWidth={1}
-                  width={12}
-                  height={12}
-                />
-                <AppText
-                  style={[
-                    GlobalStyles.span,
-                    { color: Colors.grey, marginLeft: 2 },
-                  ]}
-                >
-                  {nbExercises} exercices
-                </AppText>
-              </View>
-            )}
-            <View style={styles.sessionAttribute}>
-              <Icon
-                name="timer"
-                fillColor="transparent"
-                strokeColor={Colors.grey}
-                strokeWidth={1}
-                width={12}
-                height={12}
-              />
-              <AppText
-                style={[
-                  GlobalStyles.span,
-                  { color: Colors.grey, marginLeft: 2 },
-                ]}
-              >
-                {durationTime}min
-              </AppText>
+          {(nbExercises || durationTime) && (
+            <View style={styles.sessionDetails}>
+              {nbExercises && (
+                <View style={styles.sessionAttribute}>
+                  <Icon
+                    name="dumbell"
+                    fillColor="transparent"
+                    strokeColor={Colors.grey}
+                    strokeWidth={1}
+                    width={12}
+                    height={12}
+                  />
+                  <AppText
+                    style={[
+                      GlobalStyles.span,
+                      { color: Colors.grey, marginLeft: 2 },
+                    ]}
+                  >
+                    {nbExercises} exercices
+                  </AppText>
+                </View>
+              )}
+              {durationTime && (
+                <View style={styles.sessionAttribute}>
+                  <Icon
+                    name="timer"
+                    fillColor="transparent"
+                    strokeColor={Colors.grey}
+                    strokeWidth={1}
+                    width={12}
+                    height={12}
+                  />
+                  <AppText
+                    style={[
+                      GlobalStyles.span,
+                      { color: Colors.grey, marginLeft: 2 },
+                    ]}
+                  >
+                    {durationTime}min
+                  </AppText>
+                </View>
+              )}
             </View>
-          </View>
+          )}
           {coachFirstName && coachLastName && location && date && (
             <View style={styles.coachDetails}>
               <AppText style={[GlobalStyles.span, { color: Colors.grey }]}>

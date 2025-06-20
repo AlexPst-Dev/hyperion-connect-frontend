@@ -35,11 +35,15 @@ import { fileService } from "../services/api/file-service";
 import { UpdateSessionRequest } from "../models/session";
 import { getImageSource } from "../utils/imgSrcHandler";
 import { exerciseService } from "../services/api/exercise-service";
-import { ExerciseWithDetails } from "../models/exercise";
-import { Category } from "../models/category";
+import { CreateExerciseRequest, ExerciseWithDetails } from "../models/exercise";
+import { Category, CategoryType } from "../models/category";
 import AddExercises from "../components/popups/AddExercise";
 import { ProfileCategory, User } from "../models/user";
 import { UserService } from "../services/api/user-service";
+import { FileCategory } from "../models/file";
+import { notify } from "../components/NotificationContainer";
+import { categoryService } from "../services/api/category-service";
+import { get } from "react-native/Libraries/TurboModule/TurboModuleRegistry";
 
 type SessionDetailRouteProp = RouteProp<RootStackParamList, "SessionDetail">;
 
@@ -161,9 +165,20 @@ export default function SessionDetailScreen() {
     contributions: "",
   });
 
+  const [exerciseditionLoading, setExerciseEditionLoading] = useState(false);
+  const [exerciseForm, setExerciseForm] = useState({
+    label: "",
+    muscleGroups: [] as Category[],
+    recommendations: "",
+    description: "",
+    filePictureUrl: "",
+    durationTime: "",
+  });
+
   const [exercisesOfSession, setExercisesOfSession] = useState<
     ExerciseWithDetails[]
   >([]);
+  const [allMuscleGroups, setAllMuscleGroups] = useState<Category[]>([]);
 
   type ExerciseWithMuscleGroups = {
     exercise: ExerciseWithDetails;
@@ -175,6 +190,9 @@ export default function SessionDetailScreen() {
   >([]);
   const handleSessionFormChange = (field: string, value: any) => {
     setSessionForm((prev) => ({ ...prev, [field]: value }));
+  };
+  const handleExerciseFormChange = (field: string, value: any) => {
+    setExerciseForm((prev) => ({ ...prev, [field]: value }));
   };
 
   // Fetch and update session after edit
@@ -193,23 +211,32 @@ export default function SessionDetailScreen() {
   const handleEditSessionSubmit = async () => {
     setSessionEditionLoading(true);
     if (token && sessionForm) {
-      const newSessionImageFile = await fileService.updateFile(
-        session.filePictureId,
-        {
-          url:
-            sessionForm.filePictureUrl !== session.filePicture.url
-              ? sessionForm.filePictureUrl
-              : session.filePicture.url,
-        },
-        token
-      );
+      const newSessionImageFile = session.filePictureId
+        ? await fileService.updateFile(
+            session.filePictureId,
+            {
+              url: sessionForm.filePictureUrl,
+            },
+            token
+          )
+        : await fileService.createFile(
+            {
+              label: `${sessionForm.label.toLowerCase().trim()}-image`,
+              url: sessionForm.filePictureUrl,
+              fileCategory: FileCategory.IMAGE,
+            },
+            token
+          );
 
       const baseData: UpdateSessionRequest = {
         label:
           sessionForm.label !== session.label
             ? sessionForm.label
             : session.label,
-        filePictureId: newSessionImageFile.file.id,
+        filePictureId:
+          "file" in newSessionImageFile
+            ? newSessionImageFile.file.id
+            : newSessionImageFile.id,
         recommendations:
           sessionForm.recommendations !== session.recommendations
             ? sessionForm.recommendations
@@ -228,6 +255,52 @@ export default function SessionDetailScreen() {
       } finally {
         setSessionEditionLoading(false);
         setEditSessionPopUpVisible(false);
+      }
+    }
+  };
+
+  const handleEditExerciseSubmit = async () => {
+    setExerciseEditionLoading(true);
+    if (token && exerciseForm) {
+      const newExerciseImageFile =
+        exerciseForm.filePictureUrl !== ""
+          ? await fileService.createFile(
+              {
+                label: `${exerciseForm.label.toLowerCase().trim()}-image`,
+                url: exerciseForm.filePictureUrl,
+                fileCategory: FileCategory.IMAGE,
+              },
+              token
+            )
+          : { id: undefined };
+
+      const baseData: CreateExerciseRequest = {
+        label: exerciseForm.label,
+        durationTime: `${Math.floor(Number(exerciseForm.durationTime) / 60)}:${
+          Number(exerciseForm.durationTime) % 60
+        }`,
+        filePictureId: newExerciseImageFile.id,
+        recommendations: exerciseForm.recommendations,
+        description: exerciseForm.description,
+        listMuscleGroupIds: exerciseForm.muscleGroups
+          .map((group) => group.id)
+          .join("; "),
+      };
+
+      try {
+        await exerciseService.createExercise(baseData, token).then((res) => {
+          setExercisesOfSession((prev) => [...prev, res.exercice]);
+          handleAddNewExercisesToSession([res.exercice]);
+          notify({ title: "Exercice créé avec succès", type: "success" });
+        });
+      } catch (error) {
+        notify({
+          title: "Erreur lors de la création de la'exercice",
+          type: "error",
+        });
+        console.log("Error while trying to create exercise : ", error);
+      } finally {
+        setExerciseEditionLoading(false);
       }
     }
   };
@@ -280,6 +353,7 @@ export default function SessionDetailScreen() {
             session.listExercises,
             exerciseIds
           ),
+          numberOfExercises: session.numberOfExercises + exerciseIds.length,
         },
         token
       );
@@ -289,15 +363,71 @@ export default function SessionDetailScreen() {
     }
   };
 
+  const fetchAllMuscleGroups = async () => {
+    try {
+      const resMuscleGroups = await categoryService.getCategoriesByType(
+        CategoryType.MUSCLE_GROUP,
+        token
+      );
+      setAllMuscleGroups(resMuscleGroups);
+    } catch (error) {
+      console.error("Error fetching muscle groups:", error);
+    }
+  };
+
+  const getMinutesOfAllExercises = () => {
+    return muscleGroupsByExercise.reduce((total, item) => {
+      const duration = getMinutesFromDuration(item.exercise.durationTime);
+      return total + duration;
+    }, 0);
+  };
+  const getAllDistinctMuscleGroups = () => {
+    const uniqueMuscleGroups: Category[] = [];
+    const seenMuscleGroupIds = new Set<number>();
+
+    muscleGroupsByExercise.forEach((item) => {
+      item.muscleGroups.forEach((mg) => {
+        if (!seenMuscleGroupIds.has(mg.id)) {
+          seenMuscleGroupIds.add(mg.id);
+          uniqueMuscleGroups.push(mg);
+        }
+      });
+    });
+    return uniqueMuscleGroups.map((mg) => (
+      <Label
+        key={mg.id}
+        title={mg.label}
+        textColor={mg.textColor}
+        backgroundColor={mg.backgroundColor}
+        size="normal"
+      />
+    ));
+  };
+
+  const handleDeleteSession = async () => {
+    if (token) {
+      try {
+        await SessionService.deleteSessionById(session.id, token);
+        if (session.filePictureId) {
+          await fileService.deleteFile(session.filePictureId, token);
+        }
+        navigation.goBack();
+      } catch (error) {
+        console.error("Error deleting session:", error);
+      }
+    }
+  };
+
   useEffect(() => {
     if (currentSession) {
       setSessionForm({
         label: currentSession.label || "",
-        filePictureUrl: currentSession.filePicture.url || "",
+        filePictureUrl: currentSession.filePicture?.url || "",
         recommendations: currentSession.recommendations || "",
         contributions: currentSession.contributions || "",
       });
       handleFetchExercises(currentSession.id);
+      fetchAllMuscleGroups();
     }
   }, [currentSession]);
 
@@ -317,7 +447,7 @@ export default function SessionDetailScreen() {
         }
       >
         <View style={{ flexDirection: "column", gap: 24 }}>
-          {currentSession.filePicture && (
+          {currentSession.filePicture && currentSession.filePicture.url ? (
             <View
               style={{
                 height: 192,
@@ -330,7 +460,7 @@ export default function SessionDetailScreen() {
                 style={{ borderRadius: 8 }}
               />
             </View>
-          )}
+          ) : null}
           <View
             style={{ flexDirection: "row", justifyContent: "space-between" }}
           >
@@ -347,24 +477,13 @@ export default function SessionDetailScreen() {
                 height={12}
               />
               <AppText style={[GlobalStyles.span, { color: Colors.grey }]}>
-                {getMinutesFromDuration(currentSession.durationTime)} min
+                {getMinutesOfAllExercises()} min
               </AppText>
             </View>
           </View>
           <View style={{ flexDirection: "row", gap: 16 }}>
             {/* labels */}
-            <Label
-              title="Jambes"
-              textColor="#1E3A8A"
-              backgroundColor="#D6EBFF"
-              size="normal"
-            />
-            <Label
-              title="Cardio"
-              textColor="#1E3A8A"
-              backgroundColor="#D6EBFF"
-              size="normal"
-            />
+            {getAllDistinctMuscleGroups()}
           </View>
           <View style={{ flexDirection: "column", gap: 8 }}>
             {/* recommandations */}
@@ -487,7 +606,7 @@ export default function SessionDetailScreen() {
                 height={12}
               />
               <AppText style={[GlobalStyles.span, { color: Colors.grey }]}>
-                {currentSession.numberOfExercises} exercices
+                {muscleGroupsByExercise.length} exercices
               </AppText>
             </View>
           </View>
@@ -543,7 +662,8 @@ export default function SessionDetailScreen() {
                 alignItems: "center",
               }}
             >
-              <View
+              <Pressable
+                onPress={handleDeleteSession}
                 style={{
                   flexDirection: "row",
                   gap: 8,
@@ -559,7 +679,7 @@ export default function SessionDetailScreen() {
                   fillColor="transparent"
                   strokeWidth={1}
                 />
-              </View>
+              </Pressable>
               <AppButton
                 type="secondary"
                 title="Envoyer"
@@ -680,58 +800,81 @@ export default function SessionDetailScreen() {
                   btnText="Editer"
                   iconName="pencil"
                   closeText="Annuler"
-                  onSubmit={closeModal}
+                  onSubmit={() => {
+                    handleEditExerciseSubmit();
+                    closeModal();
+                  }}
                   btnType="primary"
                   inputs={
                     <>
                       <Input
                         type="text"
-                        placeholder="Libellé"
                         label="Libellé de l'exercice"
+                        placeholder="Libellé"
+                        value={exerciseForm.label}
+                        onChangeText={(v) =>
+                          handleExerciseFormChange("label", v)
+                        }
                       />
                       <Input
                         type="multiSelector"
                         placeholder="Jambes"
                         label="Groupes musculaire"
-                        options={[
-                          {
-                            label: "Fessiers",
-                            value: "fessiers",
-                          },
-                          {
-                            label: "Jambes",
-                            value: "jambes",
-                          },
-                          {
-                            label: "Cardio",
-                            value: "cardio",
-                          },
-                        ]}
+                        value={exerciseForm.muscleGroups.map((mg) =>
+                          String(mg.id)
+                        )}
+                        onChangeText={(idsString: string) => {
+                          // Convert comma-separated string to array of IDs
+                          const ids = idsString.split(",").filter(Boolean);
+                          // Map IDs to Category objects from allMuscleGroups
+                          const selected = allMuscleGroups.filter((mg) =>
+                            ids.includes(String(mg.id))
+                          );
+                          setExerciseForm((prev) => ({
+                            ...prev,
+                            muscleGroups: selected,
+                          }));
+                        }}
+                        options={allMuscleGroups.map((mg) => ({
+                          label: mg.label,
+                          value: String(mg.id),
+                        }))}
                       />
                       <Input
                         type="text"
                         placeholder="https://"
-                        label="Lien image ou vidéo"
+                        label="Lien image"
+                        value={exerciseForm.filePictureUrl}
+                        onChangeText={(v) =>
+                          handleExerciseFormChange("filePictureUrl", v)
+                        }
                       />
                       <Input
                         type="number"
                         placeholder="XX minutes"
                         label="Durée"
+                        value={exerciseForm.durationTime}
+                        onChangeText={(v) =>
+                          handleExerciseFormChange("durationTime", v)
+                        }
                       />
                       <Input
-                        type="number"
-                        placeholder="XX minutes"
-                        label="Temps de repos"
-                      />
-                      <Input
-                        type="number"
-                        placeholder="4 x 10 répétitions"
-                        label="Nombre de répétitions"
-                      />
-                      <Input
-                        type="text"
+                        type="textarea"
                         label="Description"
                         placeholder="Remplissez une description ici..."
+                        value={exerciseForm.description}
+                        onChangeText={(v) =>
+                          handleExerciseFormChange("description", v)
+                        }
+                      />
+                      <Input
+                        type="textarea"
+                        label="Recommandations"
+                        placeholder="Conseils, recommandations..."
+                        value={exerciseForm.recommendations}
+                        onChangeText={(v) =>
+                          handleExerciseFormChange("recommendations", v)
+                        }
                       />
                     </>
                   }
