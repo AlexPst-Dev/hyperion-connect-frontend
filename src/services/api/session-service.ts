@@ -188,21 +188,21 @@ export class SessionService {
   }
 
   /**
-   * Add a session to the list of a sportsman
+   * Add a session to the list of an user
    */
-  static async addSessionToSportsman(
-    sportsmanId: number,
+  static async addSessionToUser(
+    userId: number,
     sessionId: number,
     token?: string
   ): Promise<LinkedSessions[]> {
-    if (!sportsmanId || isNaN(sportsmanId) || !sessionId || isNaN(sessionId)) {
+    if (!userId || isNaN(userId) || !sessionId || isNaN(sessionId)) {
       throw new Error("ID invalides");
     }
 
     try {
       const newLinkedSession = await apiClient.post<LinkedSessions[]>(
         `/linkedSessions`,
-        { sportsmanId, sessionId },
+        { userId, sessionId },
         token
       );
       return newLinkedSession;
@@ -300,7 +300,7 @@ export const {
   markSessionAsDone,
   markSessionAsUndone,
   activateSession,
-  addSessionToSportsman,
+  addSessionToUser,
   deactivateSession,
   deleteSessionById,
   softDeleteSessionById,

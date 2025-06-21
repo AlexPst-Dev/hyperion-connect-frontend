@@ -120,8 +120,8 @@ export default function SessionDetailScreen() {
       }
 
       try {
-        await SessionService.addSessionToSportsman(
-          completeUserProfile.profile.id,
+        await SessionService.addSessionToUser(
+          selectedUser.id,
           session.id,
           token
         );

@@ -1185,7 +1185,7 @@ export default function ClientDetailScreen() {
                 onSubmit={async (selectedSessions) => {
                   await Promise.all(
                     selectedSessions.map((s) =>
-                      SessionService.addSessionToSportsman(
+                      SessionService.addSessionToUser(
                         client.id,
                         s.session.id,
                         token as string
