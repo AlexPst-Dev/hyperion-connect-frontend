@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   Modal,
   Pressable,
+  Dimensions,
 } from "react-native";
 import { BlurView } from "expo-blur";
 import GlobalStyles, { Colors } from "../styles/styles";
@@ -21,7 +22,7 @@ import Session from "../components/Session";
 import Kpi from "../components/Kpi";
 import ItemClient from "../components/ItemClient";
 import Objective from "../components/Objective";
-import { ProfileCategory, User } from "../models/user";
+import { ProfileCategory, SportsmanProfile, User } from "../models/user";
 import {
   getNotificationsByCategory,
   updateNotification,
@@ -39,6 +40,14 @@ import { UserService } from "../services/api/user-service";
 import DisplayEvent from "../components/popups/DisplayEvent";
 import { notify } from "../components/NotificationContainer";
 import { KpiModel, useKpis } from "../hooks/useKpis";
+import { useCoachClients } from "../hooks/useCoachClients";
+import {
+  getMonthsBetween,
+  getOngoingMonth,
+  Objective as ObjectiveModel,
+} from "../models/objective";
+import { ObjectivesApiService } from "../services/api/objective-service";
+import { useMedicClients } from "../hooks/useMedicClients";
 
 export default function HomeScreen() {
   const tempCoachUser: User = {
@@ -103,6 +112,13 @@ export default function HomeScreen() {
     user?.profileCategory as ProfileCategory,
     token!
   );
+
+  const { coachClients } = useCoachClients(user?.id!, token as string);
+  const { medicClients } = useMedicClients(user?.id!, token as string);
+
+  const [lastClientsObjectives, setLastClientsObjectives] = useState<
+    { client: User; objectives: ObjectiveModel[] }[]
+  >([]);
 
   // Fetch the latest notification
   useEffect(() => {
@@ -182,6 +198,57 @@ export default function HomeScreen() {
 
     fetchEventsAndUsers();
   }, [user, token]);
+
+  useEffect(() => {
+    let isMounted = true;
+    async function fetchObjectives() {
+      if (!coachClients || coachClients.length === 0 || !token) {
+        if (isMounted) setLastClientsObjectives([]);
+        return;
+      }
+      const lastTwo = coachClients.slice(-2);
+      const data = await Promise.all(
+        lastTwo.map(async (client) => {
+          const objectives =
+            await ObjectivesApiService.getObjectivesBySportsman(
+              client.id,
+              token
+            );
+          return { client, objectives };
+        })
+      );
+      if (isMounted) setLastClientsObjectives(data);
+    }
+    fetchObjectives();
+    return () => {
+      isMounted = false;
+    };
+  }, [coachClients, token]);
+  useEffect(() => {
+    let isMounted = true;
+    async function fetchObjectives() {
+      if (!medicClients || medicClients.length === 0 || !token) {
+        if (isMounted) setLastClientsObjectives([]);
+        return;
+      }
+      const lastTwo = medicClients.slice(-2);
+      const data = await Promise.all(
+        lastTwo.map(async (client) => {
+          const objectives =
+            await ObjectivesApiService.getObjectivesBySportsman(
+              client.id,
+              token
+            );
+          return { client, objectives };
+        })
+      );
+      if (isMounted) setLastClientsObjectives(data);
+    }
+    fetchObjectives();
+    return () => {
+      isMounted = false;
+    };
+  }, [medicClients, token]);
 
   if (!user || !token) {
     return (
@@ -311,174 +378,282 @@ export default function HomeScreen() {
         </View>
       </View>
     ),
-    coach: (user) => (
-      <View style={{ flexDirection: "column", gap: 24 }}>
-        <View style={{ flexDirection: "column", gap: 16 }}>
-          <AppText>Votre résumé</AppText>
-          <View style={{ flexDirection: "row", gap: 8 }}>
-            <View style={{ flex: 1 }}>
-              <Kpi
-                title="Sportifs Coachés"
-                iconName="user"
-                fillIcon
-                value="4"
+    coach: (user) => {
+      const refreshClosestEvent = async () => {
+        if (!closestEvent || !token) return;
+        try {
+          const { event } = await eventService.getEventById(
+            closestEvent.id,
+            token
+          );
+          console.log(event);
+          setClosestEvent(event); // This will trigger a re-render and update DisplayEvent
+        } catch (error) {
+          console.error("Error refreshing event:", error);
+        }
+      };
+
+      return (
+        <View style={{ flexDirection: "column", gap: 24 }}>
+          <View style={{ flexDirection: "column", gap: 16 }}>
+            <AppText>Votre résumé</AppText>
+            <View style={{ flexDirection: "row", gap: 8 }}>
+              <View style={{ flex: 1 }}>
+                <Kpi
+                  title="Sportifs Coachés"
+                  iconName="user"
+                  fillIcon
+                  value="4"
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Kpi
+                  title="Séances réalisées"
+                  iconName="dumbell"
+                  fillIcon
+                  value="30"
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Kpi
+                  title="Motivaiton moyenne"
+                  iconName="star"
+                  fillIcon
+                  value="3.9"
+                />
+              </View>
+            </View>
+          </View>
+          <View style={{ flexDirection: "column", gap: 16 }}>
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <AppText style={GlobalStyles.h3}>VOS SPORTIFS</AppText>
+              <AppButton type="linkSmall" title="Voir plus" iconName="eye" />
+            </View>
+            <View style={{ flexDirection: "column", gap: 8 }}>
+              {coachClients.length === 0 ? (
+                <AppText>Aucun sportif suivi actuellement.</AppText>
+              ) : (
+                lastClientsObjectives.map(({ client, objectives }) => (
+                  <ItemClient
+                    key={client.id}
+                    user={client}
+                    objectives={
+                      objectives.length > 0 ? (
+                        <Objective
+                          duration={getMonthsBetween(
+                            objectives.slice(-1)[0].startDate,
+                            objectives.slice(-1)[0].endDate
+                          )}
+                          onGoingNumber={getOngoingMonth(
+                            objectives.slice(-1)[0].startDate,
+                            objectives.slice(-1)[0].endDate
+                          )}
+                          label={objectives.slice(-1)[0].label}
+                        />
+                      ) : (
+                        <AppText>Aucun objectif en cours</AppText>
+                      )
+                    }
+                  />
+                ))
+              )}
+            </View>
+          </View>
+          <View style={{ flexDirection: "column", gap: 16 }}>
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <AppText style={GlobalStyles.h3}>VOTRE PROCHAINE SÉANCE</AppText>
+              <AppButton
+                type="linkSmall"
+                title="Voir planning"
+                iconName="eye"
               />
             </View>
-            <View style={{ flex: 1 }}>
-              <Kpi
-                title="Séances réalisées"
-                iconName="dumbell"
-                fillIcon
-                value="30"
+            {closestEvent ? (
+              <>
+                <Event
+                  title={closestEvent.title || "Événement"}
+                  type={closestEvent.eventCategory as EventCategory}
+                  personsInvolved={eventUsers}
+                  location={closestEvent.location || ""}
+                  date={
+                    closestEvent.date ? new Date(closestEvent.date) : new Date()
+                  }
+                  hour={closestEvent.time || ""}
+                  isInPerson={true}
+                  infoDescription={closestEvent.description || ""}
+                  onPress={() => setEventPopupVisible(true)}
+                />
+                {eventPopupVisible && (
+                  <DisplayEvent
+                    visible={eventPopupVisible}
+                    event={closestEvent}
+                    hyperlinkProps={
+                      closestEvent.eventCategory === EventCategory.HYPERLINK
+                        ? closestEvent.specificEvent
+                        : undefined
+                    }
+                    userConnected={user}
+                    token={token as string}
+                    listOfUser={eventUsers}
+                    onClose={() => setEventPopupVisible(false)}
+                    onSubmit={refreshClosestEvent}
+                  />
+                )}
+              </>
+            ) : (
+              <AppText>Aucun événement à venir.</AppText>
+            )}
+          </View>
+        </View>
+      );
+    },
+    medic: (user) => {
+      const refreshClosestEvent = async () => {
+        if (!closestEvent || !token) return;
+        try {
+          const { event } = await eventService.getEventById(
+            closestEvent.id,
+            token
+          );
+          console.log(event);
+          setClosestEvent(event); // This will trigger a re-render and update DisplayEvent
+        } catch (error) {
+          console.error("Error refreshing event:", error);
+        }
+      };
+      return (
+        <View style={{ flexDirection: "column", gap: 24 }}>
+          <View style={{ flexDirection: "column", gap: 16 }}>
+            <AppText>Votre résumé</AppText>
+            <View style={{ flexDirection: "row", gap: 8 }}>
+              <View style={{ flex: 1 }}>
+                <Kpi
+                  title="Patients suivi"
+                  iconName="user"
+                  fillIcon
+                  value="4"
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Kpi title="Rdv réalisées" iconName="calendar" value="30" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Kpi
+                  title="Motivaiton moyenne"
+                  iconName="star"
+                  fillIcon
+                  value="3.9"
+                />
+              </View>
+            </View>
+          </View>
+          <View style={{ flexDirection: "column", gap: 16 }}>
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <AppText style={GlobalStyles.h3}>VOS SPORTIFS</AppText>
+              <AppButton type="linkSmall" title="Voir plus" iconName="eye" />
+            </View>
+            <View style={{ flexDirection: "column", gap: 8 }}>
+              {medicClients.length === 0 ? (
+                <AppText>Aucun sportif suivi actuellement.</AppText>
+              ) : (
+                lastClientsObjectives.map(({ client, objectives }) => (
+                  <ItemClient
+                    key={client.id}
+                    user={client}
+                    objectives={
+                      objectives.length > 0 ? (
+                        <Objective
+                          duration={getMonthsBetween(
+                            objectives.slice(-1)[0].startDate,
+                            objectives.slice(-1)[0].endDate
+                          )}
+                          onGoingNumber={getOngoingMonth(
+                            objectives.slice(-1)[0].startDate,
+                            objectives.slice(-1)[0].endDate
+                          )}
+                          label={objectives.slice(-1)[0].label}
+                        />
+                      ) : (
+                        <AppText>Aucun objectif en cours</AppText>
+                      )
+                    }
+                  />
+                ))
+              )}
+            </View>
+          </View>
+          <View style={{ flexDirection: "column", gap: 16 }}>
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <AppText style={GlobalStyles.h3}>VOTRE PROCHAIN RDV</AppText>
+              <AppButton
+                type="linkSmall"
+                title="Voir planning"
+                iconName="eye"
               />
             </View>
-            <View style={{ flex: 1 }}>
-              <Kpi
-                title="Motivaiton moyenne"
-                iconName="star"
-                fillIcon
-                value="3.9"
-              />
-            </View>
-          </View>
-        </View>
-        <View style={{ flexDirection: "column", gap: 16 }}>
-          <View
-            style={{
-              flexDirection: "row",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-          >
-            <AppText style={GlobalStyles.h3}>VOS CLIENTS</AppText>
-            <AppButton type="linkSmall" title="Voir plus" iconName="eye" />
-          </View>
-          <View style={{ flexDirection: "column", gap: 8 }}>
-            <ItemClient
-              user={tempSporstmanUser1}
-              objectives={
-                <Objective
-                  duration={10}
-                  onGoingNumber={4}
-                  label="Suivi par un coach de running pour un marathon"
+            {closestEvent ? (
+              <>
+                <Event
+                  title={closestEvent.title || "Événement"}
+                  type={closestEvent.eventCategory as EventCategory}
+                  personsInvolved={eventUsers}
+                  location={closestEvent.location || ""}
+                  date={
+                    closestEvent.date ? new Date(closestEvent.date) : new Date()
+                  }
+                  hour={closestEvent.time || ""}
+                  isInPerson={true}
+                  infoDescription={closestEvent.description || ""}
+                  onPress={() => setEventPopupVisible(true)}
                 />
-              }
-            />
-            <ItemClient
-              user={tempSporstmanUser2}
-              objectives={
-                <Objective
-                  duration={10}
-                  onGoingNumber={4}
-                  label="Suivi par un coach de running pour un marathon"
-                />
-              }
-            />
+                {eventPopupVisible && (
+                  <DisplayEvent
+                    visible={eventPopupVisible}
+                    event={closestEvent}
+                    hyperlinkProps={
+                      closestEvent.eventCategory === EventCategory.HYPERLINK
+                        ? closestEvent.specificEvent
+                        : undefined
+                    }
+                    userConnected={user}
+                    token={token as string}
+                    listOfUser={eventUsers}
+                    onClose={() => setEventPopupVisible(false)}
+                    onSubmit={refreshClosestEvent}
+                  />
+                )}
+              </>
+            ) : (
+              <AppText>Aucun événement à venir.</AppText>
+            )}
           </View>
         </View>
-        <View style={{ flexDirection: "column", gap: 16 }}>
-          <View
-            style={{
-              flexDirection: "row",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-          >
-            <AppText style={GlobalStyles.h3}>VOTRE PROCHAINE SÉANCE</AppText>
-            <AppButton type="linkSmall" title="Voir planning" iconName="eye" />
-          </View>
-          <Event
-            title="Séance de fractionné"
-            type={EventCategory.COACHING}
-            personsInvolved={tempSporstmanUser1}
-            location="Parc de Vannes"
-            date={new Date("2025-05-17")}
-            hour="14h00"
-            isInPerson
-            infoDescription="Lorem ipsum dolore sit amet"
-          />
-        </View>
-      </View>
-    ),
-    medic: (user) => (
-      <View style={{ flexDirection: "column", gap: 24 }}>
-        <View style={{ flexDirection: "column", gap: 16 }}>
-          <AppText>Votre résumé</AppText>
-          <View style={{ flexDirection: "row", gap: 8 }}>
-            <View style={{ flex: 1 }}>
-              <Kpi title="Patients suivi" iconName="user" fillIcon value="4" />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Kpi title="Rdv réalisées" iconName="calendar" value="30" />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Kpi
-                title="Motivaiton moyenne"
-                iconName="star"
-                fillIcon
-                value="3.9"
-              />
-            </View>
-          </View>
-        </View>
-        <View style={{ flexDirection: "column", gap: 16 }}>
-          <View
-            style={{
-              flexDirection: "row",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-          >
-            <AppText style={GlobalStyles.h3}>VOS PATIENTS</AppText>
-            <AppButton type="linkSmall" title="Voir plus" iconName="eye" />
-          </View>
-          <View style={{ flexDirection: "column", gap: 8 }}>
-            <ItemClient
-              user={tempSporstmanUser1}
-              objectives={
-                <Objective
-                  duration={10}
-                  onGoingNumber={4}
-                  label="Suivi par un coach de running pour un marathon"
-                />
-              }
-            />
-            <ItemClient
-              user={tempSporstmanUser2}
-              objectives={
-                <Objective
-                  duration={10}
-                  onGoingNumber={4}
-                  label="Suivi par un coach de running pour un marathon"
-                />
-              }
-            />
-          </View>
-        </View>
-        <View style={{ flexDirection: "column", gap: 16 }}>
-          <View
-            style={{
-              flexDirection: "row",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-          >
-            <AppText style={GlobalStyles.h3}>VOTRE PROCHAIN RDV</AppText>
-            <AppButton type="linkSmall" title="Voir planning" iconName="eye" />
-          </View>
-          <Event
-            title="Analyse sanguine"
-            type={EventCategory.MEDICAL}
-            personsInvolved={tempSporstmanUser2}
-            location="Centre d'analyse de Vannes"
-            date={new Date("2025-05-17")}
-            hour="14h00"
-            isInPerson
-            infoDescription="Lorem ipsum dolore sit amet"
-          />
-        </View>
-      </View>
-    ),
+      );
+    },
     free: (user) => (
       <View style={{ flexDirection: "column", gap: 24 }}>
         <View style={{ flexDirection: "column", gap: 16 }}>
@@ -755,6 +930,8 @@ export default function HomeScreen() {
 
   const RenderProfileComponents = HomePageByProfile[user.profileCategory];
 
+  const screenWidth = Dimensions.get("window").width;
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -764,6 +941,11 @@ export default function HomeScreen() {
       <ScrollView
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
+        style={
+          Platform.OS === "web"
+            ? { maxHeight: screenWidth + 180, paddingBottom: 32 }
+            : {}
+        }
       >
         {RenderProfileComponents ? RenderProfileComponents(user) : null}
         {user.profileCategory === "admin" && (

@@ -14,6 +14,11 @@ function getGradientColor(index: number, total: number) {
   const start = { r: 30, g: 58, b: 138 }; // #1E3A8A
   const end = { r: 37, g: 99, b: 235 }; // #2563EB
 
+  if (total <= 1) {
+    // Avoid division by zero, just return start color
+    return `rgb(${start.r}, ${start.g}, ${start.b})`;
+  }
+
   const ratio = index / (total - 1); // progress between 0 and 1
   const r = Math.round(start.r + (end.r - start.r) * ratio);
   const g = Math.round(start.g + (end.g - start.g) * ratio);
