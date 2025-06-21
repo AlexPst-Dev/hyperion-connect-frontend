@@ -1,11 +1,26 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { apiClient } from "./client";
 import { LoginCredentials, LoginResponse, LoggedUser } from "../../models/auth";
+import { User } from "@/src/models/user";
+import { UserService } from "./user-service";
 
 const STORAGE_KEYS = {
   TOKEN: "@auth_token",
   USER: "@auth_user",
 };
+
+function formatDateForDb(date: Date): string {
+  const pad = (n: number, width = 2) => n.toString().padStart(width, "0");
+  const year = date.getFullYear();
+  const month = pad(date.getMonth() + 1);
+  const day = pad(date.getDate());
+  const hours = pad(date.getHours());
+  const minutes = pad(date.getMinutes());
+  const seconds = pad(date.getSeconds());
+  const ms = date.getMilliseconds().toString().padStart(6, "0"); // pad to 6 digits
+
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}.${ms}`;
+}
 
 class AuthService {
   async login(credentials: LoginCredentials): Promise<LoginResponse> {
@@ -20,6 +35,14 @@ class AuthService {
       await AsyncStorage.setItem(
         STORAGE_KEYS.USER,
         JSON.stringify(response.user)
+      );
+
+      UserService.updateUserById(
+        response.user.id,
+        {
+          updatedAt: formatDateForDb(new Date()),
+        },
+        response.token
       );
 
       return response;

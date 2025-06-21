@@ -18,15 +18,15 @@ export class UserService {
   /**
    * Retrieves all users
    */
-  static async getAllUsers(token: string): Promise<User[]> {
-    return apiClient.get<User[]>("/users", token);
+  static async getAllUsers(token: string): Promise<{ users: User[] }> {
+    return apiClient.get<{ users: User[] }>("/users", token);
   }
   static async getUsersPaginated(
     token: string,
     limit: number,
     offset: number = 0
-  ): Promise<User[]> {
-    return apiClient.get<User[]>(
+  ): Promise<{ users: User[]; total: number }> {
+    return apiClient.get<{ users: User[]; total: number }>(
       `/users?limit=${limit}&offset=${offset}`,
       token
     );

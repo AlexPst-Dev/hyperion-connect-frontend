@@ -38,6 +38,7 @@ import { eventService } from "../services/api/event-service";
 import { UserService } from "../services/api/user-service";
 import DisplayEvent from "../components/popups/DisplayEvent";
 import { notify } from "../components/NotificationContainer";
+import { KpiModel, useKpis } from "../hooks/useKpis";
 
 export default function HomeScreen() {
   const tempCoachUser: User = {
@@ -98,6 +99,10 @@ export default function HomeScreen() {
   const [eventPopupVisible, setEventPopupVisible] = useState(false);
 
   const { user, token } = useAuth();
+  const { kpis, kpisLoading, kpisError } = useKpis(
+    user?.profileCategory as ProfileCategory,
+    token!
+  );
 
   // Fetch the latest notification
   useEffect(() => {
@@ -178,7 +183,7 @@ export default function HomeScreen() {
     fetchEventsAndUsers();
   }, [user, token]);
 
-  if (!user) {
+  if (!user || !token) {
     return (
       <View style={GlobalStyles.pageStyle}>
         <AppText style={GlobalStyles.h3}>Veuillez vous connecter</AppText>
@@ -704,39 +709,29 @@ export default function HomeScreen() {
             <AppText>
               Retrouvez ici les statistiques globales de l'application.
             </AppText>
+            {kpisLoading && <ActivityIndicator />}
+            {kpisError && (
+              <AppText style={{ color: Colors.red }}>{kpisError}</AppText>
+            )}
             <View
               style={{
                 flexDirection: "row",
                 gap: 8,
               }}
             >
-              <View style={{ flex: 1 }}>
-                <Kpi
-                  title="Title of the KPI"
-                  iconName="run"
-                  value="XXX"
-                  unit="yyy"
-                  fillIcon
-                />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Kpi
-                  title="Title of the KPI"
-                  iconName="run"
-                  value="XXX"
-                  unit="yyy"
-                  fillIcon
-                />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Kpi
-                  title="Title of the KPI"
-                  iconName="run"
-                  value="XXX"
-                  unit="yyy"
-                  fillIcon
-                />
-              </View>
+              {kpis.length > 0 &&
+                kpis.map((kpi, index) => (
+                  <View style={{ flex: 1 }} key={`view-${index}`}>
+                    <Kpi
+                      key={index}
+                      title={kpi.title}
+                      iconName={kpi.iconName}
+                      value={kpi.value}
+                      unit={kpi.unit}
+                      fillIcon={kpi.fillIcon}
+                    />
+                  </View>
+                ))}
             </View>
           </View>
           <View style={{ flexDirection: "column", gap: 8 }}>

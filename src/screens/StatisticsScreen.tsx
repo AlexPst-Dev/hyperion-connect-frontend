@@ -1,5 +1,6 @@
 import React, { JSX, useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -7,7 +8,7 @@ import {
   ScrollView,
   View,
 } from "react-native";
-import GlobalStyles from "../styles/styles";
+import GlobalStyles, { Colors } from "../styles/styles";
 import AppText from "../components/AppText";
 import { useAuth } from "../hooks/useAuth";
 import ViewController from "../components/ViewController";
@@ -18,22 +19,28 @@ import { RootStackParamList } from "../navigation/types";
 import { useNavigation } from "@react-navigation/native";
 import OfferCard from "../components/OfferCard";
 import PopUp from "../components/PopUp";
-import { User, UserResponse } from "../models/user";
+import { ProfileCategory, User, UserResponse } from "../models/user";
 import ProgressGraph from "../components/ProgressGraph";
 import { LoggedUser } from "../models/auth";
 import { getDynamicMonthLabels } from "../models/graph";
 import { UserService } from "../services/api/user-service";
+import { KpiModel, useKpis } from "../hooks/useKpis";
 
 export default function StatisticsScreen() {
   const { user, token } = useAuth();
 
-  if (!user) return null;
+  if (!user || !token) return null;
 
   type NavigationProp = NativeStackNavigationProp<
     RootStackParamList,
     "OffersHistory"
   >;
   const navigation = useNavigation<NavigationProp>();
+
+  const { kpis, kpisLoading, kpisError } = useKpis(
+    user?.profileCategory as ProfileCategory,
+    token!
+  );
 
   const [activeTabIndex, setActiveTabIndex] = useState(0);
   const tabViews: JSX.Element[] = [
@@ -238,47 +245,24 @@ export default function StatisticsScreen() {
         <AppText>
           Retrouvez ici les statistiques globales de l'application.
         </AppText>
-        <View style={{ flexDirection: "column", gap: 8 }}>
-          <View style={{ flexDirection: "row", gap: 8 }}>
-            <View style={{ flex: 1 }}>
-              <Kpi
-                title="Title of the KPI"
-                iconName="run"
-                value="XXX"
-                unit="yyy"
-                fillIcon
-              />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Kpi
-                title="Title of the KPI"
-                iconName="run"
-                value="XXX"
-                unit="yyy"
-                fillIcon
-              />
-            </View>
-          </View>
-          <View style={{ flexDirection: "row", gap: 8 }}>
-            <View style={{ flex: 1 }}>
-              <Kpi
-                title="Title of the KPI"
-                iconName="run"
-                value="XXX"
-                unit="yyy"
-                fillIcon
-              />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Kpi
-                title="Title of the KPI"
-                iconName="run"
-                value="XXX"
-                unit="yyy"
-                fillIcon
-              />
-            </View>
-          </View>
+        {kpisLoading && <ActivityIndicator />}
+        {kpisError && (
+          <AppText style={{ color: Colors.red }}>{kpisError}</AppText>
+        )}
+        <View style={{ flexDirection: "row", gap: 8 }}>
+          {kpis.length > 0 &&
+            kpis.map((kpi, index) => (
+              <View style={{ flex: 1 }} key={`view-${index}`}>
+                <Kpi
+                  key={index}
+                  title={kpi.title}
+                  iconName={kpi.iconName}
+                  value={kpi.value}
+                  unit={kpi.unit}
+                  fillIcon={kpi.fillIcon}
+                />
+              </View>
+            ))}
         </View>
         <ProgressGraph
           title="Nombre d'utilisateurs"
