@@ -11,7 +11,12 @@ import {
 } from "react-native";
 import GlobalStyles, { Colors, shadowStyles } from "../styles/styles";
 import AppText from "../components/AppText";
-import { User } from "../models/user";
+import {
+  CoachProfile,
+  MedicProfile,
+  ProfileCategory,
+  User,
+} from "../models/user";
 import { useAuth } from "../hooks/useAuth";
 import Objective from "../components/Objective";
 import ViewController from "../components/ViewController";
@@ -36,10 +41,12 @@ import {
 import {
   CreateSessionRequest,
   Session as SessionModel,
+  SessionWithFile,
 } from "../models/session";
 import { fileService } from "../services/api/file-service";
 import { FileCategory } from "../models/file";
 import { notify } from "../components/NotificationContainer";
+import { UserService } from "../services/api/user-service";
 
 export default function SessionsScreen() {
   type SessionPageRenderer = (user: LoggedUser) => JSX.Element;
@@ -49,6 +56,82 @@ export default function SessionsScreen() {
     "SessionDetail"
   >;
   const navigation = useNavigation<NavigationProp>();
+
+  const { token } = useAuth();
+
+  const [sessionForm, setSessionForm] = useState({
+    label: "",
+    filePictureUrl: "",
+    recommendations: "",
+    contributions: "",
+  });
+
+  const [sessionEditionLoading, setSessionEditionLoading] = useState(false);
+  const [sessions, setSessions] = useState<SessionModel[]>([]);
+
+  const [editSessionPopUp, setEditSessionPopUp] = useState(false);
+
+  const closeModal = () => setEditSessionPopUp(!editSessionPopUp);
+
+  const handleSessionFormChange = (field: string, value: any) => {
+    setSessionForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleEditSessionSubmit = async () => {
+    setSessionEditionLoading(true);
+    if (token && user && sessionForm) {
+      const newSessionImageFile =
+        sessionForm.filePictureUrl !== ""
+          ? await fileService.createFile(
+              {
+                label: `${sessionForm.label.toLowerCase().trim()}-image`,
+                url: sessionForm.filePictureUrl,
+                fileCategory: FileCategory.IMAGE,
+              },
+              token
+            )
+          : { id: undefined };
+
+      const baseData: CreateSessionRequest = {
+        label: sessionForm.label,
+        numberOfExercises: 1,
+        durationTime: "00:01:00",
+        filePictureId: newSessionImageFile.id,
+        listExercises: "0;",
+        recommendations: sessionForm.recommendations,
+        contributions: sessionForm.contributions,
+      };
+
+      try {
+        await SessionService.createSession(baseData, token).then(
+          async (res) => {
+            setSessions((prev) => [...prev, res.session]);
+            notify({ title: "Séance créée avec succès", type: "success" });
+            if (
+              user.profileCategory === ProfileCategory.COACH ||
+              user.profileCategory === ProfileCategory.MEDIC
+            ) {
+              await SessionService.addSessionToUser(
+                user.id,
+                res.session.id,
+                token
+              );
+            }
+          }
+        );
+      } catch (error) {
+        notify({
+          title: "Erreur lors de la création de la séance",
+          type: "error",
+        });
+        console.log("Error while trying to create session : ", error);
+      } finally {
+        setSessionEditionLoading(false);
+        setEditSessionPopUp(false);
+        closeModal();
+      }
+    }
+  };
 
   const SessionPageByProfile: Record<string, SessionPageRenderer> = {
     sportsman: (user) => {
@@ -551,7 +634,18 @@ export default function SessionsScreen() {
 
       const [modalStep, setModalStep] = useState<ModalStep | null>(null);
 
+      const [completeUserProfile, setCompleteUserProfile] =
+        useState<CoachProfile>();
+
+      const [loading, setLoading] = useState(true);
+
+      const { token } = useAuth();
+
       const closeModal = () => setModalStep(null);
+
+      const [catalogSessions, setCatalogSessions] = useState<SessionWithFile[]>(
+        []
+      );
 
       const handleImport = async () => {
         const result = await DocumentPicker.getDocumentAsync({
@@ -567,6 +661,88 @@ export default function SessionsScreen() {
         console.log("Fichier sélectionné :", result.assets[0]);
       };
 
+      useEffect(() => {
+        let isMounted = true;
+        async function fetchSessionsAndCatalog() {
+          setLoading(true);
+          try {
+            // Fetch both in parallel
+            const [allLinkedSessions, allCatalogSessions] = await Promise.all([
+              SessionService.getSessionsByUser(user.id, token!),
+              SessionService.getAllSessions(token!),
+            ]);
+
+            // Fetch full session details for linked sessions
+            const linkedSessionsDetails = await Promise.all(
+              allLinkedSessions.map(async (linkedSession) => {
+                const sessionWithFile = await SessionService.getSessionById(
+                  linkedSession.sessionId,
+                  token!
+                );
+                return sessionWithFile.session;
+              })
+            );
+
+            // Fetch file for each catalog session to build SessionWithFile[]
+            const catalogSessionsWithFiles = await Promise.all(
+              allCatalogSessions.map(async (session) => {
+                let filePicture: any = null;
+                if (session.filePictureId) {
+                  try {
+                    filePicture = await fileService.getFileById(
+                      session.filePictureId,
+                      token!
+                    );
+                  } catch {
+                    filePicture = null;
+                  }
+                }
+                return {
+                  session,
+                  filePicture,
+                };
+              })
+            );
+
+            if (isMounted) {
+              setSessions(linkedSessionsDetails); // Coach's own sessions
+              setCatalogSessions(catalogSessionsWithFiles); // All catalog sessions with files
+            }
+          } catch (e) {
+            if (isMounted) {
+              setSessions([]);
+              setCatalogSessions([]);
+            }
+          } finally {
+            if (isMounted) setLoading(false);
+          }
+        }
+        async function fetchUserProfile() {
+          if (token) {
+            try {
+              const profileConnected = await UserService.getUserById(
+                user.id,
+                token
+              );
+              if (isMounted)
+                setCompleteUserProfile(
+                  profileConnected.profile as CoachProfile
+                );
+            } catch (error) {
+              console.error(
+                "Erreur lors de la récupération du profil :",
+                error
+              );
+            }
+          }
+        }
+        fetchSessionsAndCatalog();
+        fetchUserProfile();
+        return () => {
+          isMounted = false;
+        };
+      }, [token]);
+
       return (
         <>
           <View style={{ flexDirection: "column", gap: 24 }}>
@@ -578,53 +754,26 @@ export default function SessionsScreen() {
               </AppText>
             </View>
             <View style={{ flexDirection: "column", gap: 16 }}>
-              <Session
-                title="Séance de Tempo Run"
-                nbExercises={3}
-                durationTime={50}
-                labels={
-                  <Label
-                    title="Cardio"
-                    textColor="#1E3A8A"
-                    backgroundColor="#D6EBFF"
-                    size="small"
+              {loading ? (
+                <ActivityIndicator size="large" color={Colors.deepBlue} />
+              ) : sessions.length > 0 ? (
+                sessions.map((session) => (
+                  <Session
+                    key={session.id}
+                    title={session.label}
+                    imageUrl={
+                      session.filePicture ? session.filePicture.url : undefined
+                    }
+                    onPress={() => {
+                      navigation.navigate("SessionDetail", {
+                        session,
+                      });
+                    }}
                   />
-                }
-              />
-              <Session
-                title="Séance de fractionné"
-                nbExercises={5}
-                durationTime={68}
-                labels={[
-                  <Label
-                    key={"cardio"}
-                    title="Cardio"
-                    textColor="#1E3A8A"
-                    backgroundColor="#D6EBFF"
-                    size="small"
-                  />,
-                  <Label
-                    key={"jambes"}
-                    title="Jambes"
-                    textColor="#1E3A8A"
-                    backgroundColor="#D6EBFF"
-                    size="small"
-                  />,
-                ]}
-              />
-              <Session
-                title="Séance de Tempo Run"
-                nbExercises={3}
-                durationTime={50}
-                labels={
-                  <Label
-                    title="Cardio"
-                    textColor="#1E3A8A"
-                    backgroundColor="#D6EBFF"
-                    size="small"
-                  />
-                }
-              />
+                ))
+              ) : (
+                <AppText>Aucune séance trouvée.</AppText>
+              )}
               <View style={{ flexDirection: "row", justifyContent: "center" }}>
                 <AppButton
                   type="add"
@@ -687,22 +836,24 @@ export default function SessionsScreen() {
                             onPress={() => setModalStep("custom")}
                           />
                         </View>
-                        <View
-                          style={{
-                            flexDirection: "row",
-                            justifyContent: "center",
-                          }}
-                        >
-                          <AppButton
-                            type="secondary"
-                            title="Importer"
-                            iconName="download"
-                            onPress={() => {
-                              setModalStep("import");
-                              handleImport();
+                        {completeUserProfile?.canImportSessions && (
+                          <View
+                            style={{
+                              flexDirection: "row",
+                              justifyContent: "center",
                             }}
-                          />
-                        </View>
+                          >
+                            <AppButton
+                              type="secondary"
+                              title="Importer"
+                              iconName="download"
+                              onPress={() => {
+                                setModalStep("import");
+                                handleImport();
+                              }}
+                            />
+                          </View>
+                        )}
                         <Pressable
                           style={{
                             flexDirection: "row",
@@ -726,17 +877,29 @@ export default function SessionsScreen() {
                   />
                 )}
 
-                {/* {modalStep === "catalog" && (
+                {modalStep === "catalog" && (
                   <AddSessions
                     visible={true}
-                    listOfSession={tempListOfSession}
+                    listOfSession={catalogSessions}
                     onClose={closeModal}
                     onSubmit={(sessions) => {
-                      console.log("Sessions sélectionnées :", sessions);
+                      sessions.map(async (sessionWithFile) => {
+                        await SessionService.addSessionToUser(
+                          user.id,
+                          sessionWithFile.session.id,
+                          token!
+                        );
+                      });
+                      setSessions((prev) => [
+                        ...prev,
+                        ...sessions.map((s) => s.session),
+                      ]);
                       closeModal();
                     }}
+                    exercises={[]}
+                    categories={[]}
                   />
-                )} */}
+                )}
 
                 {modalStep === "custom" && (
                   <PopUp
@@ -745,33 +908,54 @@ export default function SessionsScreen() {
                     btnText="Editer"
                     iconName="pencil"
                     closeText="Annuler"
-                    onSubmit={closeModal}
+                    onSubmit={() => {
+                      handleEditSessionSubmit;
+                      setEditSessionPopUp(false);
+                    }}
                     btnType="primary"
                     inputs={
-                      <>
-                        <Input
-                          type="text"
-                          placeholder="Nom du programme"
-                          label="Nom"
-                        />
-                        <Input
-                          type="text"
-                          placeholder="https://"
-                          label="Lien image"
-                        />
-                        <Input type="text" placeholder="Adresse" label="Lieu" />
-                        <Input type="date" label="Date" />
-                        <Input
-                          type="text"
-                          placeholder="08:00"
-                          label="Heure de début"
-                        />
-                        <Input
-                          type="text"
-                          placeholder="09:00"
-                          label="Heure de fin"
-                        />
-                      </>
+                      sessionEditionLoading ? (
+                        <ActivityIndicator />
+                      ) : (
+                        <>
+                          <Input
+                            type="text"
+                            placeholder="Nom du plan d'entrainement"
+                            label="Label"
+                            value={sessionForm.label}
+                            onChangeText={(v) =>
+                              handleSessionFormChange("label", v)
+                            }
+                          />
+                          <Input
+                            type="text"
+                            placeholder="https://"
+                            label="Lien image"
+                            value={sessionForm.filePictureUrl}
+                            onChangeText={(v) =>
+                              handleSessionFormChange("filePictureUrl", v)
+                            }
+                          />
+                          <Input
+                            type="textarea"
+                            placeholder="Conseils, mises en garde..."
+                            label="Recommandations"
+                            value={sessionForm.recommendations}
+                            onChangeText={(v) =>
+                              handleSessionFormChange("recommendations", v)
+                            }
+                          />
+                          <Input
+                            type="textarea"
+                            placeholder="Apports et intérêts du programme"
+                            label="Contributions"
+                            value={sessionForm.contributions}
+                            onChangeText={(v) =>
+                              handleSessionFormChange("contributions", v)
+                            }
+                          />
+                        </>
+                      )
                     }
                     onClose={closeModal}
                   />
@@ -787,7 +971,18 @@ export default function SessionsScreen() {
 
       const [modalStep, setModalStep] = useState<ModalStep | null>(null);
 
+      const [completeUserProfile, setCompleteUserProfile] =
+        useState<MedicProfile>();
+
+      const [loading, setLoading] = useState(true);
+
+      const { token } = useAuth();
+
       const closeModal = () => setModalStep(null);
+
+      const [catalogSessions, setCatalogSessions] = useState<SessionWithFile[]>(
+        []
+      );
 
       const handleImport = async () => {
         const result = await DocumentPicker.getDocumentAsync({
@@ -803,6 +998,88 @@ export default function SessionsScreen() {
         console.log("Fichier sélectionné :", result.assets[0]);
       };
 
+      useEffect(() => {
+        let isMounted = true;
+        async function fetchSessionsAndCatalog() {
+          setLoading(true);
+          try {
+            // Fetch both in parallel
+            const [allLinkedSessions, allCatalogSessions] = await Promise.all([
+              SessionService.getSessionsByUser(user.id, token!),
+              SessionService.getAllSessions(token!),
+            ]);
+
+            // Fetch full session details for linked sessions
+            const linkedSessionsDetails = await Promise.all(
+              allLinkedSessions.map(async (linkedSession) => {
+                const sessionWithFile = await SessionService.getSessionById(
+                  linkedSession.sessionId,
+                  token!
+                );
+                return sessionWithFile.session;
+              })
+            );
+
+            // Fetch file for each catalog session to build SessionWithFile[]
+            const catalogSessionsWithFiles = await Promise.all(
+              allCatalogSessions.map(async (session) => {
+                let filePicture: any = null;
+                if (session.filePictureId) {
+                  try {
+                    filePicture = await fileService.getFileById(
+                      session.filePictureId,
+                      token!
+                    );
+                  } catch {
+                    filePicture = null;
+                  }
+                }
+                return {
+                  session,
+                  filePicture,
+                };
+              })
+            );
+
+            if (isMounted) {
+              setSessions(linkedSessionsDetails); // Coach's own sessions
+              setCatalogSessions(catalogSessionsWithFiles); // All catalog sessions with files
+            }
+          } catch (e) {
+            if (isMounted) {
+              setSessions([]);
+              setCatalogSessions([]);
+            }
+          } finally {
+            if (isMounted) setLoading(false);
+          }
+        }
+        async function fetchUserProfile() {
+          if (token) {
+            try {
+              const profileConnected = await UserService.getUserById(
+                user.id,
+                token
+              );
+              if (isMounted)
+                setCompleteUserProfile(
+                  profileConnected.profile as MedicProfile
+                );
+            } catch (error) {
+              console.error(
+                "Erreur lors de la récupération du profil :",
+                error
+              );
+            }
+          }
+        }
+        fetchSessionsAndCatalog();
+        fetchUserProfile();
+        return () => {
+          isMounted = false;
+        };
+      }, [token]);
+
       return (
         <>
           <View style={{ flexDirection: "column", gap: 24 }}>
@@ -814,53 +1091,26 @@ export default function SessionsScreen() {
               </AppText>
             </View>
             <View style={{ flexDirection: "column", gap: 16 }}>
-              <Session
-                title="Séance de Tempo Run"
-                nbExercises={3}
-                durationTime={50}
-                labels={
-                  <Label
-                    title="Cardio"
-                    textColor="#1E3A8A"
-                    backgroundColor="#D6EBFF"
-                    size="small"
+              {loading ? (
+                <ActivityIndicator size="large" color={Colors.deepBlue} />
+              ) : sessions.length > 0 ? (
+                sessions.map((session) => (
+                  <Session
+                    key={session.id}
+                    title={session.label}
+                    imageUrl={
+                      session.filePicture ? session.filePicture.url : undefined
+                    }
+                    onPress={() => {
+                      navigation.navigate("SessionDetail", {
+                        session,
+                      });
+                    }}
                   />
-                }
-              />
-              <Session
-                title="Séance de fractionné"
-                nbExercises={5}
-                durationTime={68}
-                labels={[
-                  <Label
-                    key={"cardio"}
-                    title="Cardio"
-                    textColor="#1E3A8A"
-                    backgroundColor="#D6EBFF"
-                    size="small"
-                  />,
-                  <Label
-                    key={"jambes"}
-                    title="Jambes"
-                    textColor="#1E3A8A"
-                    backgroundColor="#D6EBFF"
-                    size="small"
-                  />,
-                ]}
-              />
-              <Session
-                title="Séance de Tempo Run"
-                nbExercises={3}
-                durationTime={50}
-                labels={
-                  <Label
-                    title="Cardio"
-                    textColor="#1E3A8A"
-                    backgroundColor="#D6EBFF"
-                    size="small"
-                  />
-                }
-              />
+                ))
+              ) : (
+                <AppText>Aucune séance trouvée.</AppText>
+              )}
               <View style={{ flexDirection: "row", justifyContent: "center" }}>
                 <AppButton
                   type="add"
@@ -923,22 +1173,24 @@ export default function SessionsScreen() {
                             onPress={() => setModalStep("custom")}
                           />
                         </View>
-                        <View
-                          style={{
-                            flexDirection: "row",
-                            justifyContent: "center",
-                          }}
-                        >
-                          <AppButton
-                            type="secondary"
-                            title="Importer"
-                            iconName="download"
-                            onPress={() => {
-                              setModalStep("import");
-                              handleImport();
+                        {completeUserProfile?.canImportSessions && (
+                          <View
+                            style={{
+                              flexDirection: "row",
+                              justifyContent: "center",
                             }}
-                          />
-                        </View>
+                          >
+                            <AppButton
+                              type="secondary"
+                              title="Importer"
+                              iconName="download"
+                              onPress={() => {
+                                setModalStep("import");
+                                handleImport();
+                              }}
+                            />
+                          </View>
+                        )}
                         <Pressable
                           style={{
                             flexDirection: "row",
@@ -962,17 +1214,29 @@ export default function SessionsScreen() {
                   />
                 )}
 
-                {/* {modalStep === "catalog" && (
+                {modalStep === "catalog" && (
                   <AddSessions
                     visible={true}
-                    listOfSession={tempListOfSession}
+                    listOfSession={catalogSessions}
                     onClose={closeModal}
                     onSubmit={(sessions) => {
-                      console.log("Sessions sélectionnées :", sessions);
+                      sessions.map(async (sessionWithFile) => {
+                        await SessionService.addSessionToUser(
+                          user.id,
+                          sessionWithFile.session.id,
+                          token!
+                        );
+                      });
+                      setSessions((prev) => [
+                        ...prev,
+                        ...sessions.map((s) => s.session),
+                      ]);
                       closeModal();
                     }}
+                    exercises={[]}
+                    categories={[]}
                   />
-                )} */}
+                )}
 
                 {modalStep === "custom" && (
                   <PopUp
@@ -981,33 +1245,51 @@ export default function SessionsScreen() {
                     btnText="Editer"
                     iconName="pencil"
                     closeText="Annuler"
-                    onSubmit={closeModal}
+                    onSubmit={handleEditSessionSubmit}
                     btnType="primary"
                     inputs={
-                      <>
-                        <Input
-                          type="text"
-                          placeholder="Nom du programme"
-                          label="Nom"
-                        />
-                        <Input
-                          type="text"
-                          placeholder="https://"
-                          label="Lien image"
-                        />
-                        <Input type="text" placeholder="Adresse" label="Lieu" />
-                        <Input type="date" label="Date" />
-                        <Input
-                          type="text"
-                          placeholder="08:00"
-                          label="Heure de début"
-                        />
-                        <Input
-                          type="text"
-                          placeholder="09:00"
-                          label="Heure de fin"
-                        />
-                      </>
+                      sessionEditionLoading ? (
+                        <ActivityIndicator />
+                      ) : (
+                        <>
+                          <Input
+                            type="text"
+                            placeholder="Nom du plan d'entrainement"
+                            label="Label"
+                            value={sessionForm.label}
+                            onChangeText={(v) =>
+                              handleSessionFormChange("label", v)
+                            }
+                          />
+                          <Input
+                            type="text"
+                            placeholder="https://"
+                            label="Lien image"
+                            value={sessionForm.filePictureUrl}
+                            onChangeText={(v) =>
+                              handleSessionFormChange("filePictureUrl", v)
+                            }
+                          />
+                          <Input
+                            type="textarea"
+                            placeholder="Conseils, mises en garde..."
+                            label="Recommandations"
+                            value={sessionForm.recommendations}
+                            onChangeText={(v) =>
+                              handleSessionFormChange("recommendations", v)
+                            }
+                          />
+                          <Input
+                            type="textarea"
+                            placeholder="Apports et intérêts du programme"
+                            label="Contributions"
+                            value={sessionForm.contributions}
+                            onChangeText={(v) =>
+                              handleSessionFormChange("contributions", v)
+                            }
+                          />
+                        </>
+                      )
                     }
                     onClose={closeModal}
                   />
@@ -1127,12 +1409,6 @@ export default function SessionsScreen() {
       );
     },
     admin: (user) => {
-      const [editSessionPopUp, setEditSessionPopUp] = useState(false);
-
-      const closeModal = () => setEditSessionPopUp(!editSessionPopUp);
-
-      const { token } = useAuth();
-      const [sessions, setSessions] = useState<SessionModel[]>([]);
       const [loading, setLoading] = useState(true);
       const [filter, setFilter] = useState("");
 
@@ -1160,62 +1436,6 @@ export default function SessionsScreen() {
         s.label.toLowerCase().includes(filter.toLowerCase())
       );
 
-      const [sessionForm, setSessionForm] = useState({
-        label: "",
-        filePictureUrl: "",
-        recommendations: "",
-        contributions: "",
-      });
-
-      const [sessionEditionLoading, setSessionEditionLoading] = useState(false);
-
-      const handleSessionFormChange = (field: string, value: any) => {
-        setSessionForm((prev) => ({ ...prev, [field]: value }));
-      };
-
-      const handleEditSessionSubmit = async () => {
-        setSessionEditionLoading(true);
-        if (token && sessionForm) {
-          const newSessionImageFile =
-            sessionForm.filePictureUrl !== ""
-              ? await fileService.createFile(
-                  {
-                    label: `${sessionForm.label.toLowerCase().trim()}-image`,
-                    url: sessionForm.filePictureUrl,
-                    fileCategory: FileCategory.IMAGE,
-                  },
-                  token
-                )
-              : { id: undefined };
-
-          const baseData: CreateSessionRequest = {
-            label: sessionForm.label,
-            numberOfExercises: 1,
-            durationTime: "00:01:00",
-            filePictureId: newSessionImageFile.id,
-            listExercises: "0;",
-            recommendations: sessionForm.recommendations,
-            contributions: sessionForm.contributions,
-          };
-
-          try {
-            await SessionService.createSession(baseData, token).then((res) => {
-              setSessions((prev) => [...prev, res.session]);
-              notify({ title: "Séance créée avec succès", type: "success" });
-            });
-          } catch (error) {
-            notify({
-              title: "Erreur lors de la création de la séance",
-              type: "error",
-            });
-            console.log("Error while trying to create session : ", error);
-          } finally {
-            setSessionEditionLoading(false);
-            setEditSessionPopUp(false);
-          }
-        }
-      };
-
       return (
         <>
           <View style={{ flexDirection: "column", gap: 24 }}>
@@ -1242,11 +1462,6 @@ export default function SessionsScreen() {
                     <AppText>Aucune séance trouvée.</AppText>
                   ) : (
                     filteredSessions.map((session) => {
-                      let isEmptySession: boolean =
-                        session.numberOfExercises === 1 &&
-                        getMinutesFromDuration(session.durationTime) === 1
-                          ? true
-                          : false;
                       return (
                         <View style={{ marginBottom: 8 }} key={session.id}>
                           <Session

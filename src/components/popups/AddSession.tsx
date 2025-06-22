@@ -114,9 +114,12 @@ export default function AddSessions({
         .toLowerCase()
         .startsWith(searchTerm.toLowerCase());
 
-    const matchesFilter = sessionMuscleGroups.some((group) =>
-      selectedFilters.includes(group.label)
-    );
+    // If no filters, show all
+    const matchesFilter =
+      selectedFilters.length === 0 ||
+      sessionMuscleGroups.some((group) =>
+        selectedFilters.includes(group.label)
+      );
 
     return matchesSearch && matchesFilter;
   });
@@ -196,12 +199,6 @@ export default function AddSessions({
                           <View style={{ width: "89%" }}>
                             <Session
                               title={sessionWithFile.session.label}
-                              durationTime={getMinutesFromDuration(
-                                sessionWithFile.session.durationTime
-                              )}
-                              nbExercises={
-                                sessionWithFile.session.numberOfExercises
-                              }
                               hideIcon
                             />
                           </View>

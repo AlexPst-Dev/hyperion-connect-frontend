@@ -38,12 +38,17 @@ import { exerciseService } from "../services/api/exercise-service";
 import { CreateExerciseRequest, ExerciseWithDetails } from "../models/exercise";
 import { Category, CategoryType } from "../models/category";
 import AddExercises from "../components/popups/AddExercise";
-import { ProfileCategory, User } from "../models/user";
+import {
+  AdminProfile,
+  CoachProfile,
+  MedicProfile,
+  ProfileCategory,
+  User,
+} from "../models/user";
 import { UserService } from "../services/api/user-service";
-import { FileCategory } from "../models/file";
+import { FileCategory, File as FileModel } from "../models/file";
 import { notify } from "../components/NotificationContainer";
 import { categoryService } from "../services/api/category-service";
-import { get } from "react-native/Libraries/TurboModule/TurboModuleRegistry";
 
 type SessionDetailRouteProp = RouteProp<RootStackParamList, "SessionDetail">;
 
@@ -97,16 +102,13 @@ export default function SessionDetailScreen() {
         continue;
       }
       const linkedSessionsOfSelectedUser =
-        await SessionService.getSessionsBySportsman(
-          completeUserProfile.profile.id,
-          token
-        );
+        await SessionService.getSessionsByUser(selectedUser.id, token);
 
       // Ensure correct types for comparison
       const isDuplicate = linkedSessionsOfSelectedUser.some(
         (ls) =>
           Number(ls.sessionId) === Number(session.id) &&
-          Number(ls.sportsmanId) === Number(completeUserProfile.profile?.id)
+          Number(ls.userId) === Number(selectedUser.id)
       );
 
       if (
@@ -142,6 +144,10 @@ export default function SessionDetailScreen() {
   const navigation = useNavigation<NavigationProp>();
 
   const { user, token } = useAuth();
+
+  const [completeUserProfile, setCompleteUserProfile] = useState<
+    MedicProfile | CoachProfile
+  >();
 
   if (!user || !token) return null;
 
@@ -211,22 +217,27 @@ export default function SessionDetailScreen() {
   const handleEditSessionSubmit = async () => {
     setSessionEditionLoading(true);
     if (token && sessionForm) {
-      const newSessionImageFile = session.filePictureId
-        ? await fileService.updateFile(
-            session.filePictureId,
-            {
-              url: sessionForm.filePictureUrl,
-            },
-            token
-          )
-        : await fileService.createFile(
-            {
-              label: `${sessionForm.label.toLowerCase().trim()}-image`,
-              url: sessionForm.filePictureUrl,
-              fileCategory: FileCategory.IMAGE,
-            },
-            token
-          );
+      let newSessionImageFile: FileModel | undefined;
+      if (sessionForm.filePictureUrl !== "") {
+        const fileResponse = session.filePictureId
+          ? await fileService.updateFile(
+              session.filePictureId,
+              {
+                url: sessionForm.filePictureUrl,
+              },
+              token
+            )
+          : await fileService.createFile(
+              {
+                label: `${sessionForm.label.toLowerCase().trim()}-image`,
+                url: sessionForm.filePictureUrl,
+                fileCategory: FileCategory.IMAGE,
+              },
+              token
+            );
+        newSessionImageFile =
+          "file" in fileResponse ? fileResponse.file : fileResponse;
+      }
 
       const baseData: UpdateSessionRequest = {
         label:
@@ -234,9 +245,10 @@ export default function SessionDetailScreen() {
             ? sessionForm.label
             : session.label,
         filePictureId:
-          "file" in newSessionImageFile
-            ? newSessionImageFile.file.id
-            : newSessionImageFile.id,
+          sessionForm.filePictureUrl !== "" && newSessionImageFile
+            ? newSessionImageFile.id
+            : undefined,
+
         recommendations:
           sessionForm.recommendations !== session.recommendations
             ? sessionForm.recommendations
@@ -407,7 +419,14 @@ export default function SessionDetailScreen() {
   const handleDeleteSession = async () => {
     if (token) {
       try {
-        await SessionService.deleteSessionById(session.id, token);
+        if (
+          user.profileCategory === ProfileCategory.COACH ||
+          user.profileCategory === ProfileCategory.MEDIC
+        ) {
+          await SessionService.removeSessionToUser(user.id, session.id, token);
+        } else if (user.profileCategory === ProfileCategory.ADMIN) {
+          await SessionService.deleteSessionById(session.id, token);
+        }
         if (session.filePictureId) {
           await fileService.deleteFile(session.filePictureId, token);
         }
@@ -428,8 +447,22 @@ export default function SessionDetailScreen() {
       });
       handleFetchExercises(currentSession.id);
       fetchAllMuscleGroups();
+      async function fetchUserProfile() {
+        if (token && user) {
+          try {
+            const profileConnected = await UserService.getUserById(
+              user.id,
+              token
+            );
+            setCompleteUserProfile(profileConnected.profile as MedicProfile);
+          } catch (error) {
+            console.error("Erreur lors de la récupération du profil :", error);
+          }
+        }
+      }
+      fetchUserProfile();
     }
-  }, [currentSession]);
+  }, [currentSession, token, user]);
 
   return (
     <KeyboardAvoidingView
@@ -743,22 +776,24 @@ export default function SessionDetailScreen() {
                           onPress={() => setModalStep("custom")}
                         />
                       </View>
-                      <View
-                        style={{
-                          flexDirection: "row",
-                          justifyContent: "center",
-                        }}
-                      >
-                        <AppButton
-                          type="secondary"
-                          title="Importer"
-                          iconName="download"
-                          onPress={() => {
-                            setModalStep("import");
-                            handleImport();
+                      {completeUserProfile?.canImportSessions && (
+                        <View
+                          style={{
+                            flexDirection: "row",
+                            justifyContent: "center",
                           }}
-                        />
-                      </View>
+                        >
+                          <AppButton
+                            type="secondary"
+                            title="Importer"
+                            iconName="download"
+                            onPress={() => {
+                              setModalStep("import");
+                              handleImport();
+                            }}
+                          />
+                        </View>
+                      )}
                       <Pressable
                         style={{
                           flexDirection: "row",

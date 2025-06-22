@@ -50,6 +50,6 @@ export interface SessionExercisesResponse {
 
 export interface LinkedSessions {
   id: number;
-  sportsmanId: number;
+  userId: number;
   sessionId: number;
 }

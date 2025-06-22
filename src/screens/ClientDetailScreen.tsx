@@ -322,7 +322,7 @@ export default function ClientDetailScreen() {
           // Active sessions
           try {
             const sessionService = new SessionService();
-            const linkedSessions = await SessionService.getSessionsBySportsman(
+            const linkedSessions = await SessionService.getSessionsByUser(
               client.id,
               token
             );

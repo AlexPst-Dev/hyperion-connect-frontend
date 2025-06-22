@@ -29,7 +29,7 @@ import { categoryService } from "../services/api/category-service";
 import { fileService } from "../services/api/file-service";
 import { UpdateExerciseRequest } from "../models/exercise";
 import { getMinutesFromDuration } from "../services/api/session-service";
-import { FileCategory } from "../models/file";
+import { FileCategory, File as FileModel } from "../models/file";
 
 type ExerciceDetailRouteProp = RouteProp<RootStackParamList, "ExerciceDetail">;
 
@@ -100,34 +100,40 @@ export default function ExerciceDetailScreen() {
   const handleEditExerciseSubmit = async () => {
     setExerciseEditionLoading(true);
     if (token && exerciseForm) {
-      const newExerciseImageFile = exercise.filePictureId
-        ? await fileService.updateFile(
-            exercise.filePictureId,
-            {
-              url:
-                exerciseForm.filePictureUrl !== exercise.filePicture.url
-                  ? exerciseForm.filePictureUrl
-                  : exercise.filePicture.url,
-            },
-            token
-          )
-        : await fileService.createFile(
-            {
-              label: `${exerciseForm.label.toLowerCase().trim()}-image`,
-              url: exerciseForm.filePictureUrl,
-              fileCategory: FileCategory.IMAGE,
-            },
-            token
-          );
+      let newExerciseImageFile: FileModel | undefined;
+      if (exerciseForm.filePictureUrl !== "") {
+        const fileResponse = exercise.filePictureId
+          ? await fileService.updateFile(
+              exercise.filePictureId,
+              {
+                url:
+                  exerciseForm.filePictureUrl !== exercise.filePicture.url
+                    ? exerciseForm.filePictureUrl
+                    : exercise.filePicture.url,
+              },
+              token
+            )
+          : await fileService.createFile(
+              {
+                label: `${exerciseForm.label.toLowerCase().trim()}-image`,
+                url: exerciseForm.filePictureUrl,
+                fileCategory: FileCategory.IMAGE,
+              },
+              token
+            );
+        newExerciseImageFile =
+          "file" in fileResponse ? fileResponse.file : fileResponse;
+      }
+
       const baseData: UpdateExerciseRequest = {
         label:
           exerciseForm.label !== exercise.label
             ? exerciseForm.label
             : exercise.label,
         filePictureId:
-          "file" in newExerciseImageFile
-            ? newExerciseImageFile.file.id
-            : newExerciseImageFile.id,
+          exerciseForm.filePictureUrl !== "" && newExerciseImageFile
+            ? newExerciseImageFile.id
+            : undefined,
         recommendations:
           exerciseForm.recommendations !== exercise.recommendations
             ? exerciseForm.recommendations

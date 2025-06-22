@@ -163,11 +163,11 @@ export class SessionService {
   /**
    * Find all sessions of a sportsman
    */
-  static async getSessionsBySportsman(
-    sportsmanId: number,
+  static async getSessionsByUser(
+    userId: number,
     token?: string
   ): Promise<LinkedSessions[]> {
-    if (isNaN(sportsmanId)) {
+    if (isNaN(userId)) {
       throw new Error("ID de sportsman invalide");
     }
 
@@ -176,8 +176,8 @@ export class SessionService {
         `/linkedSessions`,
         token
       );
-      // Filter only those for the given sportsmanId
-      return allLinkedSessions.filter((ls) => ls.sportsmanId === sportsmanId);
+      // Filter only those for the given userId
+      return allLinkedSessions.filter((ls) => ls.userId === userId);
     } catch (error) {
       console.error(
         "Erreur lors de la récupération des linked sessions :",
@@ -208,6 +208,32 @@ export class SessionService {
       return newLinkedSession;
     } catch (error) {
       console.error("Erreur lors de la création de la linked session :", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Add a session to the list of an user
+   */
+  static async removeSessionToUser(
+    userId: number,
+    sessionId: number,
+    token?: string
+  ): Promise<{ message: string }> {
+    if (isNaN(userId) || isNaN(sessionId)) {
+      throw new Error("ID de session ou d'utilisateur invalide");
+    }
+
+    try {
+      const linkedSessionToRemove = (
+        await SessionService.getSessionsByUser(userId, token)
+      ).filter((s) => s.sessionId === sessionId);
+      return await apiClient.delete<{ message: string }>(
+        `/linkedSessions/${linkedSessionToRemove[0].id}`,
+        token
+      );
+    } catch (error) {
+      console.error("Erreur lors de la suppression :", error);
       throw error;
     }
   }
@@ -286,7 +312,7 @@ export function isDuplicateLinkedSession(
   sportsmanId: number
 ): boolean {
   return linkedSessions.some(
-    (ls) => ls.sessionId === sessionId && ls.sportsmanId === sportsmanId
+    (ls) => ls.sessionId === sessionId && ls.userId === sportsmanId
   );
 }
 
@@ -295,7 +321,7 @@ export const {
   getAllSessions,
   getExercisesBySessionId,
   getSessionById,
-  getSessionsBySportsman,
+  getSessionsByUser,
   updateSessionById,
   markSessionAsDone,
   markSessionAsUndone,
