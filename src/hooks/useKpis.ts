@@ -27,7 +27,7 @@ export function useKpis(profileCategory: ProfileCategory, token: string) {
             /*
              * KPI 1 : All actives users (last connection 30 days ago)
              * KPI 2 : Get all sportsman
-             * KPI 3 : Difference between nb of users created and actives (inactive users)
+             * KPI 3 : Difference between nb of users created and actives (inactive users) as percentage
              */
             const [usersResponse, sportsmansRaw, userCountResponse] =
               await Promise.all([
@@ -70,10 +70,12 @@ export function useKpis(profileCategory: ProfileCategory, token: string) {
                   fillIcon: true,
                 },
                 {
-                  title: "Utilisateurs inactifs",
-                  iconName: "linkDenied",
-                  value: (allUsersCount - activeUsers.length).toString(),
-                  unit: "inactifs",
+                  title: "Taux de rétention",
+                  iconName: "objective",
+                  value: ((activeUsers.length / allUsersCount) * 100).toFixed(
+                    1
+                  ),
+                  unit: "%",
                   fillIcon: false,
                 },
               ]);
