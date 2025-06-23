@@ -13,15 +13,15 @@ import ViewController from "../components/ViewController";
 import {
   getMonthStartDates,
   ProfileCategory,
+  SportsmanProfile,
   User,
-  UserProfile,
 } from "../models/user";
 import ItemUser from "../components/ItemUser";
 import AppButton from "../components/AppButton";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../navigation/types";
 import { useNavigation } from "@react-navigation/native";
-import Icon, { IconName } from "../components/Icon";
+import { IconName } from "../components/Icon";
 import AddContacts from "../components/popups/AddContacts";
 import { useAuth } from "../hooks/useAuth";
 import { UserService } from "../services/api/user-service";
@@ -31,6 +31,7 @@ import { Company } from "../models/company";
 import { CompanyService } from "../services/api/company-service";
 import { ObjectivesApiService } from "../services/api/objective-service";
 import { billingService } from "../services/api/billing-service";
+import { clientService } from "../services/api/client-service";
 
 // Interface pour le formulaire
 interface UserFormData {
@@ -69,6 +70,8 @@ export default function UsersScreen() {
   const [displayUsersList, setDisplayUsersList] = useState(true);
   const [allUsersByCategory, setAllUsersByCategory] = useState<User[]>([]);
   const [usersByCategory, setUsersByCategory] = useState<User[]>([]);
+  // Users list for coach and medics
+  const [proClients, setProClients] = useState<User[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
   const [displayLimit, setDisplayLimit] = useState(20);
@@ -237,6 +240,55 @@ export default function UsersScreen() {
       fetchUsersByCategories(ProfileCategory.SPORTSMAN);
     }
   }, [token, sportCategories]);
+
+  useEffect(() => {
+    async function fetchProClients() {
+      if (
+        user &&
+        token &&
+        (user.profileCategory === ProfileCategory.COACH ||
+          user.profileCategory === ProfileCategory.MEDIC)
+      ) {
+        try {
+          const tabClients: User[] = [];
+          const clientsList = await clientService.getClientListByProfessionalId(
+            user.id,
+            token
+          );
+          if (clientsList.clientIds.length > 0) {
+            for (const clientId of clientsList.clientIds) {
+              let newUser = await UserService.getUserById(clientId, token);
+              if (newUser.profile) {
+                // Attach the correct sportCategory object if needed
+                if (
+                  (newUser.profile as any).sportCategoryId &&
+                  sportCategories.length > 0
+                ) {
+                  const sportCategoryId = (newUser.profile as any)
+                    .sportCategoryId;
+                  const cat = sportCategories.find(
+                    (c) => c.id === sportCategoryId
+                  );
+                  // Mutate the profile object to add the category
+                  (newUser.profile as any).sportCategory = cat;
+                }
+                tabClients.push({
+                  ...newUser.user,
+                  profile: newUser.profile,
+                });
+              } else {
+                tabClients.push(newUser.user);
+              }
+            }
+          }
+          setProClients(tabClients);
+        } catch (e) {
+          console.log("Error while fetching pro clients", e);
+        }
+      }
+    }
+    fetchProClients();
+  }, [token, sportCategories, user]);
 
   type NavigationProp = NativeStackNavigationProp<
     RootStackParamList,
@@ -721,441 +773,481 @@ export default function UsersScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ flexGrow: 1 }}
       >
-        {displayUsersList && (
-          <View style={{ flexDirection: "column", gap: 24 }}>
-            <ViewController
-              tabs={[
-                { title: "Sportifs", icon: "medal" },
-                { title: "Coachs", icon: "dumbell" },
-                { title: "Soignants", icon: "medic" },
-                ...(user?.profileCategory === "admin"
-                  ? [{ title: "Parternaires", icon: "handshake" as IconName }]
-                  : []),
-              ]}
-              onTabChange={handleTabChange}
-            />
-            {tabViews[activeTabIndex]}
-            {user?.profileCategory === "admin" && (
-              <View style={{ flexDirection: "row", justifyContent: "center" }}>
-                <AppButton
-                  type="add"
-                  iconName="plus"
-                  onPress={handleDisplayUserList}
-                />
-              </View>
-            )}
-          </View>
-        )}
-
-        {!displayUsersList && (
-          <View style={{ flexDirection: "column", gap: 24 }}>
-            <AppText>
-              Suivez ces étapes pour ajouter un nouvel utilisateur :
-            </AppText>
-
-            <View style={{ flexDirection: "column", gap: 16 }}>
-              <AppText style={{ fontWeight: "bold" }}>
-                Étape {stepNewUserView + 1} / {getStepsForUserType().length}
-              </AppText>
-
-              <View style={{ flexDirection: "row", gap: 8 }}>
-                {getStepsForUserType().map((stepIndex, index) => (
-                  <View
-                    key={stepIndex}
-                    style={{
-                      flex: 1,
-                      height: 12,
-                      borderRadius: 8,
-                      backgroundColor:
-                        stepIndex <= stepNewUserView ? "#2563EB" : "#D9D9D9",
-                    }}
+        {user?.profileCategory === ProfileCategory.ADMIN &&
+          (displayUsersList ? (
+            <View style={{ flexDirection: "column", gap: 24 }}>
+              <ViewController
+                tabs={[
+                  { title: "Sportifs", icon: "medal" },
+                  { title: "Coachs", icon: "dumbell" },
+                  { title: "Soignants", icon: "medic" },
+                  ...(user?.profileCategory === "admin"
+                    ? [{ title: "Parternaires", icon: "handshake" as IconName }]
+                    : []),
+                ]}
+                onTabChange={handleTabChange}
+              />
+              {tabViews[activeTabIndex]}
+              {user?.profileCategory === "admin" && (
+                <View
+                  style={{ flexDirection: "row", justifyContent: "center" }}
+                >
+                  <AppButton
+                    type="add"
+                    iconName="plus"
+                    onPress={handleDisplayUserList}
                   />
-                ))}
-              </View>
-
-              <AppText style={{ fontWeight: "bold" }}>
-                {getStepTitle(stepNewUserView)}
-              </AppText>
+                </View>
+              )}
             </View>
+          ) : (
+            <View style={{ flexDirection: "column", gap: 24 }}>
+              <AppText>
+                Suivez ces étapes pour ajouter un nouvel utilisateur :
+              </AppText>
 
-            {/* Étape 0: Informations personnelles */}
-            {stepNewUserView === 0 && (
               <View style={{ flexDirection: "column", gap: 16 }}>
-                <View
-                  style={{
-                    flexDirection: "row",
-                    justifyContent: "space-between",
-                  }}
-                >
-                  <View style={{ width: "48%" }}>
-                    <Input
-                      type="text"
-                      label="Nom"
-                      placeholder="DOE"
-                      value={formData.lastName}
-                      onChangeText={(v) => handleInputChange("lastName", v)}
+                <AppText style={{ fontWeight: "bold" }}>
+                  Étape {stepNewUserView + 1} / {getStepsForUserType().length}
+                </AppText>
+
+                <View style={{ flexDirection: "row", gap: 8 }}>
+                  {getStepsForUserType().map((stepIndex, index) => (
+                    <View
+                      key={stepIndex}
+                      style={{
+                        flex: 1,
+                        height: 12,
+                        borderRadius: 8,
+                        backgroundColor:
+                          stepIndex <= stepNewUserView ? "#2563EB" : "#D9D9D9",
+                      }}
                     />
-                    {formErrors.lastName && (
-                      <AppText style={{ color: Colors.lightRed, fontSize: 12 }}>
-                        {formErrors.lastName}
-                      </AppText>
-                    )}
-                  </View>
-                  <View style={{ width: "48%" }}>
-                    <Input
-                      type="text"
-                      label="Prénom"
-                      placeholder="John"
-                      value={formData.firstName}
-                      onChangeText={(v) => handleInputChange("firstName", v)}
-                    />
-                    {formErrors.firstName && (
-                      <AppText style={{ color: Colors.lightRed, fontSize: 12 }}>
-                        {formErrors.firstName}
-                      </AppText>
-                    )}
-                  </View>
+                  ))}
                 </View>
 
-                <Input
-                  type="text"
-                  label="Téléphone"
-                  placeholder="XXXXXXXXXX"
-                  value={formData.phone || ""}
-                  onChangeText={(v) => handleInputChange("phone", v)}
-                />
-
-                <Input
-                  type="email"
-                  label="Email"
-                  placeholder="exemple@mail.com"
-                  value={formData.email}
-                  onChangeText={(v) => handleInputChange("email", v)}
-                />
-                {formErrors.email && (
-                  <AppText style={{ color: Colors.lightRed, fontSize: 12 }}>
-                    {formErrors.email}
-                  </AppText>
-                )}
-
-                <Input
-                  type="date"
-                  label="Date de naissance"
-                  placeholder="XX/XX/XXXX"
-                  value={formData.birthDate}
-                  onChangeText={(v) => handleInputChange("birthDate", v)}
-                />
-                {formErrors.birthDate && (
-                  <AppText style={{ color: Colors.lightRed, fontSize: 12 }}>
-                    {formErrors.birthDate}
-                  </AppText>
-                )}
-
-                <Input
-                  type="text"
-                  label="Adresse"
-                  placeholder="Rue"
-                  value={formData.street || ""}
-                  onChangeText={(v) => handleInputChange("street", v)}
-                />
-
-                <View
-                  style={{
-                    flexDirection: "row",
-                    justifyContent: "space-between",
-                  }}
-                >
-                  <View style={{ width: "48%" }}>
-                    <Input
-                      type="text"
-                      label="Ville"
-                      placeholder="Vannes"
-                      value={formData.city}
-                      onChangeText={(v) => handleInputChange("city", v)}
-                    />
-                    {formErrors.city && (
-                      <AppText style={{ color: Colors.lightRed, fontSize: 12 }}>
-                        {formErrors.city}
-                      </AppText>
-                    )}
-                  </View>
-                  <View style={{ width: "48%" }}>
-                    <Input
-                      type="text"
-                      label="Code postal"
-                      placeholder="56000"
-                      value={formData.postalCode}
-                      onChangeText={(v) => handleInputChange("postalCode", v)}
-                    />
-                    {formErrors.postalCode && (
-                      <AppText style={{ color: Colors.lightRed, fontSize: 12 }}>
-                        {formErrors.postalCode}
-                      </AppText>
-                    )}
-                  </View>
-                </View>
+                <AppText style={{ fontWeight: "bold" }}>
+                  {getStepTitle(stepNewUserView)}
+                </AppText>
               </View>
-            )}
 
-            {/* Étape 1: Informations administratives */}
-            {stepNewUserView === 1 && (
-              <View style={{ flexDirection: "column", gap: 16 }}>
-                <Input
-                  type="selector"
-                  label="Rôle"
-                  options={[
-                    { label: "Sportif", value: ProfileCategory.SPORTSMAN },
-                    { label: "Soignant", value: ProfileCategory.MEDIC },
-                    { label: "Coach", value: ProfileCategory.COACH },
-                    { label: "Partenaire", value: ProfileCategory.PARTNER },
-                    { label: "Compte free", value: ProfileCategory.FREE },
-                  ]}
-                  value={newUserType}
-                  onChangeText={(value) =>
-                    setNewUserType(value as ProfileCategory)
-                  }
-                />
-                {formErrors.profileCategory && (
-                  <AppText style={{ color: Colors.lightRed, fontSize: 12 }}>
-                    {formErrors.profileCategory}
-                  </AppText>
-                )}
-
-                {(newUserType === ProfileCategory.MEDIC ||
-                  newUserType === ProfileCategory.COACH) && (
-                  <Input
-                    type="checkbox"
-                    label="Peut créer / importer des entrainements et des exercices"
-                    value={formData.canImportSessions || false}
-                    onChange={(v) => handleInputChange("canImportSessions", v)}
-                  />
-                )}
-
-                {newUserType === ProfileCategory.MEDIC && (
-                  <>
-                    <Input
-                      type="selector"
-                      label="Profession"
-                      options={medicCategories.map((cat) => ({
-                        label: cat.label,
-                        value: cat.id.toString(),
-                      }))}
-                      value={formData.medicCategoryId?.toString() || ""}
-                      onChangeText={(v) =>
-                        handleInputChange("medicCategoryId", parseInt(v))
-                      }
-                    />
-                    {formErrors.medicCategoryId && (
-                      <AppText style={{ color: Colors.lightRed, fontSize: 12 }}>
-                        {formErrors.medicCategoryId}
-                      </AppText>
-                    )}
-                  </>
-                )}
-
-                {newUserType === ProfileCategory.COACH && (
-                  <>
-                    <Input
-                      type="selector"
-                      label="Sport"
-                      options={sportCategories.map((cat) => ({
-                        label: cat.label,
-                        value: cat.id.toString(),
-                      }))}
-                      value={formData.sportCategoryId?.toString() || ""}
-                      onChangeText={(v) =>
-                        handleInputChange("sportCategoryId", parseInt(v))
-                      }
-                    />
-                    {formErrors.sportCategoryId && (
-                      <AppText style={{ color: Colors.lightRed, fontSize: 12 }}>
-                        {formErrors.sportCategoryId}
-                      </AppText>
-                    )}
-                  </>
-                )}
-
-                {newUserType === ProfileCategory.SPORTSMAN && (
-                  <>
-                    <Input
-                      type="selector"
-                      label="Sport"
-                      options={sportCategories.map((cat) => ({
-                        label: cat.label,
-                        value: cat.id.toString(),
-                      }))}
-                      value={formData.sportCategoryId?.toString() || ""}
-                      onChangeText={(v) =>
-                        handleInputChange("sportCategoryId", parseInt(v))
-                      }
-                    />
-                    {formErrors.sportCategoryId && (
-                      <AppText style={{ color: Colors.lightRed, fontSize: 12 }}>
-                        {formErrors.sportCategoryId}
-                      </AppText>
-                    )}
-                  </>
-                )}
-              </View>
-            )}
-            {newUserType === ProfileCategory.PARTNER && (
-              <>
-                <Input
-                  type="selector"
-                  label="Entreprise"
-                  options={companies.map((company) => ({
-                    label: company.name,
-                    value: company.id.toString(),
-                  }))}
-                  value={formData.companyId?.toString() || ""}
-                  onChangeText={(v) =>
-                    handleInputChange("companyId", parseInt(v))
-                  }
-                />
-                {formErrors.companyId && (
-                  <AppText style={{ color: Colors.lightRed, fontSize: 12 }}>
-                    {formErrors.companyId}
-                  </AppText>
-                )}
-              </>
-            )}
-
-            {/* Étape 2: Plans d'entraînements (sportifs uniquement) */}
-            {stepNewUserView === 2 &&
-              newUserType === ProfileCategory.SPORTSMAN && (
+              {/* Étape 0: Informations personnelles */}
+              {stepNewUserView === 0 && (
                 <View style={{ flexDirection: "column", gap: 16 }}>
-                  <Input
-                    type="text"
-                    label="Libellé de la prestation"
-                    placeholder="Libellé"
-                    value={formData.objectiveLabel || ""}
-                    onChangeText={(v) => handleInputChange("objectiveLabel", v)}
-                  />
-                  {formErrors.objectiveLabel && (
-                    <AppText style={{ color: Colors.lightRed, fontSize: 12 }}>
-                      {formErrors.objectiveLabel}
-                    </AppText>
-                  )}
-
-                  <Input
-                    type="date"
-                    label="Date de début"
-                    placeholder="XX/XX/XXXX"
-                    value={formData.objectiveStartDate || ""}
-                    onChangeText={(v) =>
-                      handleInputChange("objectiveStartDate", v)
-                    }
-                  />
-                  {formErrors.objectiveStartDate && (
-                    <AppText style={{ color: Colors.lightRed, fontSize: 12 }}>
-                      {formErrors.objectiveStartDate}
-                    </AppText>
-                  )}
-
-                  <Input
-                    type="date"
-                    label="Date de fin"
-                    placeholder="XX/XX/XXXX"
-                    value={formData.objectiveEndDate || ""}
-                    onChangeText={(v) =>
-                      handleInputChange("objectiveEndDate", v)
-                    }
-                  />
-                  {formErrors.objectiveEndDate && (
-                    <AppText style={{ color: Colors.lightRed, fontSize: 12 }}>
-                      {formErrors.objectiveEndDate}
-                    </AppText>
-                  )}
-
-                  <View style={{ flexDirection: "column", gap: 8 }}>
-                    <AppText>Tarification complète par défaut</AppText>
-                    <Input
-                      type="checkbox"
-                      label="Passer en tarification par mois"
-                      value={formData.objectiveIsMonthly || false}
-                      onChange={(v) =>
-                        handleInputChange("objectiveIsMonthly", v)
-                      }
-                    />
-                  </View>
-
-                  <Input
-                    type="text"
-                    label={
-                      formData.objectiveIsMonthly
-                        ? "Tarification par mois"
-                        : "Tarification totale"
-                    }
-                    placeholder={
-                      formData.objectiveIsMonthly ? "XX€/mois" : "XX€"
-                    }
-                    value={
-                      formData.objectiveIsMonthly
-                        ? formData.billingMonthlyAmount || ""
-                        : formData.billingTotalAmount || ""
-                    }
-                    onChangeText={(v) =>
-                      handleInputChange(
-                        formData.objectiveIsMonthly
-                          ? "billingMonthlyAmount"
-                          : "billingTotalAmount",
-                        v
-                      )
-                    }
-                  />
-                  <Pressable
-                    onPress={handleCoachPopUpVisible}
+                  <View
                     style={{
-                      paddingHorizontal: 8,
-                      paddingVertical: 6,
-                      borderRadius: 8,
-                      borderWidth: 1,
-                      borderColor: Colors.deepBlue,
-                      marginTop: 8,
+                      flexDirection: "row",
+                      justifyContent: "space-between",
                     }}
                   >
-                    {selectedCoach ? (
-                      <AppText>
-                        {selectedCoach.firstName} {selectedCoach.lastName}
-                      </AppText>
-                    ) : (
-                      <AppText style={{ color: Colors.grey }}>
-                        Sélectionnez un coach à affecter
-                      </AppText>
-                    )}
-                  </Pressable>
-                  <AppText>
-                    Le coach sélectionné sera responsable de l'objectif de ce
-                    sportif.
-                  </AppText>
+                    <View style={{ width: "48%" }}>
+                      <Input
+                        type="text"
+                        label="Nom"
+                        placeholder="DOE"
+                        value={formData.lastName}
+                        onChangeText={(v) => handleInputChange("lastName", v)}
+                      />
+                      {formErrors.lastName && (
+                        <AppText
+                          style={{ color: Colors.lightRed, fontSize: 12 }}
+                        >
+                          {formErrors.lastName}
+                        </AppText>
+                      )}
+                    </View>
+                    <View style={{ width: "48%" }}>
+                      <Input
+                        type="text"
+                        label="Prénom"
+                        placeholder="John"
+                        value={formData.firstName}
+                        onChangeText={(v) => handleInputChange("firstName", v)}
+                      />
+                      {formErrors.firstName && (
+                        <AppText
+                          style={{ color: Colors.lightRed, fontSize: 12 }}
+                        >
+                          {formErrors.firstName}
+                        </AppText>
+                      )}
+                    </View>
+                  </View>
+
+                  <Input
+                    type="text"
+                    label="Téléphone"
+                    placeholder="XXXXXXXXXX"
+                    value={formData.phone || ""}
+                    onChangeText={(v) => handleInputChange("phone", v)}
+                  />
+
+                  <Input
+                    type="email"
+                    label="Email"
+                    placeholder="exemple@mail.com"
+                    value={formData.email}
+                    onChangeText={(v) => handleInputChange("email", v)}
+                  />
+                  {formErrors.email && (
+                    <AppText style={{ color: Colors.lightRed, fontSize: 12 }}>
+                      {formErrors.email}
+                    </AppText>
+                  )}
+
+                  <Input
+                    type="date"
+                    label="Date de naissance"
+                    placeholder="XX/XX/XXXX"
+                    value={formData.birthDate}
+                    onChangeText={(v) => handleInputChange("birthDate", v)}
+                  />
+                  {formErrors.birthDate && (
+                    <AppText style={{ color: Colors.lightRed, fontSize: 12 }}>
+                      {formErrors.birthDate}
+                    </AppText>
+                  )}
+
+                  <Input
+                    type="text"
+                    label="Adresse"
+                    placeholder="Rue"
+                    value={formData.street || ""}
+                    onChangeText={(v) => handleInputChange("street", v)}
+                  />
+
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      justifyContent: "space-between",
+                    }}
+                  >
+                    <View style={{ width: "48%" }}>
+                      <Input
+                        type="text"
+                        label="Ville"
+                        placeholder="Vannes"
+                        value={formData.city}
+                        onChangeText={(v) => handleInputChange("city", v)}
+                      />
+                      {formErrors.city && (
+                        <AppText
+                          style={{ color: Colors.lightRed, fontSize: 12 }}
+                        >
+                          {formErrors.city}
+                        </AppText>
+                      )}
+                    </View>
+                    <View style={{ width: "48%" }}>
+                      <Input
+                        type="text"
+                        label="Code postal"
+                        placeholder="56000"
+                        value={formData.postalCode}
+                        onChangeText={(v) => handleInputChange("postalCode", v)}
+                      />
+                      {formErrors.postalCode && (
+                        <AppText
+                          style={{ color: Colors.lightRed, fontSize: 12 }}
+                        >
+                          {formErrors.postalCode}
+                        </AppText>
+                      )}
+                    </View>
+                  </View>
                 </View>
               )}
 
-            {/* Étape 3: Disponibilités (sportifs uniquement) */}
-            {stepNewUserView === 3 &&
-              newUserType === ProfileCategory.SPORTSMAN && (
+              {/* Étape 1: Informations administratives */}
+              {stepNewUserView === 1 && (
                 <View style={{ flexDirection: "column", gap: 16 }}>
-                  <AppText style={{ fontWeight: "bold" }}>
-                    Définir les disponibilités
-                  </AppText>
-
-                  {/* Jours disponibles */}
                   <Input
-                    type="multiSelector"
-                    label="Jours disponibles"
-                    placeholder="Sélectionnez les jours"
+                    type="selector"
+                    label="Rôle"
                     options={[
-                      { label: "Lundi", value: "monday" },
-                      { label: "Mardi", value: "tuesday" },
-                      { label: "Mercredi", value: "wednesday" },
-                      { label: "Jeudi", value: "thursday" },
-                      { label: "Vendredi", value: "friday" },
-                      { label: "Samedi", value: "saturday" },
-                      { label: "Dimanche", value: "sunday" },
+                      { label: "Sportif", value: ProfileCategory.SPORTSMAN },
+                      { label: "Soignant", value: ProfileCategory.MEDIC },
+                      { label: "Coach", value: ProfileCategory.COACH },
+                      { label: "Partenaire", value: ProfileCategory.PARTNER },
+                      { label: "Compte free", value: ProfileCategory.FREE },
                     ]}
-                    value={
-                      // Convert binary string to array of selected days
-                      (() => {
+                    value={newUserType}
+                    onChangeText={(value) =>
+                      setNewUserType(value as ProfileCategory)
+                    }
+                  />
+                  {formErrors.profileCategory && (
+                    <AppText style={{ color: Colors.lightRed, fontSize: 12 }}>
+                      {formErrors.profileCategory}
+                    </AppText>
+                  )}
+
+                  {(newUserType === ProfileCategory.MEDIC ||
+                    newUserType === ProfileCategory.COACH) && (
+                    <Input
+                      type="checkbox"
+                      label="Peut créer / importer des entrainements et des exercices"
+                      value={formData.canImportSessions || false}
+                      onChange={(v) =>
+                        handleInputChange("canImportSessions", v)
+                      }
+                    />
+                  )}
+
+                  {newUserType === ProfileCategory.MEDIC && (
+                    <>
+                      <Input
+                        type="selector"
+                        label="Profession"
+                        options={medicCategories.map((cat) => ({
+                          label: cat.label,
+                          value: cat.id.toString(),
+                        }))}
+                        value={formData.medicCategoryId?.toString() || ""}
+                        onChangeText={(v) =>
+                          handleInputChange("medicCategoryId", parseInt(v))
+                        }
+                      />
+                      {formErrors.medicCategoryId && (
+                        <AppText
+                          style={{ color: Colors.lightRed, fontSize: 12 }}
+                        >
+                          {formErrors.medicCategoryId}
+                        </AppText>
+                      )}
+                    </>
+                  )}
+
+                  {newUserType === ProfileCategory.COACH && (
+                    <>
+                      <Input
+                        type="selector"
+                        label="Sport"
+                        options={sportCategories.map((cat) => ({
+                          label: cat.label,
+                          value: cat.id.toString(),
+                        }))}
+                        value={formData.sportCategoryId?.toString() || ""}
+                        onChangeText={(v) =>
+                          handleInputChange("sportCategoryId", parseInt(v))
+                        }
+                      />
+                      {formErrors.sportCategoryId && (
+                        <AppText
+                          style={{ color: Colors.lightRed, fontSize: 12 }}
+                        >
+                          {formErrors.sportCategoryId}
+                        </AppText>
+                      )}
+                    </>
+                  )}
+
+                  {newUserType === ProfileCategory.SPORTSMAN && (
+                    <>
+                      <Input
+                        type="selector"
+                        label="Sport"
+                        options={sportCategories.map((cat) => ({
+                          label: cat.label,
+                          value: cat.id.toString(),
+                        }))}
+                        value={formData.sportCategoryId?.toString() || ""}
+                        onChangeText={(v) =>
+                          handleInputChange("sportCategoryId", parseInt(v))
+                        }
+                      />
+                      {formErrors.sportCategoryId && (
+                        <AppText
+                          style={{ color: Colors.lightRed, fontSize: 12 }}
+                        >
+                          {formErrors.sportCategoryId}
+                        </AppText>
+                      )}
+                    </>
+                  )}
+                </View>
+              )}
+              {newUserType === ProfileCategory.PARTNER && (
+                <>
+                  <Input
+                    type="selector"
+                    label="Entreprise"
+                    options={companies.map((company) => ({
+                      label: company.name,
+                      value: company.id.toString(),
+                    }))}
+                    value={formData.companyId?.toString() || ""}
+                    onChangeText={(v) =>
+                      handleInputChange("companyId", parseInt(v))
+                    }
+                  />
+                  {formErrors.companyId && (
+                    <AppText style={{ color: Colors.lightRed, fontSize: 12 }}>
+                      {formErrors.companyId}
+                    </AppText>
+                  )}
+                </>
+              )}
+
+              {/* Étape 2: Plans d'entraînements (sportifs uniquement) */}
+              {stepNewUserView === 2 &&
+                newUserType === ProfileCategory.SPORTSMAN && (
+                  <View style={{ flexDirection: "column", gap: 16 }}>
+                    <Input
+                      type="text"
+                      label="Libellé de la prestation"
+                      placeholder="Libellé"
+                      value={formData.objectiveLabel || ""}
+                      onChangeText={(v) =>
+                        handleInputChange("objectiveLabel", v)
+                      }
+                    />
+                    {formErrors.objectiveLabel && (
+                      <AppText style={{ color: Colors.lightRed, fontSize: 12 }}>
+                        {formErrors.objectiveLabel}
+                      </AppText>
+                    )}
+
+                    <Input
+                      type="date"
+                      label="Date de début"
+                      placeholder="XX/XX/XXXX"
+                      value={formData.objectiveStartDate || ""}
+                      onChangeText={(v) =>
+                        handleInputChange("objectiveStartDate", v)
+                      }
+                    />
+                    {formErrors.objectiveStartDate && (
+                      <AppText style={{ color: Colors.lightRed, fontSize: 12 }}>
+                        {formErrors.objectiveStartDate}
+                      </AppText>
+                    )}
+
+                    <Input
+                      type="date"
+                      label="Date de fin"
+                      placeholder="XX/XX/XXXX"
+                      value={formData.objectiveEndDate || ""}
+                      onChangeText={(v) =>
+                        handleInputChange("objectiveEndDate", v)
+                      }
+                    />
+                    {formErrors.objectiveEndDate && (
+                      <AppText style={{ color: Colors.lightRed, fontSize: 12 }}>
+                        {formErrors.objectiveEndDate}
+                      </AppText>
+                    )}
+
+                    <View style={{ flexDirection: "column", gap: 8 }}>
+                      <AppText>Tarification complète par défaut</AppText>
+                      <Input
+                        type="checkbox"
+                        label="Passer en tarification par mois"
+                        value={formData.objectiveIsMonthly || false}
+                        onChange={(v) =>
+                          handleInputChange("objectiveIsMonthly", v)
+                        }
+                      />
+                    </View>
+
+                    <Input
+                      type="text"
+                      label={
+                        formData.objectiveIsMonthly
+                          ? "Tarification par mois"
+                          : "Tarification totale"
+                      }
+                      placeholder={
+                        formData.objectiveIsMonthly ? "XX€/mois" : "XX€"
+                      }
+                      value={
+                        formData.objectiveIsMonthly
+                          ? formData.billingMonthlyAmount || ""
+                          : formData.billingTotalAmount || ""
+                      }
+                      onChangeText={(v) =>
+                        handleInputChange(
+                          formData.objectiveIsMonthly
+                            ? "billingMonthlyAmount"
+                            : "billingTotalAmount",
+                          v
+                        )
+                      }
+                    />
+                    <Pressable
+                      onPress={handleCoachPopUpVisible}
+                      style={{
+                        paddingHorizontal: 8,
+                        paddingVertical: 6,
+                        borderRadius: 8,
+                        borderWidth: 1,
+                        borderColor: Colors.deepBlue,
+                        marginTop: 8,
+                      }}
+                    >
+                      {selectedCoach ? (
+                        <AppText>
+                          {selectedCoach.firstName} {selectedCoach.lastName}
+                        </AppText>
+                      ) : (
+                        <AppText style={{ color: Colors.grey }}>
+                          Sélectionnez un coach à affecter
+                        </AppText>
+                      )}
+                    </Pressable>
+                    <AppText>
+                      Le coach sélectionné sera responsable de l'objectif de ce
+                      sportif.
+                    </AppText>
+                  </View>
+                )}
+
+              {/* Étape 3: Disponibilités (sportifs uniquement) */}
+              {stepNewUserView === 3 &&
+                newUserType === ProfileCategory.SPORTSMAN && (
+                  <View style={{ flexDirection: "column", gap: 16 }}>
+                    <AppText style={{ fontWeight: "bold" }}>
+                      Définir les disponibilités
+                    </AppText>
+
+                    {/* Jours disponibles */}
+                    <Input
+                      type="multiSelector"
+                      label="Jours disponibles"
+                      placeholder="Sélectionnez les jours"
+                      options={[
+                        { label: "Lundi", value: "monday" },
+                        { label: "Mardi", value: "tuesday" },
+                        { label: "Mercredi", value: "wednesday" },
+                        { label: "Jeudi", value: "thursday" },
+                        { label: "Vendredi", value: "friday" },
+                        { label: "Samedi", value: "saturday" },
+                        { label: "Dimanche", value: "sunday" },
+                      ]}
+                      value={
+                        // Convert binary string to array of selected days
+                        (() => {
+                          const days = [
+                            "monday",
+                            "tuesday",
+                            "wednesday",
+                            "thursday",
+                            "friday",
+                            "saturday",
+                            "sunday",
+                          ];
+                          if (
+                            !formData.availableDays ||
+                            formData.availableDays.length !== 7
+                          )
+                            return [];
+                          return days.filter(
+                            (day, idx) => formData.availableDays![idx] === "1"
+                          );
+                        })()
+                      }
+                      onChangeText={(selected: string) => {
+                        // Convert selected days array to binary string
                         const days = [
                           "monday",
                           "tuesday",
@@ -1165,52 +1257,50 @@ export default function UsersScreen() {
                           "saturday",
                           "sunday",
                         ];
-                        if (
-                          !formData.availableDays ||
-                          formData.availableDays.length !== 7
-                        )
-                          return [];
-                        return days.filter(
-                          (day, idx) => formData.availableDays![idx] === "1"
-                        );
-                      })()
-                    }
-                    onChangeText={(selected: string) => {
-                      // Convert selected days array to binary string
-                      const days = [
-                        "monday",
-                        "tuesday",
-                        "wednesday",
-                        "thursday",
-                        "friday",
-                        "saturday",
-                        "sunday",
-                      ];
-                      const binary = days
-                        .map((day) => (selected.includes(day) ? "1" : "0"))
-                        .join("");
-                      handleInputChange("availableDays", binary);
-                    }}
-                  />
-                  <AppText style={GlobalStyles.span}>
-                    Sélectionnez les jours où le sportif est disponible
-                  </AppText>
+                        const binary = days
+                          .map((day) => (selected.includes(day) ? "1" : "0"))
+                          .join("");
+                        handleInputChange("availableDays", binary);
+                      }}
+                    />
+                    <AppText style={GlobalStyles.span}>
+                      Sélectionnez les jours où le sportif est disponible
+                    </AppText>
 
-                  {/* Créneaux horaires */}
-                  <Input
-                    type="multiSelector"
-                    label="Créneaux horaires"
-                    placeholder="Sélectionnez un créneau"
-                    options={[
-                      { label: "07:00 - 10:00", value: "7-10" },
-                      { label: "10:00 - 13:00", value: "10-13" },
-                      { label: "13:00 - 16:00", value: "13-16" },
-                      { label: "16:00 - 19:00", value: "16-19" },
-                      { label: "19:00 - 22:00", value: "19-22" },
-                    ]}
-                    value={
-                      // Convert binary string to array of selected slots
-                      (() => {
+                    {/* Créneaux horaires */}
+                    <Input
+                      type="multiSelector"
+                      label="Créneaux horaires"
+                      placeholder="Sélectionnez un créneau"
+                      options={[
+                        { label: "07:00 - 10:00", value: "7-10" },
+                        { label: "10:00 - 13:00", value: "10-13" },
+                        { label: "13:00 - 16:00", value: "13-16" },
+                        { label: "16:00 - 19:00", value: "16-19" },
+                        { label: "19:00 - 22:00", value: "19-22" },
+                      ]}
+                      value={
+                        // Convert binary string to array of selected slots
+                        (() => {
+                          const slots = [
+                            "7-10",
+                            "10-13",
+                            "13-16",
+                            "16-19",
+                            "19-22",
+                          ];
+                          if (
+                            !formData.availableTime ||
+                            formData.availableTime.length !== 5
+                          )
+                            return [];
+                          return slots.filter(
+                            (slot, idx) => formData.availableTime![idx] === "1"
+                          );
+                        })()
+                      }
+                      onChangeText={(selected: string) => {
+                        // Convert selected slots array to binary string
                         const slots = [
                           "7-10",
                           "10-13",
@@ -1218,146 +1308,177 @@ export default function UsersScreen() {
                           "16-19",
                           "19-22",
                         ];
-                        if (
-                          !formData.availableTime ||
-                          formData.availableTime.length !== 5
-                        )
-                          return [];
-                        return slots.filter(
-                          (slot, idx) => formData.availableTime![idx] === "1"
-                        );
-                      })()
-                    }
-                    onChangeText={(selected: string) => {
-                      // Convert selected slots array to binary string
-                      const slots = [
-                        "7-10",
-                        "10-13",
-                        "13-16",
-                        "16-19",
-                        "19-22",
-                      ];
-                      const binary = slots
-                        .map((slot) => (selected.includes(slot) ? "1" : "0"))
-                        .join("");
-                      handleInputChange("availableTime", binary);
-                    }}
-                  />
-                  <AppText style={GlobalStyles.span}>
-                    Sélectionnez le créneau horaire de disponibilité (3h)
-                  </AppText>
-                </View>
-              )}
-
-            {/* Étape 4: Soignants à affecter (sportifs uniquement) */}
-            {stepNewUserView === 4 &&
-              newUserType === ProfileCategory.SPORTSMAN && (
-                <View style={{ flexDirection: "column", gap: 16 }}>
-                  <AppText style={{ fontWeight: "bold" }}>
-                    Soignants à affecter
-                  </AppText>
-                  <AppText>
-                    Cette étape permet d'affecter des soignants au sportif.
-                  </AppText>
-
-                  <Pressable
-                    onPress={() => handleContactPopUpVisible()}
-                    style={{
-                      paddingHorizontal: 8,
-                      paddingVertical: 6,
-                      borderRadius: 8,
-                      borderWidth: 1,
-                      borderColor: Colors.deepBlue,
-                      marginTop: 8,
-                    }}
-                  >
-                    {selectedUsers.length !== 0 ? (
-                      selectedUsers.map((user) => (
-                        <AppText key={user.id}>
-                          {user.firstName} {user.lastName}
-                        </AppText>
-                      ))
-                    ) : (
-                      <AppText style={{ color: Colors.grey }}>
-                        Selectionnez une personne à ajouter à l'évenement
-                      </AppText>
-                    )}
-                  </Pressable>
-
-                  <AppText>
-                    Les soignants sélectionnés pourront accéder aux données
-                    médicales de ce sportif.
-                  </AppText>
-                </View>
-              )}
-
-            {/* Étape 5: Offre d'abonnement (sportifs uniquement) */}
-            {stepNewUserView === 5 &&
-              newUserType === ProfileCategory.SPORTSMAN && (
-                <View style={{ flexDirection: "column", gap: 16 }}>
-                  <AppText style={{ fontWeight: "bold" }}>
-                    Offre d'abonnement
-                  </AppText>
-
-                  <Input
-                    type="selector"
-                    label="Sélectionnez le libellé de l'offre d'abonnement"
-                    options={[
-                      { label: "Abonnement Gold", value: "gold" },
-                      { label: "Abonnement Silver", value: "silver" },
-                      { label: "Abonnement Bronze", value: "bronze" },
-                    ]}
-                    value={formData.subscriptionLabel || ""}
-                    onChangeText={(v) =>
-                      handleInputChange("subscriptionLabel", v)
-                    }
-                  />
-
-                  <View>
-                    <AppText style={{ marginBottom: 8 }}>
-                      Contrat d'abonnement
-                    </AppText>
-                    <AppButton
-                      type="secondary"
-                      title="Sélectionner le fichier"
-                      iconName="download"
+                        const binary = slots
+                          .map((slot) => (selected.includes(slot) ? "1" : "0"))
+                          .join("");
+                        handleInputChange("availableTime", binary);
+                      }}
                     />
+                    <AppText style={GlobalStyles.span}>
+                      Sélectionnez le créneau horaire de disponibilité (3h)
+                    </AppText>
                   </View>
-                </View>
-              )}
+                )}
 
-            {/* Navigation entre les étapes */}
-            <View
-              style={{
-                flexDirection: "row",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginTop: 16,
-              }}
-            >
-              {stepNewUserView === 0 ? (
-                <Pressable onPress={handleDisplayUserList}>
-                  <AppText>Annuler</AppText>
-                </Pressable>
-              ) : (
-                <Pressable onPress={handlePrevStep}>
-                  <AppText>Précédent</AppText>
-                </Pressable>
-              )}
+              {/* Étape 4: Soignants à affecter (sportifs uniquement) */}
+              {stepNewUserView === 4 &&
+                newUserType === ProfileCategory.SPORTSMAN && (
+                  <View style={{ flexDirection: "column", gap: 16 }}>
+                    <AppText style={{ fontWeight: "bold" }}>
+                      Soignants à affecter
+                    </AppText>
+                    <AppText>
+                      Cette étape permet d'affecter des soignants au sportif.
+                    </AppText>
 
-              <AppButton
-                type="primary"
-                title={
-                  isLastStep()
-                    ? isLoading
-                      ? "Création..."
-                      : "Créer l'utilisateur"
-                    : "Suivant"
-                }
-                iconName={isLastStep() ? "check" : "chevronRight"}
-                onPress={isLastStep() ? handleCreateUser : handleNextStep}
-                disabled={isLoading}
+                    <Pressable
+                      onPress={() => handleContactPopUpVisible()}
+                      style={{
+                        paddingHorizontal: 8,
+                        paddingVertical: 6,
+                        borderRadius: 8,
+                        borderWidth: 1,
+                        borderColor: Colors.deepBlue,
+                        marginTop: 8,
+                      }}
+                    >
+                      {selectedUsers.length !== 0 ? (
+                        selectedUsers.map((user) => (
+                          <AppText key={user.id}>
+                            {user.firstName} {user.lastName}
+                          </AppText>
+                        ))
+                      ) : (
+                        <AppText style={{ color: Colors.grey }}>
+                          Selectionnez une personne à ajouter à l'évenement
+                        </AppText>
+                      )}
+                    </Pressable>
+
+                    <AppText>
+                      Les soignants sélectionnés pourront accéder aux données
+                      médicales de ce sportif.
+                    </AppText>
+                  </View>
+                )}
+
+              {/* Étape 5: Offre d'abonnement (sportifs uniquement) */}
+              {stepNewUserView === 5 &&
+                newUserType === ProfileCategory.SPORTSMAN && (
+                  <View style={{ flexDirection: "column", gap: 16 }}>
+                    <AppText style={{ fontWeight: "bold" }}>
+                      Offre d'abonnement
+                    </AppText>
+
+                    <Input
+                      type="selector"
+                      label="Sélectionnez le libellé de l'offre d'abonnement"
+                      options={[
+                        { label: "Abonnement Gold", value: "gold" },
+                        { label: "Abonnement Silver", value: "silver" },
+                        { label: "Abonnement Bronze", value: "bronze" },
+                      ]}
+                      value={formData.subscriptionLabel || ""}
+                      onChangeText={(v) =>
+                        handleInputChange("subscriptionLabel", v)
+                      }
+                    />
+
+                    <View>
+                      <AppText style={{ marginBottom: 8 }}>
+                        Contrat d'abonnement
+                      </AppText>
+                      <AppButton
+                        type="secondary"
+                        title="Sélectionner le fichier"
+                        iconName="download"
+                      />
+                    </View>
+                  </View>
+                )}
+
+              {/* Navigation entre les étapes */}
+              <View
+                style={{
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginTop: 16,
+                }}
+              >
+                {stepNewUserView === 0 ? (
+                  <Pressable onPress={handleDisplayUserList}>
+                    <AppText>Annuler</AppText>
+                  </Pressable>
+                ) : (
+                  <Pressable onPress={handlePrevStep}>
+                    <AppText>Précédent</AppText>
+                  </Pressable>
+                )}
+
+                <AppButton
+                  type="primary"
+                  title={
+                    isLastStep()
+                      ? isLoading
+                        ? "Création..."
+                        : "Créer l'utilisateur"
+                      : "Suivant"
+                  }
+                  iconName={isLastStep() ? "check" : "chevronRight"}
+                  onPress={isLastStep() ? handleCreateUser : handleNextStep}
+                  disabled={isLoading}
+                />
+              </View>
+            </View>
+          ))}
+        {(user?.profileCategory === ProfileCategory.COACH ||
+          user?.profileCategory === ProfileCategory.MEDIC) && (
+          <View style={{ flexDirection: "column", gap: 24 }}>
+            <View style={{ flexDirection: "column", gap: 16 }}>
+              <AppText style={GlobalStyles.h3}>MES SPORTIFS</AppText>
+              <Input
+                type="text"
+                label="Rechercher"
+                placeholder="nom, prénom, email..."
+                value={searchTerm}
+                onChangeText={setSearchTerm}
               />
+            </View>
+            <View style={{ flex: 1 }}>
+              <ScrollView
+                style={{ height: 300 }}
+                scrollEnabled
+                nestedScrollEnabled={true}
+              >
+                <View style={{ flexDirection: "column" }}>
+                  {proClients.length === 0 ? (
+                    <AppText>Aucun clients liés à votre compte</AppText>
+                  ) : (
+                    proClients.map((client, index) => (
+                      <Pressable
+                        onPress={() => {
+                          navigation.navigate("ClientDetail", {
+                            client: client,
+                          });
+                        }}
+                        key={client.id}
+                        style={{
+                          marginBottom:
+                            index === proClients.length - 1 ? 0 : 12,
+                        }}
+                      >
+                        <ItemUser
+                          user={client}
+                          isCompany={false}
+                          iconName="eye"
+                          key={client.id}
+                        />
+                      </Pressable>
+                    ))
+                  )}
+                </View>
+              </ScrollView>
             </View>
           </View>
         )}

@@ -152,11 +152,7 @@ export default function SessionDetailScreen() {
   if (!user || !token) return null;
 
   let isEditable: boolean = false;
-  if (
-    user.profileCategory !== "sportsman" &&
-    user.profileCategory !== "free" &&
-    user.profileCategory !== "partner"
-  ) {
+  if (user.profileCategory === "admin") {
     isEditable = true;
   }
 

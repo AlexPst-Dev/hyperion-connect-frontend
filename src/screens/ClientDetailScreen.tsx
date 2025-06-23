@@ -74,6 +74,8 @@ import { OfferCategory } from "../models/offer";
 import { handleCreateOffer } from "../utils/offer-utils";
 import { CompanyService } from "../services/api/company-service";
 import { notify } from "../components/NotificationContainer";
+import { eventService } from "../services/api/event-service";
+import { CoachingEvent, EventCategory, isCoachingEvent } from "../models/event";
 
 type ClientDetailRouteProp = RouteProp<RootStackParamList, "ClientDetail">;
 
@@ -176,6 +178,26 @@ export default function ClientDetailScreen() {
   const [subscriptionFileOfSportsman, setSubscriptionFileOfSportsman] =
     useState<File | null>(null);
 
+  const [currentCoachingEvents, setCurrentCoachingEvents] = useState<
+    { eventId: number; coachingEvent: CoachingEvent }[]
+  >([]);
+  const [
+    evaluateCoachingEventPopUpVisible,
+    setEvaluateCoachingEventPopUpVisible,
+  ] = useState(false);
+  const [coachCommentNote, setCoachCommentNote] = useState("");
+  const [coachCommentText, setCoachCommentText] = useState("");
+  const [selectedCoachingEvent, setSelectedCoachingEvent] = useState(0);
+
+  const [
+    editGraphOfSportsmanAsCoachVisible,
+    setEditGraphOfSportsmanAsCoachVisible,
+  ] = useState(false);
+  const [editGraphFormAsCoach, setEditGraphFormAsCoach] = useState<{
+    graphTitle: string;
+    graphMeasuredValue: string;
+  }>();
+
   useEffect(() => {
     let isMounted = true;
     async function fetchAllClientData() {
@@ -205,12 +227,13 @@ export default function ClientDetailScreen() {
           token
         ) {
           // Fetch objectives, graph, sessions, exercises, medics, files, billings in parallel
-          const [objectives, graphs, allSessions, exercises] =
+          const [objectives, graphs, allSessions, exercises, eventsComplete] =
             await Promise.all([
               ObjectivesApiService.getObjectivesBySportsman(client.id, token),
               GraphService.getGraphsByUserId(client.id, token),
               SessionService.getAllSessions(token),
               exerciseService.getAllExercises(token),
+              eventService.getEventsByUserId(client.id, token),
             ]);
           if (!isMounted) return;
           setObjectives(objectives);
@@ -218,6 +241,24 @@ export default function ClientDetailScreen() {
           setSportsmanNotes(
             getAllNotes((client.profile as SportsmanProfile)?.listMedicNotes)
           );
+          if (eventsComplete.events.length > 0) {
+            // Filter only coaching events using the type guard
+            const coachingEvents =
+              eventsComplete.events.filter(isCoachingEvent);
+
+            // Fetch full event details for each coaching event in parallel
+            const coachingEventDetails = await Promise.all(
+              coachingEvents.map(async (e) => {
+                const { event } = await eventService.getEventById(e.id, token);
+                // Return both the parent event id and the coaching event details
+                return {
+                  eventId: event.id, // parent event id
+                  coachingEvent: event.specificEvent as CoachingEvent,
+                };
+              })
+            );
+            if (isMounted) setCurrentCoachingEvents(coachingEventDetails);
+          }
 
           const sessionsWithFiles: SessionWithFile[] = await Promise.all(
             allSessions.map(async (session) => ({
@@ -339,26 +380,28 @@ export default function ClientDetailScreen() {
           }
 
           // Billings
-          try {
-            const objectives =
-              await ObjectivesApiService.getObjectivesBySportsman(
-                client.id,
-                token
+          if (user?.profileCategory === ProfileCategory.ADMIN) {
+            try {
+              const objectives =
+                await ObjectivesApiService.getObjectivesBySportsman(
+                  client.id,
+                  token
+                );
+              const activeObjectives = objectives.filter((obj) => obj.isActive);
+              const groups = await Promise.all(
+                activeObjectives.map(async (objective) => {
+                  const { billings } =
+                    await billingService.getBillingsByObjectiveId(
+                      objective.id,
+                      token
+                    );
+                  return { objective, billings };
+                })
               );
-            const activeObjectives = objectives.filter((obj) => obj.isActive);
-            const groups = await Promise.all(
-              activeObjectives.map(async (objective) => {
-                const { billings } =
-                  await billingService.getBillingsByObjectiveId(
-                    objective.id,
-                    token
-                  );
-                return { objective, billings };
-              })
-            );
-            if (isMounted) setBillingGroups(groups);
-          } catch {
-            if (isMounted) setBillingGroups([]);
+              if (isMounted) setBillingGroups(groups);
+            } catch {
+              if (isMounted) setBillingGroups([]);
+            }
           }
         }
       } catch (e) {
@@ -373,6 +416,15 @@ export default function ClientDetailScreen() {
       isMounted = false;
     };
   }, [client, token]);
+
+  useEffect(() => {
+    if (editGraphOfSportsmanAsCoachVisible && graph) {
+      setEditGraphFormAsCoach({
+        graphTitle: graph.title,
+        graphMeasuredValue: graph.measuredValue,
+      });
+    }
+  }, [editGraphOfSportsmanAsCoachVisible, graph]);
 
   const getAge = (birthDate?: string) => {
     if (!birthDate) return "";
@@ -725,6 +777,59 @@ export default function ClientDetailScreen() {
         });
         console.error("Erreur lors de la mise à jour du lien de suivi :", e);
       }
+    }
+  };
+
+  // Handler to add a commentary when set a coaching event at isDone for coach profile
+  const handleAddCommentaryToCoachingEventDone = async (eventId: number) => {
+    if (user && token && coachCommentNote) {
+      const updatedCoachingEvent = await eventService.getEventById(
+        eventId,
+        token
+      );
+      const event = updatedCoachingEvent.event.specificEvent as CoachingEvent;
+      try {
+        eventService.updateEvent(
+          eventId,
+          {
+            coachNote: coachCommentNote,
+            coachComment: coachCommentText,
+            isDone:
+              event.sportsmanComment !== null && event.sportsmanNote !== null
+                ? true
+                : false,
+          },
+          token
+        );
+      } catch (e) {
+        console.log("Error while updating coaching event : ", e);
+      }
+    }
+  };
+
+  const handleUpdateGraphAsCoach = async (
+    newTitle: string,
+    newMeasuredValue: string
+  ) => {
+    if (!graph || !token) return;
+    try {
+      const updatedGraph = await GraphService.updateGraph(
+        graph.id,
+        {
+          title: newTitle,
+          measuredValue: newMeasuredValue,
+        },
+        token
+      );
+      setGraph(updatedGraph);
+      notify({ title: "Graphique mis à jour avec succès", type: "success" });
+      setEditGraphOfSportsmanAsCoachVisible(false);
+    } catch (e) {
+      notify({
+        title: "Erreur lors de la mise à jour du graphique",
+        type: "error",
+      });
+      console.error("Erreur lors de la mise à jour du graphique :", e);
     }
   };
 
@@ -1223,30 +1328,120 @@ export default function ClientDetailScreen() {
           {user.profileCategory === "coach" && (
             <View style={{ flexDirection: "column", gap: 16 }}>
               <AppText style={GlobalStyles.h3}>AVANCEMENT</AppText>
-              <Session
-                title="Séance de fracitionné"
-                isToDo
-                onChangeStateBtnPress={() => {}}
-                hasChangeStateBtn
-                nbExercises={5}
-                durationTime={68}
-                labels={[
-                  <Label
-                    key={1}
-                    backgroundColor="#D6EBFF"
-                    textColor="#1E3A8A"
-                    size="small"
-                    title="Label"
-                  />,
-                  <Label
-                    key={2}
-                    backgroundColor="#D6EBFF"
-                    textColor="#1E3A8A"
-                    size="small"
-                    title="Label"
-                  />,
-                ]}
-              />
+              {currentCoachingEvents.length > 0 ? (
+                currentCoachingEvents
+                  .filter(
+                    (e) =>
+                      e.coachingEvent.isDone === false &&
+                      !e.coachingEvent.coachNote
+                  )
+                  .map(({ eventId, coachingEvent }) => {
+                    if (
+                      coachingEvent.sessionId &&
+                      coachingEvent.session?.label &&
+                      token
+                    ) {
+                      return (
+                        <Session
+                          key={coachingEvent.id}
+                          title={coachingEvent.session?.label}
+                          isToDo
+                          onChangeStateBtnPress={() => {
+                            setSelectedCoachingEvent(eventId);
+                            setEvaluateCoachingEventPopUpVisible(true);
+                          }}
+                          hasChangeStateBtn
+                        />
+                      );
+                    }
+                    return null;
+                  })
+              ) : (
+                <AppText>Aucune session en cours</AppText>
+              )}
+              {evaluateCoachingEventPopUpVisible && (
+                <Modal
+                  visible={evaluateCoachingEventPopUpVisible}
+                  transparent
+                  onRequestClose={() =>
+                    setEvaluateCoachingEventPopUpVisible(false)
+                  }
+                >
+                  <Pressable
+                    onPress={() => setEvaluateCoachingEventPopUpVisible(false)}
+                    style={{
+                      flex: 1,
+                      backgroundColor: "rgba(0,0,0,0.5)",
+                      justifyContent: "center",
+                      padding: 24,
+                    }}
+                  >
+                    <PopUp
+                      onClose={() =>
+                        setEvaluateCoachingEventPopUpVisible(false)
+                      }
+                      title="Evaluer la séance"
+                      paragraph={`Comment estimeriez-vous la motivation de ${client.firstName} ${client.lastName} à cette séance ?`}
+                      onSubmit={() => {
+                        handleAddCommentaryToCoachingEventDone(
+                          selectedCoachingEvent
+                        );
+                        notify({
+                          title: "Evaluation ajoutée avec succès",
+                          type: "success",
+                        });
+                        setEvaluateCoachingEventPopUpVisible(false);
+                      }}
+                      iconName="check"
+                      btnText="Valider"
+                      btnType="primary"
+                      closeText="Annuler"
+                      inputs={
+                        <View style={{ flexDirection: "column", gap: 16 }}>
+                          <Input
+                            type="selector"
+                            label="Note"
+                            options={[
+                              {
+                                label: "1",
+                                value: "1",
+                              },
+                              {
+                                label: "2",
+                                value: "2",
+                              },
+                              {
+                                label: "3",
+                                value: "3",
+                              },
+                              {
+                                label: "4",
+                                value: "4",
+                              },
+                              {
+                                label: "5",
+                                value: "5",
+                              },
+                            ]}
+                            value={coachCommentNote}
+                            onChangeText={(v) => setCoachCommentNote(v)}
+                          />
+                          <AppText>
+                            Souhaitez-vous ajouter un commentaire
+                          </AppText>
+                          <Input
+                            type="text"
+                            label="Commentaire"
+                            placeholder="douleur, fatigue, progression, ..."
+                            value={coachCommentText}
+                            onChangeText={(v) => setCoachCommentText(v)}
+                          />
+                        </View>
+                      }
+                    />
+                  </Pressable>
+                </Modal>
+              )}
             </View>
           )}
         </View>
@@ -1262,41 +1457,58 @@ export default function ClientDetailScreen() {
                   ).toLocaleDateString()
                 : "N/A"}
             </AppText>
-            <View
-              style={{
-                flexDirection: "row",
-                gap: 8,
-                alignItems: "flex-start",
-                marginTop: 8,
+            <Pressable
+              style={[
+                {
+                  flexDirection: "row",
+                  gap: 8,
+                  alignItems: "center",
+                  marginTop: 8,
+                  justifyContent: "center",
+                  paddingVertical: 8,
+                  borderRadius: 4,
+                },
+                GlobalStyles.button_changeState,
+              ]}
+              onPress={() => {
+                if (subscriptionFileOfSportsman?.url) {
+                  Linking.openURL(subscriptionFileOfSportsman.url);
+                }
               }}
             >
               <Icon
                 name="link"
                 fillColor="transparent"
                 strokeColor={Colors.deepBlue}
-                width={24}
-                height={24}
-                onPress={() => {
-                  if (subscriptionFileOfSportsman?.url) {
-                    Linking.openURL(subscriptionFileOfSportsman.url);
-                  }
-                }}
+                width={20}
+                height={20}
               />
-              <AppText>
+              <AppText style={{ color: Colors.deepBlue }}>
                 {subscriptionFileOfSportsman?.url
-                  ? subscriptionFileOfSportsman.url
+                  ? "Voir le document"
                   : "Aucun lien de suivi renseigné."}
               </AppText>
+              <View style={{ marginLeft: 8 }}>
+                <Icon
+                  name="chevronRight"
+                  fillColor="transparent"
+                  strokeColor={Colors.deepBlue}
+                  width={24}
+                  height={24}
+                />
+              </View>
+            </Pressable>
+          </View>
+          {user.profileCategory === ProfileCategory.ADMIN && (
+            <View style={{ flexDirection: "row", justifyContent: "flex-end" }}>
+              <AppButton
+                type="primary"
+                title="Mettre à jour le lien"
+                iconName="link"
+                onPress={() => setChangeTrackingFileLinkPopupVisible(true)}
+              />
             </View>
-          </View>
-          <View style={{ flexDirection: "row", justifyContent: "flex-end" }}>
-            <AppButton
-              type="primary"
-              title="Editer le lien"
-              iconName="link"
-              onPress={() => setChangeTrackingFileLinkPopupVisible(true)}
-            />
-          </View>
+          )}
         </View>
         <Modal
           visible={changeTrackingFileLinkPopupVisible}
@@ -1336,10 +1548,85 @@ export default function ClientDetailScreen() {
           </Pressable>
         </Modal>
         {graph && graph.isActive && (
-          <View>
+          <View style={{ flexDirection: "column", gap: 16 }}>
             <ProgressGraph title={graph.title} data={progressGraphData} />
+            {user.profileCategory === ProfileCategory.COACH && (
+              <AppButton
+                type="primary"
+                title="Modifier"
+                iconName="pencil"
+                onPress={() => setEditGraphOfSportsmanAsCoachVisible(true)}
+                buttonStyle={{ alignSelf: "flex-end" }}
+              />
+            )}
           </View>
         )}
+        {/* Coach graph control */}
+        <Modal
+          visible={editGraphOfSportsmanAsCoachVisible}
+          transparent
+          onRequestClose={() => setEditGraphOfSportsmanAsCoachVisible(false)}
+        >
+          <Pressable
+            onPress={() => setEditGraphOfSportsmanAsCoachVisible(false)}
+            style={{
+              flex: 1,
+              backgroundColor: "rgba(0,0,0,0.5)",
+              justifyContent: "center",
+              padding: 24,
+            }}
+          >
+            <PopUp
+              onClose={() => setEditGraphOfSportsmanAsCoachVisible(false)}
+              title="Changer le graphique du sportif"
+              paragraph="Choisissez comment le sportif verra l'évolution de ses performances"
+              btnText="Valider"
+              iconName="check"
+              btnType="primary"
+              closeText="Annuler"
+              onSubmit={() => {
+                if (editGraphFormAsCoach) {
+                  handleUpdateGraphAsCoach(
+                    editGraphFormAsCoach.graphTitle,
+                    editGraphFormAsCoach.graphMeasuredValue
+                  );
+                }
+              }}
+              inputs={
+                <>
+                  <Input
+                    type="text"
+                    label="Titre"
+                    placeholder={graph?.title ? graph.title : "Evolution de..."}
+                    value={editGraphFormAsCoach?.graphTitle ?? ""}
+                    onChangeText={(v) =>
+                      setEditGraphFormAsCoach((prev) => ({
+                        graphTitle: v,
+                        graphMeasuredValue: prev?.graphMeasuredValue ?? "",
+                      }))
+                    }
+                  />
+                  <Input
+                    type="text"
+                    label="Valeur mesurée"
+                    placeholder={
+                      graph?.measuredValue
+                        ? graph.measuredValue
+                        : "VMA, sommeil..."
+                    }
+                    value={editGraphFormAsCoach?.graphMeasuredValue ?? ""}
+                    onChangeText={(v) =>
+                      setEditGraphFormAsCoach((prev) => ({
+                        graphTitle: prev?.graphTitle ?? "",
+                        graphMeasuredValue: v,
+                      }))
+                    }
+                  />
+                </>
+              }
+            />
+          </Pressable>
+        </Modal>
         {/* User profile management */}
         {user.profileCategory === "admin" && (
           <View style={{ flexDirection: "column", gap: 16 }}>
@@ -1640,6 +1927,63 @@ export default function ClientDetailScreen() {
                   onTabChange={setActiveTabIndex}
                 />
                 {tabViews[activeTabIndex]}
+                {archiveUserPopupVisible && (
+                  <Modal
+                    visible={archiveUserPopupVisible}
+                    transparent
+                    onRequestClose={() => {
+                      setArchiveUserPopupVisible(false);
+                    }}
+                  >
+                    <Pressable
+                      onPress={() => {
+                        setArchiveUserPopupVisible(false);
+                      }}
+                      style={{
+                        flex: 1,
+                        backgroundColor: "rgba(0,0,0,0.5)",
+                        justifyContent: "center",
+                        padding: 24,
+                      }}
+                    >
+                      <PopUp
+                        onClose={() => {
+                          setArchiveUserPopupVisible(false);
+                        }}
+                        title="Archiver l'utilisateur"
+                        btnType="primary"
+                        btnText="Archiver"
+                        iconName="archive"
+                        closeText="Annuler"
+                        onSubmit={async () => {
+                          try {
+                            await UserService.updateUserByProfileAndId(
+                              client.id,
+                              client.profileCategory,
+                              { isActive: false },
+                              token!
+                            );
+                            notify({
+                              title: "Utilisateur archivé",
+                              type: "information",
+                            });
+                            setArchiveUserPopupVisible(false);
+                          } catch (error) {
+                            notify({
+                              title: "Impossible d'archiver l'utilisateur",
+                              type: "error",
+                            });
+                            console.error(
+                              "Erreur lors de l'archivage :",
+                              error
+                            );
+                          }
+                        }}
+                        paragraph="Êtes-vous sûr de vouloir archiver cet utilisateur ?"
+                      />
+                    </Pressable>
+                  </Modal>
+                )}
               </View>
             </>
           );
@@ -1728,7 +2072,7 @@ export default function ClientDetailScreen() {
                   {client.description || "Aucune description renseignée."}
                 </AppText>
                 <View style={{ flexDirection: "column", gap: 16 }}>
-                  <AppText style={GlobalStyles.h2}>SES ATHLETES</AppText>
+                  <AppText style={GlobalStyles.h2}>SES SPORTIFS</AppText>
                   <View style={{ flexDirection: "column", gap: 8 }}>
                     {patientsLoading ? (
                       <AppText>Chargement...</AppText>
@@ -1894,7 +2238,7 @@ export default function ClientDetailScreen() {
                   {client.description || "Aucune description renseignée."}
                 </AppText>
                 <View style={{ flexDirection: "column", gap: 16 }}>
-                  <AppText style={GlobalStyles.h2}>SES ATHLETES</AppText>
+                  <AppText style={GlobalStyles.h2}>SES SPORTIFS</AppText>
                   <View style={{ flexDirection: "column", gap: 8 }}>
                     {loading ? (
                       <AppText>Chargement...</AppText>
@@ -2770,60 +3114,6 @@ export default function ClientDetailScreen() {
         }
       >
         {RenderProfileComponents ? RenderProfileComponents(user) : null}
-        {archiveUserPopupVisible && (
-          <Modal
-            visible={archiveUserPopupVisible}
-            transparent
-            onRequestClose={() => {
-              setArchiveUserPopupVisible(false);
-            }}
-          >
-            <Pressable
-              onPress={() => {
-                setArchiveUserPopupVisible(false);
-              }}
-              style={{
-                flex: 1,
-                backgroundColor: "rgba(0,0,0,0.5)",
-                justifyContent: "center",
-                padding: 24,
-              }}
-            >
-              <PopUp
-                onClose={() => {
-                  setArchiveUserPopupVisible(false);
-                }}
-                title="Archiver l'utilisateur"
-                btnType="primary"
-                btnText="Archiver"
-                iconName="archive"
-                closeText="Annuler"
-                onSubmit={async () => {
-                  try {
-                    await UserService.updateUserByProfileAndId(
-                      client.id,
-                      client.profileCategory,
-                      { isActive: false },
-                      token!
-                    );
-                    notify({
-                      title: "Utilisateur archivé",
-                      type: "information",
-                    });
-                    setArchiveUserPopupVisible(false);
-                  } catch (error) {
-                    notify({
-                      title: "Impossible d'archiver l'utilisateur",
-                      type: "error",
-                    });
-                    console.error("Erreur lors de l'archivage :", error);
-                  }
-                }}
-                paragraph="Êtes-vous sûr de vouloir archiver cet utilisateur ?"
-              />
-            </Pressable>
-          </Modal>
-        )}
       </ScrollView>
     </KeyboardAvoidingView>
   );

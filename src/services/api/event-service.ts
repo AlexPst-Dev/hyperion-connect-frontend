@@ -4,6 +4,7 @@ import {
   EventCompleteResponse,
   EventCategory,
   UpdateEvent,
+  UpdateCoachingEvent,
 } from "../../models/event";
 
 export const eventService = {
@@ -56,7 +57,7 @@ export const eventService = {
 
   async updateEvent(
     id: number,
-    data: Omit<UpdateEvent, "id"> & Record<string, any>,
+    data: Omit<UpdateEvent | UpdateCoachingEvent, "id"> & Record<string, any>,
     token: string
   ): Promise<{ message: string }> {
     return apiClient.patch<{ message: string }>(`/events/${id}`, data, token);

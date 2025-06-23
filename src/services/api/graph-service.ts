@@ -75,7 +75,7 @@ export class GraphService {
     data: UpdateGraph,
     token: string
   ): Promise<Graph> {
-    const response = await apiClient.put<GraphResponse>(
+    const response = await apiClient.patch<GraphResponse>(
       `${this.BASE_ENDPOINT}/${id}`,
       data,
       token
