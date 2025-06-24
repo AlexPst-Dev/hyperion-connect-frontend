@@ -30,8 +30,8 @@ export const contactService = {
     method: "add" | "remove",
     token: string
   ): Promise<{ message: string; contactIds: string[] }> {
-    return apiClient.put<{ message: string; contactIds: string[] }>(
-      `/contacts/${userId}`,
+    return apiClient.post<{ message: string; contactIds: string[] }>(
+      `/contacts/update/${userId}`,
       { contactId, method },
       token
     );

@@ -1,5 +1,6 @@
-import React, { JSX, useState } from "react";
+import React, { JSX, useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -9,7 +10,12 @@ import {
 } from "react-native";
 import AppText from "../components/AppText";
 import GlobalStyles from "../styles/styles";
-import { ProfileCategory, User } from "../models/user";
+import {
+  ProfileCategory,
+  SportsmanProfile,
+  User,
+  UserResponse,
+} from "../models/user";
 import ViewController from "../components/ViewController";
 import Event from "../components/Event";
 import AddContacts from "../components/popups/AddContacts";
@@ -22,7 +28,10 @@ import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../navigation/types";
 import { LoggedUser } from "../models/auth";
-import { EventCategory } from "../models/event";
+import { Event as EventModel, EventCategory } from "../models/event";
+import { contactService } from "../services/api/contact-service";
+import { UserService } from "../services/api/user-service";
+import { notify } from "../components/NotificationContainer";
 
 export default function CommunityScreen() {
   type NavigationProp = NativeStackNavigationProp<
@@ -31,87 +40,13 @@ export default function CommunityScreen() {
   >;
   const navigation = useNavigation<NavigationProp>();
 
-  const tempAdminUser: User = {
-    id: 1,
-    firstName: "Chloé",
-    lastName: "Marchegay",
-    email: "chloe.marchegay@hyperion.com",
-    profileCategory: ProfileCategory.ADMIN,
-    isActive: true,
-    createdAt: "2025-05-05",
-    updatedAt: "2025-05-05",
-  };
-
-  type EventType = {
-    title: string;
-    type: "medical" | "hyperlink" | "hyperion" | "session" | "sportingActivity";
-    personsInvolved: User;
-    location: string;
-    date: Date;
-    hour: string;
-    infoDescription: string;
-    theme?: string;
-    link?: string;
-  };
-
-  const listOfContactUsers: User[] = [
-    {
-      id: 1,
-      firstName: "Chloé",
-      lastName: "Marchegay",
-      email: "chloe.marchegay@hyperion.com",
-      profileCategory: ProfileCategory.ADMIN,
-      isActive: true,
-      createdAt: "2025-05-05",
-      updatedAt: "2025-05-05",
-    },
-    {
-      id: 2,
-      firstName: "Alexa",
-      lastName: "Amazone",
-      email: "a.a@exemple.com",
-      profileCategory: ProfileCategory.SPORTSMAN,
-      isActive: true,
-      createdAt: "2025-05-05",
-      updatedAt: "2025-05-05",
-    },
-    {
-      id: 3,
-      firstName: "Danny",
-      lastName: "Dan",
-      email: "d.d@exemple.com",
-      profileCategory: ProfileCategory.SPORTSMAN,
-      isActive: true,
-      createdAt: "2025-05-05",
-      updatedAt: "2025-05-05",
-    },
-    {
-      id: 4,
-      firstName: "Marc",
-      lastName: "Cram",
-      email: "m.c@exemple.com",
-      profileCategory: ProfileCategory.COACH,
-      isActive: true,
-      createdAt: "2025-05-05",
-      updatedAt: "2025-05-05",
-    },
-    {
-      id: 5,
-      firstName: "Doke",
-      lastName: "Theurc",
-      email: "d.tc@exemple.com",
-      profileCategory: ProfileCategory.MEDIC,
-      isActive: true,
-      createdAt: "2025-05-05",
-      updatedAt: "2025-05-05",
-    },
-  ];
+  const { user, token } = useAuth();
 
   type CommunityPageRenderer = (user: LoggedUser) => JSX.Element;
 
   const [activeTabIndex, setActiveTabIndex] = useState(0);
   const [addContactPopUpVisible, setAddContactPopUpVisible] = useState(false);
-  const [eventDetailVisible, setDisplayEvent] = useState<EventType | false>(
+  const [eventDetailVisible, setDisplayEvent] = useState<EventModel | false>(
     false
   );
   const [
@@ -119,28 +54,158 @@ export default function CommunityScreen() {
     setEditSportingActivityPopUpVisible,
   ] = useState(false);
 
-  const { user } = useAuth();
-
   if (!user) return null;
 
   const displayAddContactPopUp = () =>
     setAddContactPopUpVisible(!addContactPopUpVisible);
 
-  const displayEventDetailPopup = (event?: EventType) =>
+  const displayEventDetailPopup = (event?: EventModel) =>
     setDisplayEvent(event ? event : false);
 
   const handleEditSportingActivityPopUp = () =>
     setEditSportingActivityPopUpVisible(!editSportingActivityPopUpVisible);
 
+  const [listOfContactUsers, setListOfContactUsers] = useState<UserResponse[]>(
+    []
+  );
+
+  const [listContactLoading, setListContactLoading] = useState(false);
+
+  async function fetchContacts() {
+    if (user && token) {
+      try {
+        const reqIds = await contactService.getContactListByUserId(
+          user.id,
+          token
+        );
+        if (reqIds.userId && reqIds.contactIds.length > 0) {
+          // Fetch all contacts in parallel
+          const contacts = await Promise.all(
+            reqIds.contactIds.map((contactId) =>
+              UserService.getUserById(contactId)
+            )
+          );
+          // Filter out any null/undefined results
+          const validContacts = contacts.filter(Boolean) as UserResponse[];
+          setListOfContactUsers(validContacts);
+        } else {
+          setListOfContactUsers([]);
+        }
+        setListContactLoading(false);
+      } catch (e) {
+        console.log("Error while fetching contact of the user", e);
+        setListContactLoading(false);
+      }
+    }
+  }
+
+  useEffect(() => {
+    setListContactLoading(true);
+    fetchContacts();
+  }, [user, token]);
+
+  const handleAddContact = async (selectedUser: User[]) => {
+    try {
+      await Promise.all(
+        selectedUser.map((u) =>
+          contactService.updateContactListByUserId(user.id, u.id, "add", token!)
+        )
+      );
+      await fetchContacts().then(() =>
+        notify({
+          title: "Utilisateur ajouté avec succès",
+          type: "success",
+        })
+      );
+    } catch (e) {
+      console.log("Error while adding contacts", e);
+    }
+  };
+
   const tabViews: JSX.Element[] = [
     // Tab 0 : Sportsman
-    <View key="sportsmans" style={{ flexDirection: "column", gap: 24 }}></View>,
+    <View key="sportsmans" style={{ flexDirection: "column", gap: 24 }}>
+      {listContactLoading && <ActivityIndicator />}
+      {listOfContactUsers.filter(
+        (c) => c.user.profileCategory === ProfileCategory.SPORTSMAN
+      ).length > 0 ? (
+        listOfContactUsers
+          .filter((c) => c.user.profileCategory === ProfileCategory.SPORTSMAN)
+          .map((contact) => (
+            <Pressable
+              onPress={() => {
+                navigation.navigate("ContactDetail", { contact: contact.user });
+              }}
+              key={contact.user.id}
+            >
+              <ItemUser
+                key={contact.user.id}
+                user={contact.user}
+                isCompany={false}
+                iconName="send"
+              />
+            </Pressable>
+          ))
+      ) : (
+        <AppText>Aucun contact de cette catégorie.</AppText>
+      )}
+    </View>,
 
     // Tab 1 : Coachs
-    <View key="coaches" style={{ flexDirection: "column", gap: 24 }}></View>,
+    <View key="coaches" style={{ flexDirection: "column", gap: 24 }}>
+      {listContactLoading && <ActivityIndicator />}
+      {listOfContactUsers.filter(
+        (c) => c.user.profileCategory === ProfileCategory.COACH
+      ).length > 0 ? (
+        listOfContactUsers
+          .filter((c) => c.user.profileCategory === ProfileCategory.COACH)
+          .map((contact) => (
+            <Pressable
+              onPress={() => {
+                navigation.navigate("ContactDetail", { contact: contact.user });
+              }}
+              key={contact.user.id}
+            >
+              <ItemUser
+                key={contact.user.id}
+                user={contact.user}
+                isCompany={false}
+                iconName="send"
+              />
+            </Pressable>
+          ))
+      ) : (
+        <AppText>Aucun contact de cette catégorie.</AppText>
+      )}
+    </View>,
 
     // Tab 2 : Medic
-    <View key="medics" style={{ flexDirection: "column", gap: 24 }}></View>,
+    <View key="medics" style={{ flexDirection: "column", gap: 24 }}>
+      {listContactLoading && <ActivityIndicator />}
+      {listOfContactUsers.filter(
+        (c) => c.user.profileCategory === ProfileCategory.MEDIC
+      ).length > 0 ? (
+        listOfContactUsers
+          .filter((c) => c.user.profileCategory === ProfileCategory.MEDIC)
+          .map((contact) => (
+            <Pressable
+              onPress={() => {
+                navigation.navigate("ContactDetail", { contact: contact.user });
+              }}
+              key={contact.user.id}
+            >
+              <ItemUser
+                key={contact.user.id}
+                user={contact.user}
+                isCompany={false}
+                iconName="send"
+              />
+            </Pressable>
+          ))
+      ) : (
+        <AppText>Aucun contact de cette catégorie.</AppText>
+      )}
+    </View>,
   ];
 
   const CommunityPageByProfile: Record<string, CommunityPageRenderer> = {
@@ -150,26 +215,18 @@ export default function CommunityScreen() {
           <View style={{ flexDirection: "column", gap: 24 }}>
             <View style={{ flexDirection: "column", gap: 16 }}>
               <AppText style={GlobalStyles.h3}>PROCHAINS EVENEMENTS</AppText>
-              <Event
+              {/* <Event
                 title="Evénement Hyperion Vannes"
                 type={EventCategory.HYPERION}
                 personsInvolved={tempAdminUser}
                 location="Parc de Vannes"
                 date={new Date("2025-10-10")}
                 hour="14h00"
-              />
-              <Event
-                title="Evénement Hyperion Vannes"
-                type={EventCategory.HYPERION}
-                personsInvolved={tempAdminUser}
-                location="Parc de Vannes"
-                date={new Date("2025-10-10")}
-                hour="14h00"
-              />
+              /> */}
             </View>
             <View style={{ flexDirection: "column", gap: 16 }}>
               <AppText style={GlobalStyles.h3}>ACTIVITES PROPOSEES</AppText>
-              <Event
+              {/* <Event
                 title="Sortie running Vannes 10km"
                 type={EventCategory.SPORTING_ACTIVITY}
                 personsInvolved={tempAdminUser}
@@ -188,7 +245,7 @@ export default function CommunityScreen() {
                     infoDescription: "Lorem ipsum dolore sit amet",
                   })
                 }
-              />
+              /> */}
               <View
                 style={{ flexDirection: "row", justifyContent: "flex-end" }}
               >
@@ -293,12 +350,13 @@ export default function CommunityScreen() {
             ]}
             onTabChange={setActiveTabIndex}
           />
-          {tabViews[activeTabIndex]}
-
           <View style={{ flex: 1 }}>
             <ScrollView
               style={{
-                height: 300,
+                height:
+                  user.profileCategory === ProfileCategory.SPORTSMAN
+                    ? 300
+                    : 370,
               }}
               scrollEnabled
               nestedScrollEnabled={true}
@@ -309,21 +367,7 @@ export default function CommunityScreen() {
                   gap: 8,
                 }}
               >
-                {listOfContactUsers.map((user) => (
-                  <Pressable
-                    onPress={() => {
-                      navigation.navigate("ContactDetail", { contact: user });
-                    }}
-                    key={user.id}
-                  >
-                    <ItemUser
-                      key={user.id}
-                      user={user}
-                      isCompany={false}
-                      iconName="send"
-                    />
-                  </Pressable>
-                ))}
+                {tabViews[activeTabIndex]}
               </View>
             </ScrollView>
           </View>
@@ -343,6 +387,9 @@ export default function CommunityScreen() {
             visible={addContactPopUpVisible}
             token=""
             onClose={displayAddContactPopUp}
+            onSubmit={(selectedUsers) => {
+              handleAddContact(selectedUsers);
+            }}
           />
         )}
         {/* {eventDetailVisible && (
