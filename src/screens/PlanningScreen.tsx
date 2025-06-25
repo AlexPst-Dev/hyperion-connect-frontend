@@ -66,6 +66,67 @@ export default function PlanningScreen() {
       const [addContactPopUpVisible, setAddContactPopUpVisible] =
         useState(false);
 
+      const [eventSelected, setEventSelected] = useState<EventModel>();
+      const [personOnGoingOfSelectedEvent, setPersonOnGoingOfSelectedEvent] =
+        useState<any[]>([]);
+      const [eventDetailsPopUpVisible, setEventDetailsPopUpVisible] =
+        useState(false);
+
+      const [events, setEvents] = useState<EventCompleteResponse[] | null>(
+        null
+      );
+      const { eventsByCategory, eventsByCategoriesLoading, error } =
+        useEventsByCategories(
+          [EventCategory.COACHING, EventCategory.HYPERION],
+          token!
+        );
+
+      const allPersonIds = useMemo(() => {
+        const coachingEvents = eventsByCategory[EventCategory.COACHING] || [];
+        const allIds = coachingEvents
+          .map((event) => event.personOngoingIds)
+          .filter(Boolean)
+          .join(";");
+        return allIds;
+      }, [eventsByCategory]);
+
+      const { users: allUsers } = useEventPersons(allPersonIds, token!);
+
+      const usersMap = useMemo(() => {
+        const map = new Map();
+        allUsers.forEach((user) => {
+          map.set(user.id.toString(), user);
+        });
+        return map;
+      }, [allUsers]);
+
+      const getUsersForEvent = (ids: string | null) => {
+        if (!ids) return [];
+
+        return ids
+          .split("; ")
+          .filter(Boolean)
+          .map((id) => usersMap.get(id))
+          .filter(Boolean);
+      };
+
+      async function fetchEventsByCategory(category: EventCategory) {
+        if (token) {
+          switch (category) {
+            case EventCategory.COACHING:
+              setEvents(eventsByCategory[EventCategory.COACHING]);
+            case EventCategory.HYPERION:
+              setEvents(eventsByCategory[EventCategory.HYPERION]);
+            default:
+              setEvents([]);
+          }
+        }
+      }
+
+      useEffect(() => {
+        fetchEventsByCategory(EventCategory.COACHING);
+      }, [token]);
+
       const displayAddContactPopUp = () =>
         setAddContactPopUpVisible(!addContactPopUpVisible);
 
@@ -73,7 +134,7 @@ export default function PlanningScreen() {
         setEditEventPopUpVisible(!editEventPopUpVisible);
 
       const tabViews: JSX.Element[] = [
-        // Tab 0 : Rendez-vous
+        // Tab 0 : Coaching Events
         <View key="meetings" style={{ flexDirection: "column", gap: 16 }}>
           <AppText style={GlobalStyles.h3}>PROCHAINS RENDEZ-VOUS</AppText>
           <AppText>
@@ -89,24 +150,34 @@ export default function PlanningScreen() {
               }}
             />
           </View>
-          <Event
-            title="Séance de fractionné"
-            personsInvolved={tempAdminUser}
-            location="Parc de Vannes"
-            date={new Date("2025-10-10")}
-            isInPerson
-            hour="14h00"
-            type={EventCategory.COACHING}
-          />
-          <Event
-            title="Séance de fractionné"
-            personsInvolved={tempAdminUser}
-            location="Parc de Vannes"
-            date={new Date("2025-10-10")}
-            isInPerson
-            hour="14h00"
-            type={EventCategory.COACHING}
-          />
+          {eventsByCategoriesLoading ? (
+            <AppText>Chargement...</AppText>
+          ) : eventsByCategory[EventCategory.COACHING] &&
+            eventsByCategory[EventCategory.COACHING].length > 0 ? (
+            eventsByCategory[EventCategory.COACHING].map((e) => {
+              const personsInvolved = getUsersForEvent(e.personOngoingIds);
+
+              return (
+                <Event
+                  key={e.id}
+                  title={e.title ? e.title : "Séance"}
+                  personsInvolved={personsInvolved}
+                  location={e.location || ""}
+                  date={new Date(e.date || "")}
+                  isInPerson
+                  hour={e.time || ""}
+                  type={EventCategory.COACHING}
+                  onPress={() => {
+                    setEventSelected(e);
+                    setPersonOnGoingOfSelectedEvent(personsInvolved);
+                    setEventDetailsPopUpVisible(true);
+                  }}
+                />
+              );
+            })
+          ) : (
+            <AppText>Aucune séance n'est prévue actuellement</AppText>
+          )}
           <View style={{ flexDirection: "row", justifyContent: "center" }}>
             <AppButton
               type="add"
@@ -116,25 +187,36 @@ export default function PlanningScreen() {
           </View>
         </View>,
 
-        // Tab 1 : Evenements
+        // Tab 1 : Company Events
         <View key="events" style={{ flexDirection: "column", gap: 16 }}>
           <AppText style={GlobalStyles.h3}>PROCHAINS EVENEMENTS</AppText>
-          <Event
-            title="Evénement Hyperion Vannes"
-            type={EventCategory.HYPERION}
-            personsInvolved={tempAdminUser}
-            location="Parc de Vannes"
-            date={new Date("2025-10-10")}
-            hour="14h00"
-          />
-          <Event
-            title="Evénement Hyperion Vannes"
-            type={EventCategory.HYPERION}
-            personsInvolved={tempAdminUser}
-            location="Parc de Vannes"
-            date={new Date("2025-10-10")}
-            hour="14h00"
-          />
+          {eventsByCategoriesLoading ? (
+            <AppText>Chargement...</AppText>
+          ) : eventsByCategory[EventCategory.HYPERION] &&
+            eventsByCategory[EventCategory.HYPERION].length > 0 ? (
+            eventsByCategory[EventCategory.HYPERION].map((e) => {
+              const personsInvolved = getUsersForEvent(e.responsibleIds);
+
+              return (
+                <Event
+                  key={e.id}
+                  title={e.title ? e.title : "Evénement"}
+                  personsInvolved={personsInvolved}
+                  location={e.location || ""}
+                  date={new Date(e.date || "")}
+                  hour={e.time || ""}
+                  type={EventCategory.HYPERION}
+                  onPress={() => {
+                    setEventSelected(e);
+                    setPersonOnGoingOfSelectedEvent(personsInvolved);
+                    setEventDetailsPopUpVisible(true);
+                  }}
+                />
+              );
+            })
+          ) : (
+            <AppText>Aucun événement n'est prévu actuellement</AppText>
+          )}
         </View>,
       ];
 
@@ -150,63 +232,32 @@ export default function PlanningScreen() {
             />
             {tabViews[activeTabIndex]}
           </View>
-          <Modal
-            visible={editEventPopUpVisible}
-            transparent
-            onRequestClose={handleEditEventModal}
-          >
-            <Pressable
-              onPress={handleEditEventModal}
-              style={{
-                flex: 1,
-                backgroundColor: "rgba(0,0,0,0.5)",
-                justifyContent: "center",
-                padding: 24,
-              }}
-            >
-              <PopUp
-                title="Editer un rendez-vous"
-                onClose={handleEditEventModal}
-                closeText="Annuler"
-                btnText="Editer"
-                btnType="primary"
-                iconName="pencil"
-                onSubmit={handleEditEventModal}
-                inputs={
-                  <>
-                    <Input
-                      type="text"
-                      label="Libellé du rendez-vous"
-                      placeholder="Libellé du rendez-vous"
-                    />
-                    <Input type="text" label="Lieu" placeholder="Adresse" />
-                    <Input type="date" label="Date" placeholder="XX/XX/XXXX" />
-                    <Input type="text" label="Heure" placeholder="08h00" />
-                    <Pressable
-                      onPress={() => displayAddContactPopUp()}
-                      style={{
-                        paddingHorizontal: 8,
-                        paddingVertical: 6,
-                        borderRadius: 8,
-                        borderWidth: 1,
-                        borderColor: Colors.deepBlue,
-                        marginTop: 8,
-                      }}
-                    >
-                      <AppText style={{ color: Colors.grey }}>
-                        Selectionnez une personne à ajouter au rendez-vous
-                      </AppText>
-                    </Pressable>
-                  </>
-                }
-              />
-            </Pressable>
-          </Modal>
+          {editEventPopUpVisible && token && (
+            <EditEvent
+              visible={editEventPopUpVisible}
+              token={token}
+              onClose={() => setEditEventPopUpVisible(false)}
+              title={"Créer une nouvelle séance"}
+              eventType={EventCategory.COACHING}
+            />
+          )}
           {addContactPopUpVisible && (
             <AddContacts
               visible={addContactPopUpVisible}
               token={token ? token : ""}
               onClose={displayAddContactPopUp}
+            />
+          )}
+          {eventDetailsPopUpVisible && eventSelected && (
+            <DisplayEvent
+              visible={eventDetailsPopUpVisible}
+              event={eventSelected}
+              userConnected={user}
+              listOfUser={personOnGoingOfSelectedEvent}
+              onClose={() => {
+                setEventDetailsPopUpVisible(false);
+              }}
+              token={token!}
             />
           )}
         </>
@@ -225,6 +276,74 @@ export default function PlanningScreen() {
       const [addContactPopUpVisible, setAddContactPopUpVisible] =
         useState(false);
 
+      const [eventSelected, setEventSelected] = useState<EventModel>();
+      const [personOnGoingOfSelectedEvent, setPersonOnGoingOfSelectedEvent] =
+        useState<any[]>([]);
+      const [eventDetailsPopUpVisible, setEventDetailsPopUpVisible] =
+        useState(false);
+
+      const [events, setEvents] = useState<EventCompleteResponse[] | null>(
+        null
+      );
+      const { eventsByCategory, eventsByCategoriesLoading, error } =
+        useEventsByCategories(
+          [
+            EventCategory.MEDICAL,
+            EventCategory.HYPERION,
+            EventCategory.HYPERLINK,
+          ],
+          token!
+        );
+
+      const allPersonIds = useMemo(() => {
+        const medicEvents = eventsByCategory[EventCategory.MEDICAL] || [];
+        const allIds = medicEvents
+          .map((event) => event.personOngoingIds)
+          .filter(Boolean)
+          .join(";");
+        return allIds;
+      }, [eventsByCategory]);
+
+      const { users: allUsers } = useEventPersons(allPersonIds, token!);
+
+      const usersMap = useMemo(() => {
+        const map = new Map();
+        allUsers.forEach((user) => {
+          map.set(user.id.toString(), user);
+        });
+        return map;
+      }, [allUsers]);
+
+      const getUsersForEvent = (ids: string | null) => {
+        if (!ids) return [];
+
+        return ids
+          .split("; ")
+          .filter(Boolean)
+          .map((id) => usersMap.get(id))
+          .filter(Boolean);
+      };
+
+      async function fetchEventsByCategory(category: EventCategory) {
+        if (token) {
+          switch (category) {
+            case EventCategory.COACHING:
+              setEvents(eventsByCategory[EventCategory.MEDICAL]);
+            case EventCategory.HYPERION:
+              setEvents([
+                ...(eventsByCategory[EventCategory.HYPERION] || []),
+                ...(eventsByCategory[EventCategory.HYPERLINK] || []),
+              ]);
+            default:
+              setEvents([]);
+          }
+        }
+      }
+
+      useEffect(() => {
+        fetchEventsByCategory(EventCategory.MEDICAL);
+      }, [token]);
+
       const displayAddContactPopUp = () =>
         setAddContactPopUpVisible(!addContactPopUpVisible);
 
@@ -232,7 +351,7 @@ export default function PlanningScreen() {
         setEditEventPopUpVisible(!editEventPopUpVisible);
 
       const tabViews: JSX.Element[] = [
-        // Tab 0 : Rendez-vous
+        // Tab 0 : Coaching Events
         <View key="meetings" style={{ flexDirection: "column", gap: 16 }}>
           <AppText style={GlobalStyles.h3}>PROCHAINS RENDEZ-VOUS</AppText>
           <AppText>
@@ -248,24 +367,34 @@ export default function PlanningScreen() {
               }}
             />
           </View>
-          <Event
-            title="Analyse sanguine"
-            personsInvolved={tempAdminUser}
-            location="Parc de Vannes"
-            date={new Date("2025-10-10")}
-            isInPerson
-            hour="14h00"
-            type={EventCategory.MEDICAL}
-          />
-          <Event
-            title="Bilan cardiovasculaire"
-            personsInvolved={tempAdminUser}
-            location="Parc de Vannes"
-            date={new Date("2025-10-10")}
-            isInPerson
-            hour="14h00"
-            type={EventCategory.COACHING}
-          />
+          {eventsByCategoriesLoading ? (
+            <AppText>Chargement...</AppText>
+          ) : eventsByCategory[EventCategory.MEDICAL] &&
+            eventsByCategory[EventCategory.MEDICAL].length > 0 ? (
+            eventsByCategory[EventCategory.MEDICAL].map((e) => {
+              const personsInvolved = getUsersForEvent(e.personOngoingIds);
+
+              return (
+                <Event
+                  key={e.id}
+                  title={e.title ? e.title : "Séance"}
+                  personsInvolved={personsInvolved}
+                  location={e.location || ""}
+                  date={new Date(e.date || "")}
+                  isInPerson
+                  hour={e.time || ""}
+                  type={EventCategory.MEDICAL}
+                  onPress={() => {
+                    setEventSelected(e);
+                    setPersonOnGoingOfSelectedEvent(personsInvolved);
+                    setEventDetailsPopUpVisible(true);
+                  }}
+                />
+              );
+            })
+          ) : (
+            <AppText>Aucun rendez-vous n'est prévu actuellement</AppText>
+          )}
           <View style={{ flexDirection: "row", justifyContent: "center" }}>
             <AppButton
               type="add"
@@ -275,25 +404,67 @@ export default function PlanningScreen() {
           </View>
         </View>,
 
-        // Tab 1 : Evenements
-        <View key="seances" style={{ flexDirection: "column", gap: 16 }}>
+        // Tab 1 : Company Events
+        <View key="events" style={{ flexDirection: "column", gap: 16 }}>
           <AppText style={GlobalStyles.h3}>PROCHAINS EVENEMENTS</AppText>
-          <Event
-            title="Evénement Hyperion Vannes"
-            type={EventCategory.HYPERION}
-            personsInvolved={tempAdminUser}
-            location="Parc de Vannes"
-            date={new Date("2025-10-10")}
-            hour="14h00"
-          />
-          <Event
-            title="Evénement Hyperlink Vannes"
-            type={EventCategory.HYPERLINK}
-            personsInvolved={tempAdminUser}
-            location="Parc de Vannes"
-            date={new Date("2025-10-10")}
-            hour="14h00"
-          />
+          <AppText style={GlobalStyles.h3}>HYPERION</AppText>
+          {eventsByCategoriesLoading ? (
+            <AppText>Chargement...</AppText>
+          ) : eventsByCategory[EventCategory.HYPERION] &&
+            eventsByCategory[EventCategory.HYPERION].length > 0 ? (
+            eventsByCategory[EventCategory.HYPERION].map((e) => {
+              const personsInvolved = getUsersForEvent(e.responsibleIds);
+
+              return (
+                <Event
+                  key={e.id}
+                  title={e.title ? e.title : "Evénement"}
+                  personsInvolved={personsInvolved}
+                  location={e.location || ""}
+                  date={new Date(e.date || "")}
+                  hour={e.time || ""}
+                  type={EventCategory.HYPERION}
+                  onPress={() => {
+                    setEventSelected(e);
+                    setPersonOnGoingOfSelectedEvent(personsInvolved);
+                    setEventDetailsPopUpVisible(true);
+                  }}
+                />
+              );
+            })
+          ) : (
+            <AppText>Aucun événement n'est prévu actuellement</AppText>
+          )}
+          <AppText style={[GlobalStyles.h3, { marginTop: 16 }]}>
+            HYPERLINK
+          </AppText>
+          {eventsByCategoriesLoading ? (
+            <AppText>Chargement...</AppText>
+          ) : eventsByCategory[EventCategory.HYPERLINK] &&
+            eventsByCategory[EventCategory.HYPERLINK].length > 0 ? (
+            eventsByCategory[EventCategory.HYPERLINK].map((e) => {
+              const personsInvolved = getUsersForEvent(e.responsibleIds);
+
+              return (
+                <Event
+                  key={e.id}
+                  title={e.title ? e.title : "Evénement"}
+                  personsInvolved={personsInvolved}
+                  location={e.location || ""}
+                  date={new Date(e.date || "")}
+                  hour={e.time || ""}
+                  type={EventCategory.HYPERLINK}
+                  onPress={() => {
+                    setEventSelected(e);
+                    setPersonOnGoingOfSelectedEvent(personsInvolved);
+                    setEventDetailsPopUpVisible(true);
+                  }}
+                />
+              );
+            })
+          ) : (
+            <AppText>Aucun événement n'est prévu actuellement</AppText>
+          )}
         </View>,
       ];
 
@@ -302,70 +473,39 @@ export default function PlanningScreen() {
           <View style={{ flexDirection: "column", gap: 24 }}>
             <ViewController
               tabs={[
-                { title: "RENDEZ-VOUS", icon: "medic" },
-                { title: "EVENEMENTS", icon: "calendar" },
+                { title: "Seances", icon: "dumbell" },
+                { title: "Evenements", icon: "calendar" },
               ]}
               onTabChange={setActiveTabIndex}
             />
             {tabViews[activeTabIndex]}
           </View>
-          <Modal
-            visible={editEventPopUpVisible}
-            transparent
-            onRequestClose={handleEditEventModal}
-          >
-            <Pressable
-              onPress={handleEditEventModal}
-              style={{
-                flex: 1,
-                backgroundColor: "rgba(0,0,0,0.5)",
-                justifyContent: "center",
-                padding: 24,
-              }}
-            >
-              <PopUp
-                title="Editer un rendez-vous"
-                onClose={handleEditEventModal}
-                closeText="Annuler"
-                btnText="Editer"
-                btnType="primary"
-                iconName="pencil"
-                onSubmit={handleEditEventModal}
-                inputs={
-                  <>
-                    <Input
-                      type="text"
-                      label="Libellé du rendez-vous"
-                      placeholder="Libellé du rendez-vous"
-                    />
-                    <Input type="text" label="Lieu" placeholder="Adresse" />
-                    <Input type="date" label="Date" placeholder="XX/XX/XXXX" />
-                    <Input type="text" label="Heure" placeholder="08h00" />
-                    <Pressable
-                      onPress={() => displayAddContactPopUp()}
-                      style={{
-                        paddingHorizontal: 8,
-                        paddingVertical: 6,
-                        borderRadius: 8,
-                        borderWidth: 1,
-                        borderColor: Colors.deepBlue,
-                        marginTop: 8,
-                      }}
-                    >
-                      <AppText style={{ color: Colors.grey }}>
-                        Selectionnez une personne à ajouter au rendez-vous
-                      </AppText>
-                    </Pressable>
-                  </>
-                }
-              />
-            </Pressable>
-          </Modal>
+          {editEventPopUpVisible && token && (
+            <EditEvent
+              visible={editEventPopUpVisible}
+              token={token}
+              onClose={() => setEditEventPopUpVisible(false)}
+              title={"Créer un nouveau rendez-vous"}
+              eventType={EventCategory.MEDICAL}
+            />
+          )}
           {addContactPopUpVisible && (
             <AddContacts
               visible={addContactPopUpVisible}
               token={token ? token : ""}
               onClose={displayAddContactPopUp}
+            />
+          )}
+          {eventDetailsPopUpVisible && eventSelected && (
+            <DisplayEvent
+              visible={eventDetailsPopUpVisible}
+              event={eventSelected}
+              userConnected={user}
+              listOfUser={personOnGoingOfSelectedEvent}
+              onClose={() => {
+                setEventDetailsPopUpVisible(false);
+              }}
+              token={token!}
             />
           )}
         </>

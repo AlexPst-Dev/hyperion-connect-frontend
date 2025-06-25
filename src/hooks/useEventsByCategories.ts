@@ -7,7 +7,8 @@ import { useAuth } from "./useAuth";
 
 export function useEventsByCategories(
   categories: EventCategory[],
-  token: string | undefined
+  token: string | undefined,
+  showInactives?: boolean
 ) {
   const [eventsByCategory, setEventsByCategory] = useState<
     Record<EventCategory, EventCompleteResponse[]>
@@ -45,8 +46,9 @@ export function useEventsByCategories(
         results.forEach(({ cat, events }) => {
           // If sporting activity and user is admin, show all (including inactive)
           if (
-            cat === EventCategory.SPORTING_ACTIVITY &&
-            user?.profileCategory === ProfileCategory.ADMIN
+            (cat === EventCategory.SPORTING_ACTIVITY &&
+              user?.profileCategory === ProfileCategory.ADMIN) ||
+            showInactives
           ) {
             byCat[cat] = events.filter((e) => e.isActive === false);
           } else {

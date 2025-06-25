@@ -1,5 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { StyleSheet, View, Pressable, Modal, Image } from "react-native";
+import {
+  StyleSheet,
+  View,
+  Pressable,
+  Modal,
+  Image,
+  Linking,
+} from "react-native";
 import PopUp from "../PopUp";
 import Input from "../Input";
 import { User } from "@/src/models/user";
@@ -22,6 +29,8 @@ import { getImageSource } from "@/src/utils/imgSrcHandler";
 import EditEvent from "./EditEvent";
 import { eventService } from "@/src/services/api/event-service";
 import { notify } from "../NotificationContainer";
+import { getLocationUrl } from "@/src/utils/urlHandler";
+import { handleAddToCalendar } from "@/src/utils/calendar-utils";
 
 interface Props {
   visible: boolean;
@@ -137,9 +146,14 @@ export default function DisplayEvent({
       ? parseInt(event.responsibleIds.split(";")[0], 10)
       : undefined;
 
-  const actionType = userConnected
-    ? getEventActionType(firstResponsibleId as number, event.eventCategory)
-    : "closeOnly";
+  const isPlanningHistoryEvent: boolean =
+    event.isActive === false &&
+    (event.eventCategory === EventCategory.COACHING ||
+      event.eventCategory === EventCategory.MEDICAL);
+  const actionType =
+    userConnected && isPlanningHistoryEvent === false
+      ? getEventActionType(firstResponsibleId as number, event.eventCategory)
+      : "closeOnly";
 
   const handleDeleteEvent = async () => {
     if (!event?.id || !token) return;
@@ -175,6 +189,8 @@ export default function DisplayEvent({
                           : event.eventCategory ===
                             EventCategory.SPORTING_ACTIVITY
                           ? "Sportif"
+                          : event.eventCategory === EventCategory.COACHING
+                          ? "Sportif(s)"
                           : "Intervenants"}
                       </AppText>
                       <View style={styles.userList}>
@@ -197,7 +213,13 @@ export default function DisplayEvent({
                     </View>
 
                     <View style={styles.dateAndPlaceContainer}>
-                      <View style={styles.eventInfo}>
+                      <Pressable
+                        style={styles.eventInfo}
+                        onPress={() => {
+                          if (event.location)
+                            Linking.openURL(getLocationUrl(event.location));
+                        }}
+                      >
                         <Icon
                           name="mapAdd"
                           fillColor="white"
@@ -205,8 +227,11 @@ export default function DisplayEvent({
                           strokeWidth={2}
                         />
                         <AppText>{event.location}</AppText>
-                      </View>
-                      <View style={styles.eventInfo}>
+                      </Pressable>
+                      <Pressable
+                        style={styles.eventInfo}
+                        onPress={() => handleAddToCalendar(event)}
+                      >
                         <Icon
                           name="calendarAdd"
                           fillColor="white"
@@ -218,10 +243,15 @@ export default function DisplayEvent({
                             ? new Date(event.date).toLocaleDateString("fr-FR")
                             : ""}
                         </AppText>
-                      </View>
-                      {EventCategory.SPORTING_ACTIVITY && event.link && (
+                      </Pressable>
+                      {event.link && (
                         <>
-                          <View style={styles.eventInfo}>
+                          <Pressable
+                            style={styles.eventInfo}
+                            onPress={() => {
+                              if (event.link) Linking.openURL(event.link);
+                            }}
+                          >
                             <Icon
                               name="link"
                               fillColor="white"
@@ -229,7 +259,7 @@ export default function DisplayEvent({
                               strokeWidth={2}
                             />
                             <AppText>{event.link}</AppText>
-                          </View>
+                          </Pressable>
                         </>
                       )}
                       {EventCategory.SPORTING_ACTIVITY &&
@@ -318,6 +348,7 @@ export default function DisplayEvent({
                           type="secondary"
                           title="Ajouter au calendrier"
                           iconName="calendarAdd"
+                          onPress={() => handleAddToCalendar(event)}
                         />
                       </>
                     )}

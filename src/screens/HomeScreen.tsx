@@ -177,12 +177,19 @@ export default function HomeScreen() {
             idsToParse = closest.personOngoingIds as string;
           }
           if (idsToParse) {
-            const ids = parseIds(idsToParse);
-            const users = await Promise.all(
-              ids.map((id) =>
-                UserService.getUserById(id, token).then((res) => res.user)
-              )
-            );
+            let ids = parseIds(idsToParse);
+            // Ensure ids is always an array
+            if (!Array.isArray(ids)) {
+              ids = [ids];
+            }
+            let users: User[] = [];
+            if (ids.length > 0) {
+              users = await Promise.all(
+                ids.map((id) =>
+                  UserService.getUserById(id, token).then((res) => res.user)
+                )
+              );
+            }
             setEventUsers(users);
           } else {
             setEventUsers([]);
