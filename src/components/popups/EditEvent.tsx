@@ -233,6 +233,10 @@ export default function EditEvent({
               : undefined;
         }
         await eventService.updateEvent(existingEvent.id, updateData, token);
+        notify({
+          title: "Evenement mise à jour avec succès",
+          type: "success",
+        });
         if (onSubmit) onSubmit([existingEvent]);
         onClose();
       } else {
