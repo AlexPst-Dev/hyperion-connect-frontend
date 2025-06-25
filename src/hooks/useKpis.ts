@@ -2,6 +2,10 @@ import { useEffect, useState } from "react";
 import { IconName } from "../components/Icon";
 import { ProfileCategory, User } from "../models/user";
 import { UserService } from "../services/api/user-service";
+import { useAuth } from "./useAuth";
+import { clientService } from "../services/api/client-service";
+import { eventService } from "../services/api/event-service";
+import { CoachingEvent, EventCategory, MedicalEvent } from "../models/event";
 
 export interface KpiModel {
   title: string;
@@ -15,6 +19,8 @@ export function useKpis(profileCategory: ProfileCategory, token: string) {
   const [kpis, setKpis] = useState<KpiModel[]>([]);
   const [kpisLoading, setKpisLoading] = useState<boolean>(true);
   const [kpisError, setKpisError] = useState<string | null>(null);
+
+  const { user } = useAuth();
 
   useEffect(() => {
     let isMounted = true;
@@ -79,6 +85,133 @@ export function useKpis(profileCategory: ProfileCategory, token: string) {
                   fillIcon: false,
                 },
               ]);
+            }
+            break;
+          }
+          case ProfileCategory.COACH: {
+            /*
+             * KPI 1 : Number of clients (sportsmans)
+             * KPI 2 : Coaching event done
+             * KPI 3 : Average motivation of all his coaching event (sportsman note)
+             */
+            if (user) {
+              const [clients, completeEvents] = await Promise.all([
+                clientService.getClientListByProfessionalId(user.id, token),
+                eventService.getEventsByUserId(user.id, token),
+              ]);
+
+              // Only keep coaching events with a valid specificEvent
+              const events = completeEvents.events.filter(
+                (e) => e.eventCategory === EventCategory.COACHING
+              );
+
+              // Fetch details for each coaching event
+              const coachingEvents = await Promise.all(
+                events.map(async (e) => {
+                  const res = await eventService.getEventById(e.id, token);
+                  return res.event;
+                })
+              );
+
+              // Only consider events with a valid numeric sportsmanNote
+              const notes = coachingEvents
+                .filter(
+                  (c) => (c.specificEvent as CoachingEvent).isDone === true
+                )
+                .map((e) =>
+                  Number((e.specificEvent as CoachingEvent).sportsmanNote)
+                )
+                .filter((note) => !isNaN(note));
+
+              const averageNote =
+                notes.length > 0
+                  ? (
+                      notes.reduce((sum, n) => sum + n, 0) / notes.length
+                    ).toFixed(1)
+                  : "0";
+
+              if (isMounted) {
+                setKpis([
+                  {
+                    title: "Sportifs coachés",
+                    iconName: "user",
+                    value: clients?.clientIds?.length
+                      ? clients.clientIds.length.toString()
+                      : "0",
+                    unit: "sportifs",
+                    fillIcon: true,
+                  },
+                  {
+                    title: "Séance réalisées",
+                    iconName: "dumbell",
+                    value: coachingEvents
+                      .filter(
+                        (e) =>
+                          (e.specificEvent as CoachingEvent).isDone === true
+                      )
+                      .length.toString(),
+                    unit: "séances",
+                    fillIcon: true,
+                  },
+                  {
+                    title: "Motivation moyenne",
+                    iconName: "star",
+                    value: averageNote,
+                    unit: "",
+                    fillIcon: true,
+                  },
+                ]);
+              }
+            }
+            break;
+          }
+          case ProfileCategory.MEDIC: {
+            /*
+             * KPI 1 : Number of clients (sportsmans)
+             * KPI 2 : Coaching event done
+             * KPI 3 : Average motivation of all his coaching event (sportsman note)
+             */
+            if (user) {
+              const [clients, completeEvents] = await Promise.all([
+                clientService.getClientListByProfessionalId(user.id, token),
+                eventService.getEventsByUserId(user.id, token),
+              ]);
+
+              // Only keep coaching events with a valid specificEvent
+              const events = completeEvents.events.filter(
+                (e) => e.eventCategory === EventCategory.MEDICAL
+              );
+
+              // Fetch details for each coaching event
+              const medicEvents = await Promise.all(
+                events.map(async (e) => {
+                  const res = await eventService.getEventById(e.id, token);
+                  return res.event;
+                })
+              );
+
+              if (isMounted) {
+                setKpis([
+                  {
+                    title: "Patients suivi",
+                    iconName: "user",
+                    value: clients?.clientIds?.length
+                      ? clients.clientIds.length.toString()
+                      : "0",
+                    unit: "sportifs",
+                    fillIcon: true,
+                  },
+                  {
+                    title: "Rdv réalisées",
+                    iconName: "calendar",
+                    value: medicEvents
+                      .filter((e) => e.specificEvent as MedicalEvent)
+                      .length.toString(),
+                    unit: "",
+                    fillIcon: true,
+                  },
+                ]);
+              }
             }
             break;
           }

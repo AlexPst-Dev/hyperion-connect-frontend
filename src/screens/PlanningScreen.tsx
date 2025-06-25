@@ -341,7 +341,7 @@ export default function PlanningScreen() {
       async function fetchEventsByCategory(category: EventCategory) {
         if (token) {
           switch (category) {
-            case EventCategory.COACHING:
+            case EventCategory.MEDICAL:
               setEvents(
                 eventsByCategory[EventCategory.MEDICAL].filter((e) =>
                   (e.responsibleIds || "")

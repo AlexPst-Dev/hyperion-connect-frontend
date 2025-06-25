@@ -70,26 +70,6 @@ export default function HomeScreen() {
     updatedAt: "2025-05-05",
     email: "chloé.marchegay@mail.com",
   };
-  const tempSporstmanUser1: User = {
-    id: 3,
-    firstName: "Antoine",
-    lastName: "Martin",
-    email: "antoine.martin@mail.com",
-    profileCategory: ProfileCategory.SPORTSMAN,
-    isActive: true,
-    createdAt: "2025-05-05",
-    updatedAt: "2025-05-05",
-  };
-  const tempSporstmanUser2: User = {
-    id: 4,
-    firstName: "Lisa",
-    lastName: "Dupont",
-    profileCategory: ProfileCategory.SPORTSMAN,
-    email: "lisa.dupont@mail.com",
-    isActive: true,
-    createdAt: "2025-05-05",
-    updatedAt: "2025-05-05",
-  };
 
   const [newsTitle, setNewsTitle] = useState("");
   const [newsText, setNewsText] = useState("");
@@ -404,31 +384,31 @@ export default function HomeScreen() {
         <View style={{ flexDirection: "column", gap: 24 }}>
           <View style={{ flexDirection: "column", gap: 16 }}>
             <AppText>Votre résumé</AppText>
-            <View style={{ flexDirection: "row", gap: 8 }}>
-              <View style={{ flex: 1 }}>
-                <Kpi
-                  title="Sportifs Coachés"
-                  iconName="user"
-                  fillIcon
-                  value="4"
-                />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Kpi
-                  title="Séances réalisées"
-                  iconName="dumbell"
-                  fillIcon
-                  value="30"
-                />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Kpi
-                  title="Motivaiton moyenne"
-                  iconName="star"
-                  fillIcon
-                  value="3.9"
-                />
-              </View>
+            {kpisError && (
+              <AppText style={{ color: Colors.red }}>
+                Indicateurs indisponibles pour le moment
+              </AppText>
+            )}
+            {kpisLoading && <ActivityIndicator />}
+            <View
+              style={{
+                flexDirection: "row",
+                gap: 8,
+              }}
+            >
+              {kpis.length > 0 &&
+                kpis.map((kpi, index) => (
+                  <View style={{ flex: 1 }} key={`view-${index}`}>
+                    <Kpi
+                      key={index}
+                      title={kpi.title}
+                      iconName={kpi.iconName}
+                      value={kpi.value}
+                      unit={kpi.unit}
+                      fillIcon={kpi.fillIcon}
+                    />
+                  </View>
+                ))}
             </View>
           </View>
           <View style={{ flexDirection: "column", gap: 16 }}>
@@ -544,26 +524,31 @@ export default function HomeScreen() {
         <View style={{ flexDirection: "column", gap: 24 }}>
           <View style={{ flexDirection: "column", gap: 16 }}>
             <AppText>Votre résumé</AppText>
-            <View style={{ flexDirection: "row", gap: 8 }}>
-              <View style={{ flex: 1 }}>
-                <Kpi
-                  title="Patients suivi"
-                  iconName="user"
-                  fillIcon
-                  value="4"
-                />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Kpi title="Rdv réalisées" iconName="calendar" value="30" />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Kpi
-                  title="Motivaiton moyenne"
-                  iconName="star"
-                  fillIcon
-                  value="3.9"
-                />
-              </View>
+            {kpisError && (
+              <AppText style={{ color: Colors.red }}>
+                Indicateurs indisponibles pour le moment
+              </AppText>
+            )}
+            {kpisLoading && <ActivityIndicator />}
+            <View
+              style={{
+                flexDirection: "row",
+                gap: 8,
+              }}
+            >
+              {kpis.length > 0 &&
+                kpis.map((kpi, index) => (
+                  <View style={{ flex: 1 }} key={`view-${index}`}>
+                    <Kpi
+                      key={index}
+                      title={kpi.title}
+                      iconName={kpi.iconName}
+                      value={kpi.value}
+                      unit={kpi.unit}
+                      fillIcon={kpi.fillIcon}
+                    />
+                  </View>
+                ))}
             </View>
           </View>
           <View style={{ flexDirection: "column", gap: 16 }}>
