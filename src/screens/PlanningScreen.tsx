@@ -114,7 +114,14 @@ export default function PlanningScreen() {
         if (token) {
           switch (category) {
             case EventCategory.COACHING:
-              setEvents(eventsByCategory[EventCategory.COACHING]);
+              setEvents(
+                eventsByCategory[EventCategory.COACHING].filter((e) =>
+                  (e.responsibleIds || "")
+                    .split(";")
+                    .map((id) => id.trim())
+                    .includes(user.id.toString())
+                )
+              );
             case EventCategory.HYPERION:
               setEvents(eventsByCategory[EventCategory.HYPERION]);
             default:
@@ -154,27 +161,34 @@ export default function PlanningScreen() {
             <AppText>Chargement...</AppText>
           ) : eventsByCategory[EventCategory.COACHING] &&
             eventsByCategory[EventCategory.COACHING].length > 0 ? (
-            eventsByCategory[EventCategory.COACHING].map((e) => {
-              const personsInvolved = getUsersForEvent(e.personOngoingIds);
+            eventsByCategory[EventCategory.COACHING]
+              .filter((e) =>
+                (e.responsibleIds || "")
+                  .split(";")
+                  .map((id) => id.trim())
+                  .includes(user.id.toString())
+              )
+              .map((e) => {
+                const personsInvolved = getUsersForEvent(e.personOngoingIds);
 
-              return (
-                <Event
-                  key={e.id}
-                  title={e.title ? e.title : "Séance"}
-                  personsInvolved={personsInvolved}
-                  location={e.location || ""}
-                  date={new Date(e.date || "")}
-                  isInPerson
-                  hour={e.time || ""}
-                  type={EventCategory.COACHING}
-                  onPress={() => {
-                    setEventSelected(e);
-                    setPersonOnGoingOfSelectedEvent(personsInvolved);
-                    setEventDetailsPopUpVisible(true);
-                  }}
-                />
-              );
-            })
+                return (
+                  <Event
+                    key={e.id}
+                    title={e.title ? e.title : "Séance"}
+                    personsInvolved={personsInvolved}
+                    location={e.location || ""}
+                    date={new Date(e.date || "")}
+                    isInPerson
+                    hour={e.time || ""}
+                    type={EventCategory.COACHING}
+                    onPress={() => {
+                      setEventSelected(e);
+                      setPersonOnGoingOfSelectedEvent(personsInvolved);
+                      setEventDetailsPopUpVisible(true);
+                    }}
+                  />
+                );
+              })
           ) : (
             <AppText>Aucune séance n'est prévue actuellement</AppText>
           )}
@@ -328,7 +342,14 @@ export default function PlanningScreen() {
         if (token) {
           switch (category) {
             case EventCategory.COACHING:
-              setEvents(eventsByCategory[EventCategory.MEDICAL]);
+              setEvents(
+                eventsByCategory[EventCategory.MEDICAL].filter((e) =>
+                  (e.responsibleIds || "")
+                    .split(";")
+                    .map((id) => id.trim())
+                    .includes(user.id.toString())
+                )
+              );
             case EventCategory.HYPERION:
               setEvents([
                 ...(eventsByCategory[EventCategory.HYPERION] || []),
@@ -371,27 +392,34 @@ export default function PlanningScreen() {
             <AppText>Chargement...</AppText>
           ) : eventsByCategory[EventCategory.MEDICAL] &&
             eventsByCategory[EventCategory.MEDICAL].length > 0 ? (
-            eventsByCategory[EventCategory.MEDICAL].map((e) => {
-              const personsInvolved = getUsersForEvent(e.personOngoingIds);
+            eventsByCategory[EventCategory.MEDICAL]
+              .filter((e) =>
+                (e.responsibleIds || "")
+                  .split(";")
+                  .map((id) => id.trim())
+                  .includes(user.id.toString())
+              )
+              .map((e) => {
+                const personsInvolved = getUsersForEvent(e.personOngoingIds);
 
-              return (
-                <Event
-                  key={e.id}
-                  title={e.title ? e.title : "Séance"}
-                  personsInvolved={personsInvolved}
-                  location={e.location || ""}
-                  date={new Date(e.date || "")}
-                  isInPerson
-                  hour={e.time || ""}
-                  type={EventCategory.MEDICAL}
-                  onPress={() => {
-                    setEventSelected(e);
-                    setPersonOnGoingOfSelectedEvent(personsInvolved);
-                    setEventDetailsPopUpVisible(true);
-                  }}
-                />
-              );
-            })
+                return (
+                  <Event
+                    key={e.id}
+                    title={e.title ? e.title : "Séance"}
+                    personsInvolved={personsInvolved}
+                    location={e.location || ""}
+                    date={new Date(e.date || "")}
+                    isInPerson
+                    hour={e.time || ""}
+                    type={EventCategory.MEDICAL}
+                    onPress={() => {
+                      setEventSelected(e);
+                      setPersonOnGoingOfSelectedEvent(personsInvolved);
+                      setEventDetailsPopUpVisible(true);
+                    }}
+                  />
+                );
+              })
           ) : (
             <AppText>Aucun rendez-vous n'est prévu actuellement</AppText>
           )}
