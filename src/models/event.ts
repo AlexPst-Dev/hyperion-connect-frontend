@@ -341,14 +341,11 @@ export const DEFAULT_EVENT_VALUES = {
 
 export const parseIds = (ids: string | null): number[] => {
   if (!ids) return [];
-  try {
-    return JSON.parse(ids);
-  } catch {
-    return ids
-      .split(";")
-      .map((id) => parseInt(id.trim()))
-      .filter((id) => !isNaN(id));
-  }
+  // Split by semicolon or comma, with optional spaces, and filter out empty
+  return ids
+    .split(/[;,]\s*/)
+    .map((id) => parseInt(id.trim()))
+    .filter((id) => !isNaN(id));
 };
 
 export const stringifyIds = (ids: number[]): string => {

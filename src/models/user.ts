@@ -264,6 +264,46 @@ export const stringifyAvailableDays = (days: AvailableDays): string => {
   ].join("");
 };
 
+export function formatAvailableDays(days: AvailableDays): string {
+  const dayNames = [
+    { key: "monday", label: "Lundi" },
+    { key: "tuesday", label: "Mardi" },
+    { key: "wednesday", label: "Mercredi" },
+    { key: "thursday", label: "Jeudi" },
+    { key: "friday", label: "Vendredi" },
+    { key: "saturday", label: "Samedi" },
+    { key: "sunday", label: "Dimanche" },
+  ];
+  return dayNames
+    .filter((d) => days[d.key as keyof AvailableDays])
+    .map((d) => d.label)
+    .join(", ");
+}
+
+const TIME_SLOTS = [
+  "07h00 - 10h00",
+  "10h00 - 13h00",
+  "13h00 - 16h00",
+  "16h00 - 19h00",
+  "19h00 - 22h00",
+];
+
+// Parse a binary string like "10100" into an array of booleans
+export function parseAvailableTimeSlots(slotsString?: string): boolean[] {
+  if (!slotsString || slotsString.length !== TIME_SLOTS.length) {
+    return Array(TIME_SLOTS.length).fill(false);
+  }
+  return slotsString.split("").map((c) => c === "1");
+}
+
+// Format the selected slots into a readable string
+export function formatAvailableTimeSlots(slotsString?: string): string {
+  const selected = parseAvailableTimeSlots(slotsString)
+    .map((selected, idx) => (selected ? TIME_SLOTS[idx] : null))
+    .filter(Boolean);
+  return selected.length > 0 ? selected.join(", ") : "Aucun créneau";
+}
+
 export function getMonthStartDates(start: string, end: string): string[] {
   const result: string[] = [];
   let current = new Date(start);
