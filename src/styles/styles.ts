@@ -192,7 +192,6 @@ const GlobalStyles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 8,
     minWidth: Platform.OS === "web" ? 0 : 72,
-    marginTop: Platform.OS === "web" ? 0 : 20,
   },
 });
 

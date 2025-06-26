@@ -1,9 +1,21 @@
-import React, { useState, useEffect } from "react";
-import { View, ActivityIndicator, Button } from "react-native";
+import React, { useEffect, useRef, useState } from "react";
+import {
+  View,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Dimensions,
+  Image,
+  Animated,
+} from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { useAuth } from "../hooks/useAuth";
 import Input from "../components/Input";
 import AppText from "../components/AppText";
+import GlobalStyles, { Colors } from "../styles/styles";
+import AppButton from "../components/AppButton";
+import { getImageSource } from "../utils/imgSrcHandler";
 
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
@@ -38,93 +50,154 @@ export default function LoginScreen() {
     }
   };
 
+  // Animation handler
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 450, // duration in ms
+      useNativeDriver: true,
+    }).start();
+  }, [fadeAnim]);
+
+  const screenWidth = Dimensions.get("window").width;
+
   return (
-    <View className="flex-1 justify-center items-center bg-white px-6">
-      <AppText className="text-2xl font-bold mb-6 text-deepBlue">
-        Connexion
-      </AppText>
-
-      <Input
-        placeholder="Email"
-        onChangeText={(text) => {
-          setEmail(text);
-          if (error) setError(null);
-        }}
-        value={email}
-        type="email"
-        label="Email"
-      />
-
-      <Input
-        placeholder="Mot de passe"
-        secureTextEntry
-        onChangeText={(text) => {
-          setPassword(text);
-          if (error) setError(null);
-        }}
-        value={password}
-        type="password"
-        label="Mot de passe"
-      />
-
-      {/* Message d'erreur affiché sous les champs */}
-      {error && (
-        <View
-          style={{
-            width: "100%",
-            marginTop: 10,
-            marginBottom: 16,
-            paddingHorizontal: 16,
-            backgroundColor: "#FEF2F2",
-            borderRadius: 8,
-            padding: 12,
-            borderLeftWidth: 4,
-            borderLeftColor: "#EF4444",
-          }}
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      style={[GlobalStyles.pageStyle, { backgroundColor: Colors.deepBlue }]}
+    >
+      <Animated.View style={{ flex: 1, opacity: fadeAnim, paddingTop: 32 }}>
+        <ScrollView
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          style={Platform.OS === "web" ? { maxHeight: screenWidth + 180 } : {}}
         >
-          <AppText
+          <View
             style={{
-              color: "#DC2626",
-              textAlign: "center",
-              fontSize: 14,
-              fontWeight: "500",
+              flexDirection: "row",
+              alignItems: "center",
+              marginVertical: 32,
             }}
           >
-            {error}
-          </AppText>
-        </View>
-      )}
+            <Image
+              source={getImageSource("white-logo")}
+              style={{ width: 92, height: 87 }}
+            />
+            <View style={{ flexDirection: "column" }}>
+              <AppText style={[GlobalStyles.h1, { color: "white" }]}>
+                HYPERION
+              </AppText>
+              <AppText style={[GlobalStyles.h1, { color: "white" }]}>
+                CONNECT
+              </AppText>
+            </View>
+          </View>
 
-      {isLoading ? (
-        <ActivityIndicator
-          size="large"
-          color="#0A84FF"
-          style={{ marginVertical: 20 }}
-        />
-      ) : (
-        <Button
-          title="Se connecter"
-          onPress={handleLogin}
-          disabled={!email.trim() || !password.trim()}
-        />
-      )}
+          <View
+            style={{
+              backgroundColor: "white",
+              paddingHorizontal: 16,
+              paddingVertical: 32,
+              borderRadius: 16,
+              flexDirection: "column",
+              gap: 24,
+            }}
+          >
+            <View style={{ flexDirection: "column", gap: 8 }}>
+              <AppText style={[GlobalStyles.h2]}>SE CONNECTER</AppText>
+              <AppText>Vous avez déjà un compte ?</AppText>
+            </View>
 
-      <AppText className="text-sm text-gray-500 mt-4">
-        Pas encore inscrit ?{" "}
-        <AppText
-          style={{
-            textDecorationLine: "underline",
-            color: "#2563EB",
-          }}
-          onPress={() => {
-            if (!isLoading) {
-              navigation.navigate("Register" as never);
-            }
-          }}
-        >
-          Inscrivez-vous ici
-        </AppText>
-      </AppText>
-    </View>
+            <View style={{ flexDirection: "column", gap: 16 }}>
+              <Input
+                placeholder="Email"
+                onChangeText={(text) => {
+                  setEmail(text);
+                  if (error) setError(null);
+                }}
+                value={email}
+                type="email"
+                label="Email"
+              />
+
+              <Input
+                placeholder="Mot de passe"
+                secureTextEntry
+                onChangeText={(text) => {
+                  setPassword(text);
+                  if (error) setError(null);
+                }}
+                value={password}
+                type="password"
+                label="Mot de passe"
+              />
+            </View>
+
+            {/* Message d'erreur affiché sous les champs */}
+            {error && (
+              <View
+                style={{
+                  width: "100%",
+                  marginTop: 10,
+                  marginBottom: 16,
+                  paddingHorizontal: 16,
+                  backgroundColor: "#FEF2F2",
+                  borderRadius: 8,
+                  padding: 12,
+                  borderLeftWidth: 4,
+                  borderLeftColor: "#EF4444",
+                }}
+              >
+                <AppText
+                  style={{
+                    color: "#DC2626",
+                    textAlign: "center",
+                    fontSize: 14,
+                    fontWeight: "500",
+                  }}
+                >
+                  {error}
+                </AppText>
+              </View>
+            )}
+
+            {isLoading ? (
+              <ActivityIndicator
+                size="large"
+                color="#0A84FF"
+                style={{ marginVertical: 20 }}
+              />
+            ) : (
+              <AppButton
+                title="Se connecter"
+                iconName="login"
+                type="primary"
+                buttonStyle={{ alignSelf: "flex-end" }}
+                onPress={handleLogin}
+                disabled={!email.trim() || !password.trim()}
+              />
+            )}
+
+            <AppText>
+              Pas encore inscrit ?{" "}
+              <AppText
+                style={{
+                  textDecorationLine: "underline",
+                  color: "#2563EB",
+                }}
+                onPress={() => {
+                  if (!isLoading) {
+                    navigation.navigate("Register" as never);
+                  }
+                }}
+              >
+                Inscrivez-vous ici
+              </AppText>
+            </AppText>
+          </View>
+        </ScrollView>
+      </Animated.View>
+    </KeyboardAvoidingView>
   );
 }
