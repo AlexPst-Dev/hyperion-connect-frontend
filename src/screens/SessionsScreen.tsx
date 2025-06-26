@@ -68,6 +68,7 @@ import {
   Graph,
 } from "../models/graph";
 import { GraphService } from "../services/api/graph-service";
+import { useKpis } from "../hooks/useKpis";
 
 export default function SessionsScreen() {
   const { user, token } = useAuth();
@@ -289,6 +290,11 @@ export default function SessionsScreen() {
       const [progressGraphData, setProgressGraphData] = useState<
         { month: string; value: number }[]
       >([]);
+
+      const { kpis, kpisLoading, kpisError } = useKpis(
+        user?.profileCategory as ProfileCategory,
+        token!
+      );
 
       const handleEvaluateSessionSubmit = async () => {
         if (!note) {
@@ -585,7 +591,7 @@ export default function SessionsScreen() {
       const tabViews: JSX.Element[] = [
         // Tab 0 : Planning
         <View key="planning" style={{ flexDirection: "column", gap: 24 }}>
-          <View style={{ flexDirection: "column", gap: 16 }}>
+          <View style={{ flexDirection: "column", gap: 16, paddingBottom: 32 }}>
             <View>
               <AppText style={{ fontWeight: "bold" }}>
                 Vos disponibilités
@@ -613,7 +619,7 @@ export default function SessionsScreen() {
               />
             </View>
           </View>
-          <View style={{ flexDirection: "column", gap: 16 }}>
+          <View style={{ flexDirection: "column", gap: 16, paddingBottom: 32 }}>
             <AppText style={GlobalStyles.h3}>SEANCES A FAIRE</AppText>
             {nextCoachingEvents.length === 0 ? (
               <AppText>Aucune séance à venir.</AppText>
@@ -662,6 +668,9 @@ export default function SessionsScreen() {
                     title={session.label}
                     nbExercises={nbExercises}
                     durationTime={durationTime}
+                    onPress={() =>
+                      navigation.navigate("SessionDetail", { session })
+                    }
                     labels={
                       sessionsWithMuscleGroups
                         .find((s) => s.session.id === session.id)
@@ -737,49 +746,28 @@ export default function SessionsScreen() {
             </View>
             <AppText style={GlobalStyles.h3}>VOTRE RESUME</AppText>
             <View style={{ flexDirection: "column", gap: 8 }}>
+              {kpisLoading && <ActivityIndicator />}
+              {kpisError && (
+                <AppText style={{ color: Colors.red }}>{kpisError}</AppText>
+              )}
               <View style={{ flexDirection: "row", gap: 8 }}>
-                <View style={{ flex: 1 }}>
-                  <Kpi
-                    title="Motivation 
-                    moyenne"
-                    value="3.9"
-                    iconName="star"
-                    fillIcon
-                  />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Kpi
-                    title="Distance parcourue"
-                    value="104"
-                    unit="km"
-                    iconName="run"
-                    fillIcon
-                  />
-                </View>
-              </View>
-              <View style={{ flexDirection: "row", gap: 8 }}>
-                <View style={{ flex: 1 }}>
-                  <Kpi
-                    title="Progression 
-                    globale"
-                    value="8.1"
-                    iconName="star"
-                    fillIcon
-                  />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Kpi
-                    title="Taux d'adhérence au programme"
-                    value="95"
-                    unit="%"
-                    iconName="star"
-                    fillIcon
-                  />
-                </View>
+                {kpis.length > 0 &&
+                  kpis.map((kpi, index) => (
+                    <View style={{ flex: 1 }} key={`view-${index}`}>
+                      <Kpi
+                        key={index}
+                        title={kpi.title}
+                        iconName={kpi.iconName}
+                        value={kpi.value}
+                        unit={kpi.unit}
+                        fillIcon={kpi.fillIcon}
+                      />
+                    </View>
+                  ))}
               </View>
             </View>
           </View>
-          <View style={{ flexDirection: "column", gap: 16 }}>
+          <View style={{ flexDirection: "column", gap: 16, paddingBottom: 32 }}>
             <AppText style={GlobalStyles.h3}>SEANCES ARCHIVEES</AppText>
             <View style={{ flexDirection: "column", gap: 8 }}>
               {archivedSessionsStats.length === 0 ? (
