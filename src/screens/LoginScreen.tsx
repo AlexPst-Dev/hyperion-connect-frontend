@@ -16,6 +16,7 @@ import AppText from "../components/AppText";
 import GlobalStyles, { Colors } from "../styles/styles";
 import AppButton from "../components/AppButton";
 import { getImageSource } from "../utils/imgSrcHandler";
+import { notify } from "../components/NotificationContainer";
 
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
@@ -44,8 +45,12 @@ export default function LoginScreen() {
       console.log("Connexion réussie !");
       // La navigation sera gérée automatiquement par AppNavigator
     } catch (error: any) {
-      console.error("Erreur de connexion:", error);
+      console.error("Erreur de connexion : ", error);
       // Afficher le message d'erreur sur l'interface
+      notify({
+        title: "Erreur de connexion" + error.message,
+        type: "error",
+      });
       setError(error.message || "Une erreur est survenue lors de la connexion");
     }
   };
