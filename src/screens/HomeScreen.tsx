@@ -48,6 +48,11 @@ import {
 } from "../models/objective";
 import { ObjectivesApiService } from "../services/api/objective-service";
 import { useMedicClients } from "../hooks/useMedicClients";
+import {
+  getMinutesFromDuration,
+  SessionService,
+} from "../services/api/session-service";
+import { Session as SessionModel } from "../models/session";
 
 export default function HomeScreen() {
   const tempCoachUser: User = {
@@ -99,6 +104,35 @@ export default function HomeScreen() {
   const [lastClientsObjectives, setLastClientsObjectives] = useState<
     { client: User; objectives: ObjectiveModel[] }[]
   >([]);
+
+  const [lastSession, setLastSession] = useState<SessionModel | null>(null);
+
+  // Fetch last session only for sportsman
+  useEffect(() => {
+    const fetchLastSession = async () => {
+      if (!user || !token || user.profileCategory !== "sportsman") return;
+      try {
+        const linkedSessions = await SessionService.getSessionsByUser(
+          user.id,
+          token
+        );
+        if (linkedSessions.length > 0) {
+          const lastLinked = linkedSessions[linkedSessions.length - 1];
+          const sessionWithFile = await SessionService.getSessionById(
+            lastLinked.sessionId,
+            token
+          );
+          setLastSession(sessionWithFile.session);
+        } else {
+          setLastSession(null);
+        }
+      } catch (error) {
+        console.error("Error fetching last session:", error);
+        setLastSession(null);
+      }
+    };
+    fetchLastSession();
+  }, [user, token]);
 
   // Fetch the latest notification
   useEffect(() => {
@@ -299,72 +333,102 @@ export default function HomeScreen() {
   }
 
   const HomePageByProfile: Record<string, HomePageRenderer> = {
-    sportsman: (user) => (
-      <View style={{ flexDirection: "column", gap: 24 }}>
-        <View style={{ flexDirection: "column", gap: 16 }}>
-          <View
-            style={{
-              flexDirection: "row",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-          >
-            <AppText style={GlobalStyles.h3}>VOTRE PROGRAMME DU JOUR</AppText>
-            <AppButton type="linkSmall" title="Voir plus" iconName="eye" />
+    sportsman: (user) => {
+      const refreshClosestEvent = async () => {
+        if (!closestEvent || !token) return;
+        try {
+          const { event } = await eventService.getEventById(
+            closestEvent.id,
+            token
+          );
+          setClosestEvent(event); // This will trigger a re-render and update DisplayEvent
+        } catch (error) {
+          console.error("Error refreshing event:", error);
+        }
+      };
+
+      return (
+        <View style={{ flexDirection: "column", gap: 24 }}>
+          <View style={{ flexDirection: "column", gap: 16 }}>
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <AppText style={GlobalStyles.h3}>VOTRE PROGRAMME DU JOUR</AppText>
+              <AppButton type="linkSmall" title="Voir plus" iconName="eye" />
+            </View>
+            {lastSession ? (
+              <Session
+                title={lastSession.label}
+                durationTime={getMinutesFromDuration(lastSession.durationTime)}
+                nbExercises={lastSession.numberOfExercises}
+                imageUrl={
+                  lastSession.filePicture
+                    ? lastSession.filePicture.url
+                    : undefined
+                }
+              />
+            ) : (
+              <AppText>Aucune séance trouvée.</AppText>
+            )}
           </View>
-          <Session
-            title="Séance de Tempo Run"
-            durationTime={50}
-            nbExercises={3}
-            labels={
+          <View style={{ flexDirection: "column", gap: 16 }}>
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <AppText style={GlobalStyles.h3}>VOTRE PROCHAIN RDV</AppText>
+              <AppButton type="linkSmall" title="Voir plus" iconName="eye" />
+            </View>
+            {closestEvent && (
               <>
-                <Label
-                  title="Cardio"
-                  textColor="#1E3A8A"
-                  backgroundColor="#D6EBFF"
-                  size="small"
+                <Event
+                  title={closestEvent.title || "Événement"}
+                  type={closestEvent.eventCategory as EventCategory}
+                  personsInvolved={eventUsers}
+                  location={closestEvent.location || ""}
+                  date={
+                    closestEvent.date ? new Date(closestEvent.date) : new Date()
+                  }
+                  hour={closestEvent.time || ""}
+                  isInPerson={true}
+                  infoDescription={closestEvent.description || ""}
+                  onPress={() => setEventPopupVisible(true)}
                 />
-                <Label
-                  title="Jambes"
-                  textColor="#F97316"
-                  backgroundColor="#FFF9F4"
-                  size="small"
-                />
+                {eventPopupVisible && (
+                  <DisplayEvent
+                    visible={eventPopupVisible}
+                    event={closestEvent}
+                    hyperlinkProps={
+                      closestEvent.eventCategory === EventCategory.HYPERLINK
+                        ? closestEvent.specificEvent
+                        : undefined
+                    }
+                    userConnected={user}
+                    token={token as string}
+                    listOfUser={eventUsers}
+                    onClose={() => setEventPopupVisible(false)}
+                    onSubmit={refreshClosestEvent}
+                  />
+                )}
               </>
-            }
-            imageUrl="sessions/img-running"
-          />
-        </View>
-        <View style={{ flexDirection: "column", gap: 16 }}>
-          <View
-            style={{
-              flexDirection: "row",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-          >
-            <AppText style={GlobalStyles.h3}>VOTRE PROCHAIN RDV</AppText>
-            <AppButton type="linkSmall" title="Voir plus" iconName="eye" />
+            )}
           </View>
-          <Event
-            title="Séance de fractionné"
-            type={EventCategory.COACHING}
-            personsInvolved={tempCoachUser}
-            location="Parc de Vannes"
-            date={new Date("2025-05-17")}
-            hour="14h00"
-            isInPerson
-            infoDescription="Lorem ipsum dolore sit amet"
-          />
+          <View style={{ flexDirection: "column", gap: 8 }}>
+            <AppText style={{ fontWeight: "bold" }}>
+              {notification?.title}
+            </AppText>
+            <AppText>{notification?.text}</AppText>
+          </View>
         </View>
-        <View style={{ flexDirection: "column", gap: 8 }}>
-          <AppText style={{ fontWeight: "bold" }}>
-            {notification?.title}
-          </AppText>
-          <AppText>{notification?.text}</AppText>
-        </View>
-      </View>
-    ),
+      );
+    },
     coach: (user) => {
       const refreshClosestEvent = async () => {
         if (!closestEvent || !token) return;
