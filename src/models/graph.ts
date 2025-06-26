@@ -98,3 +98,13 @@ export function getDynamicMonthLabels(startDate: string, count: number) {
   }
   return labels;
 }
+
+export function getCurrentMonthIndex(startDate: string) {
+  const start = new Date(startDate);
+  const now = new Date();
+  return (
+    (now.getFullYear() - start.getFullYear()) * 12 +
+    (now.getMonth() - start.getMonth()) +
+    1 // +1 because your DB starts at 1
+  );
+}

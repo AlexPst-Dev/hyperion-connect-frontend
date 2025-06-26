@@ -22,7 +22,7 @@ import Session from "../components/Session";
 import Kpi from "../components/Kpi";
 import ItemClient from "../components/ItemClient";
 import Objective from "../components/Objective";
-import { ProfileCategory, SportsmanProfile, User } from "../models/user";
+import { ProfileCategory, User } from "../models/user";
 import {
   getNotificationsByCategory,
   updateNotification,
@@ -39,7 +39,7 @@ import { eventService } from "../services/api/event-service";
 import { UserService } from "../services/api/user-service";
 import DisplayEvent from "../components/popups/DisplayEvent";
 import { notify } from "../components/NotificationContainer";
-import { KpiModel, useKpis } from "../hooks/useKpis";
+import { useKpis } from "../hooks/useKpis";
 import { useCoachClients } from "../hooks/useCoachClients";
 import {
   getMonthsBetween,
@@ -55,16 +55,6 @@ import {
 import { Session as SessionModel } from "../models/session";
 
 export default function HomeScreen() {
-  const tempCoachUser: User = {
-    id: 1,
-    firstName: "Alex",
-    lastName: "Martin",
-    profileCategory: ProfileCategory.COACH,
-    email: "alex.martin@mail.com",
-    isActive: true,
-    createdAt: "2025-05-05",
-    updatedAt: "2025-05-05",
-  };
   const tempAdminUser: User = {
     id: 2,
     firstName: "k",
@@ -116,16 +106,26 @@ export default function HomeScreen() {
           user.id,
           token
         );
-        if (linkedSessions.length > 0) {
-          const lastLinked = linkedSessions[linkedSessions.length - 1];
-          const sessionWithFile = await SessionService.getSessionById(
-            lastLinked.sessionId,
-            token
-          );
-          setLastSession(sessionWithFile.session);
-        } else {
-          setLastSession(null);
+        // Loop from last to first
+        for (let i = linkedSessions.length - 1; i >= 0; i--) {
+          try {
+            const sessionWithFile = await SessionService.getSessionById(
+              linkedSessions[i].sessionId,
+              token
+            );
+            if (sessionWithFile.session.isActive) {
+              setLastSession(sessionWithFile.session);
+              return; // Stop at the first active session found
+            } else {
+              continue;
+            }
+          } catch {
+            // Ignore errors for missing/inactive sessions, try previous
+            continue;
+          }
         }
+        // If none found
+        setLastSession(null);
       } catch (error) {
         console.error("Error fetching last session:", error);
         setLastSession(null);
@@ -172,7 +172,9 @@ export default function HomeScreen() {
         // Find the closest event
         const now = new Date();
         const sorted = events
-          .filter((e) => e.date && new Date(e.date) >= now)
+          .filter(
+            (e) => e.isActive === true && e.date && new Date(e.date) >= now
+          )
           .sort(
             (a, b) => new Date(a.date!).getTime() - new Date(b.date!).getTime()
           );
