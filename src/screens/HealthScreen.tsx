@@ -1,67 +1,231 @@
-import React, { JSX, useState } from "react";
+import React, { JSX, useEffect, useState } from "react";
 import { KeyboardAvoidingView, Platform, ScrollView, View } from "react-native";
 import AppText from "../components/AppText";
 import GlobalStyles from "../styles/styles";
 import ViewController from "../components/ViewController";
 import Event from "../components/Event";
-import { ProfileCategory, User } from "../models/user";
+import {
+  ProfileCategory,
+  SportsmanProfile,
+  User,
+  UserResponse,
+} from "../models/user";
 import Icon from "../components/Icon";
 import ItemUser from "../components/ItemUser";
-import { EventCategory } from "../models/event";
+import {
+  Event as EventModel,
+  EventCategory,
+  EventCompleteResponse,
+  parseIds,
+} from "../models/event";
+import { eventService } from "../services/api/event-service";
+import { useAuth } from "../hooks/useAuth";
+import { UserService } from "../services/api/user-service";
+import { File } from "../models/file";
+import { fileService } from "../services/api/file-service";
+import DisplayEvent from "../components/popups/DisplayEvent";
 
 export default function HealthScreen() {
-  const medicUser: User = {
-    id: 1,
-    firstName: "Sophie",
-    lastName: "Lemoine",
-    email: "s.l@mail.com",
-    profileCategory: ProfileCategory.MEDIC,
-    isActive: true,
-    createdAt: "2025-05-05",
-    updatedAt: "2025-05-05",
-  };
+  const { user, token } = useAuth();
+  if (!user || !token) return;
+
+  const [medicEvents, setMedicEvents] = useState<EventCompleteResponse[]>([]);
+  const [inacitvesMedicEvents, setInactivesMedicEvents] = useState<
+    EventCompleteResponse[]
+  >([]);
+  const [responsiblesMap, setResponsiblesMap] = useState<
+    Record<number, User[]>
+  >({});
+  const [sportsmanNotes, setSportsmanNotes] = useState<
+    { header: string; message: string }[]
+  >([]);
+
+  const [medicFiles, setMedicFiles] = useState<File[]>([]);
+
+  const [linkedMedics, setLinkedMedics] = useState<User[]>([]);
+
+  const [displayEventVisible, setDisplayEventVisible] = useState<
+    EventModel | false
+  >(false);
+
+  async function fetchMedicEvents() {
+    if (!user || !token) return;
+    const completeEvents = await eventService.getEventsByUserId(user.id, token);
+    const medicalEvents = completeEvents.events.filter(
+      (e) =>
+        e.eventCategory === EventCategory.MEDICAL &&
+        e.isActive === true &&
+        e.date !== null &&
+        new Date(e.date).getTime() > Date.now()
+    );
+    const oldMedicalEvents = completeEvents.events.filter(
+      (e) =>
+        e.eventCategory === EventCategory.MEDICAL &&
+        (e.isActive === false ||
+          (e.date !== null && new Date(e.date).getTime() < Date.now()))
+    );
+    setMedicEvents(medicalEvents);
+    setInactivesMedicEvents(oldMedicalEvents);
+
+    // Fetch responsibles for each event
+    const responsiblesPromises = completeEvents.events.map(async (event) => {
+      const ids = parseIds(event.responsibleIds);
+      const users: User[] = [];
+      for (const id of ids) {
+        try {
+          const res = await UserService.getUserById(id, token);
+          if (res.user) users.push(res.user);
+        } catch (e) {
+          // Optionally handle error
+        }
+      }
+      return { eventId: event.id, users };
+    });
+
+    const responsiblesArray = await Promise.all(responsiblesPromises);
+    const map: Record<number, User[]> = {};
+    responsiblesArray.forEach(({ eventId, users }) => {
+      map[eventId] = users;
+    });
+    setResponsiblesMap(map);
+  }
+
+  async function fetchMedicNotes() {
+    if (!user) return;
+    const getAllNotes = (notesString?: string) => {
+      if (!notesString) return [];
+      // Split on };{ and fix the curly braces
+      return notesString.split(/};\s*{/).map((note, idx, arr) => {
+        // Add missing braces for first and last
+        let cleanNote = note;
+        if (idx === 0 && !note.startsWith("{")) cleanNote = "{" + note;
+        if (idx === arr.length - 1 && !note.endsWith("}"))
+          cleanNote = note + "}";
+        if (idx !== 0 && !note.startsWith("{")) cleanNote = "{" + note;
+        if (idx !== arr.length - 1 && !note.endsWith("}"))
+          cleanNote = note + "}";
+        // Now parse header/message
+        const firstComma = cleanNote.indexOf(",");
+        if (firstComma === -1) return { header: cleanNote, message: "" };
+        const header = cleanNote.slice(1, firstComma).trim();
+        const message = cleanNote
+          .slice(firstComma + 1, cleanNote.length - 1)
+          .trim();
+        return { header, message };
+      });
+    };
+
+    const completeUser: UserResponse = await UserService.getUserById(user.id);
+    const notesString = (completeUser.profile as SportsmanProfile)
+      ?.listMedicNotes;
+    const allNotes = getAllNotes(notesString);
+    setSportsmanNotes(allNotes);
+  }
+
+  async function fetchMedicFiles() {
+    if (!user || !token) return;
+    const completeUser: UserResponse = await UserService.getUserById(user.id);
+    if ((completeUser.profile as SportsmanProfile)?.listMedicFiles) {
+      const listMedicFiles = (completeUser.profile as SportsmanProfile)
+        .listMedicFiles;
+      const ids = listMedicFiles
+        ? listMedicFiles
+            .split(";")
+            .map((id) => parseInt(id, 10))
+            .filter((id) => !isNaN(id))
+        : [];
+      try {
+        const files = await Promise.all(
+          ids.map((id) => fileService.getFileById(id, token))
+        );
+        setMedicFiles(files);
+      } catch {
+        setMedicFiles([]);
+      }
+    }
+  }
+
+  async function fetchMedicUsers() {
+    if (!user || !token) return;
+    const completeUser: UserResponse = await UserService.getUserById(user.id);
+    if ((completeUser.profile as SportsmanProfile)?.listMedicsIds) {
+      const listMedicsIds = (completeUser.profile as SportsmanProfile)
+        .listMedicsIds;
+      const ids = listMedicsIds
+        ? listMedicsIds
+            .split(";")
+            .map((id) => parseInt(id.trim(), 10))
+            .filter((id) => !isNaN(id))
+        : [];
+      try {
+        const users = await Promise.all(
+          ids.map((id) => UserService.getUserById(id, token))
+        );
+        setLinkedMedics(users.map((res) => res.user));
+      } catch {
+        setLinkedMedics([]);
+      }
+    } else {
+      setLinkedMedics([]);
+    }
+  }
+
+  useEffect(() => {
+    if (!user || !token) return;
+    try {
+      fetchMedicEvents();
+      fetchMedicNotes();
+      fetchMedicFiles();
+      fetchMedicUsers();
+    } catch (e) {
+      console.log("Error while fetching medic infos : ", e);
+    }
+  }, [user, token]);
 
   const [activeTabIndex, setActiveTabIndex] = useState(0);
   const tabViews: JSX.Element[] = [
-    <View style={{ flexDirection: "column", gap: 24 }}>
+    <View key={"meetings"} style={{ flexDirection: "column", gap: 24 }}>
       <AppText>Préparez-vous pour vos prochains rendez-vous médicaux.</AppText>
-      <Event
-        type={EventCategory.MEDICAL}
-        title="Analyse sanguine"
-        personsInvolved={medicUser}
-        location="Centre d'analyse de Vannes"
-        date={new Date("2025-05-05")}
-        hour="14h"
-      />
-      <Event
-        type={EventCategory.MEDICAL}
-        title="Analyse sanguine"
-        personsInvolved={medicUser}
-        location="Centre d'analyse de Vannes"
-        date={new Date("2025-05-05")}
-        hour="14h"
-      />
+      {medicEvents.map((me) => (
+        <Event
+          key={me.id}
+          type={EventCategory.MEDICAL}
+          title={me.title ? me.title : "Rendez-vous"}
+          personsInvolved={responsiblesMap[me.id] || []}
+          location={me.location ? me.location : "Lieu non renseigné"}
+          date={new Date(me.date ?? "")}
+          hour={me.time ?? ""}
+          onPress={() => setDisplayEventVisible(me)}
+        />
+      ))}
+
       <AppText>
         Consultez vos rendez-vous précédents pour suivre votre historique.
       </AppText>
-      <Event
-        type={EventCategory.MEDICAL}
-        title="Analyse sanguine"
-        personsInvolved={medicUser}
-        location="Centre d'analyse de Vannes"
-        date={new Date("2025-05-05")}
-        hour="14h"
-      />
-      <Event
-        type={EventCategory.MEDICAL}
-        title="Analyse sanguine"
-        personsInvolved={medicUser}
-        location="Centre d'analyse de Vannes"
-        date={new Date("2025-05-05")}
-        hour="14h"
-      />
+      {inacitvesMedicEvents.map((me) => (
+        <Event
+          key={me.id}
+          type={EventCategory.MEDICAL}
+          title={me.title ? me.title : "Rendez-vous"}
+          personsInvolved={responsiblesMap[me.id] || []}
+          location={me.location ? me.location : "Lieu non renseigné"}
+          date={new Date(me.date ?? "")}
+          hour={me.time ?? ""}
+          onPress={() => setDisplayEventVisible(me)}
+        />
+      ))}
+
+      {displayEventVisible && (
+        <DisplayEvent
+          visible={true}
+          event={displayEventVisible}
+          userConnected={user}
+          listOfUser={responsiblesMap[displayEventVisible.id]}
+          onClose={() => setDisplayEventVisible(false)}
+        />
+      )}
     </View>,
-    <View style={{ flexDirection: "column", gap: 24 }}>
+    <View key={"medicNotes"} style={{ flexDirection: "column", gap: 24 }}>
       <AppText style={{ fontWeight: "bold" }}>Notes médicales</AppText>
       <View
         style={{
@@ -72,116 +236,61 @@ export default function HealthScreen() {
           borderLeftColor: "black",
         }}
       >
-        <AppText style={{ fontWeight: "bold" }}>Entorse de la cheville</AppText>
-        <AppText>12 décembre 2024</AppText>
-        <AppText>
-          Description : Entorse de la cheville gauche survenue lors d'un
-          entraînement de course à pied. La blessure s'est produite après avoir
-          trébuché sur une irrégularité du terrain.
-        </AppText>
-        <AppText>
-          Temps de récupération : 4 semaines de repos et rééducation.
-        </AppText>
-        <AppText>
-          Traitement suivi : Immobilisation partielle avec une attelle pendant 1
-          semaine. Séances de kinésithérapie (2 fois par semaine pendant 3
-          semaines). Exercices de renforcement musculaire et de proprioception.
-          Application de glace et utilisation de bandages compressifs.
-        </AppText>
+        {sportsmanNotes.length > 0 ? (
+          sportsmanNotes.map((note, idx) => (
+            <View key={idx} style={{ marginBottom: 12 }}>
+              <AppText style={{ fontWeight: "bold" }}>{note.header}</AppText>
+              <AppText>{note.message}</AppText>
+            </View>
+          ))
+        ) : (
+          <AppText>Aucune note</AppText>
+        )}
       </View>
       <View style={{ flexDirection: "column", gap: 16 }}>
         <AppText style={GlobalStyles.h3}>Fichiers médicaux</AppText>
         <View style={{ flexDirection: "column", gap: 8 }}>
-          <View
-            style={{ flexDirection: "row", justifyContent: "space-between" }}
-          >
-            <AppText>Résultats_Analyse_Sanguine_2025.pdf</AppText>
-            <Icon
-              name="download"
-              width={24}
-              height={24}
-              strokeColor="black"
-              fillColor="transparent"
-              strokeWidth={2}
-            />
-          </View>
-          <View
-            style={{ flexDirection: "row", justifyContent: "space-between" }}
-          >
-            <AppText>Compte_Rendu_IRM_Genou_2025.pdf</AppText>
-            <Icon
-              name="download"
-              width={24}
-              height={24}
-              strokeColor="black"
-              fillColor="transparent"
-              strokeWidth={2}
-            />
-          </View>
-          <View
-            style={{ flexDirection: "row", justifyContent: "space-between" }}
-          >
-            <AppText>Ordonnance_Kinésithérapie_2025.pdf</AppText>
-            <Icon
-              name="download"
-              width={24}
-              height={24}
-              strokeColor="black"
-              fillColor="transparent"
-              strokeWidth={2}
-            />
-          </View>
+          {medicFiles.length > 0 ? (
+            medicFiles.map((file) => (
+              <View
+                key={file.id}
+                style={{
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                }}
+              >
+                <AppText>{file.label}</AppText>
+                <Icon
+                  name="download"
+                  width={24}
+                  height={24}
+                  fillColor="transparent"
+                  strokeColor="black"
+                  strokeWidth={2}
+                />
+              </View>
+            ))
+          ) : (
+            <AppText>Aucun compte rendu médical</AppText>
+          )}
         </View>
       </View>
     </View>,
-    <View style={{ flexDirection: "column", gap: 24 }}>
+    <View key={"medics"} style={{ flexDirection: "column", gap: 24 }}>
       <AppText>
         Retrouvez ici la liste des intervenants médicaux avec qui vous avez eu
         au moins un rendez-vous.
       </AppText>
       <View style={{ flexDirection: "column", gap: 16 }}>
-        <ItemUser
-          user={{
-            firstName: "Sophie",
-            lastName: "Lemoine",
-            email: "mail@mail.com",
-            profileCategory: ProfileCategory.MEDIC,
-            id: 1,
-            isActive: true,
-            createdAt: new Date().toString(),
-            updatedAt: new Date().toString(),
-          }}
-          iconName="send"
-          isCompany={false}
-        />
-        <ItemUser
-          user={{
-            firstName: "Sophie",
-            lastName: "Lemoine",
-            email: "mail@mail.com",
-            profileCategory: ProfileCategory.MEDIC,
-            id: 2,
-            isActive: true,
-            createdAt: new Date().toString(),
-            updatedAt: new Date().toString(),
-          }}
-          iconName="send"
-          isCompany={false}
-        />
-        <ItemUser
-          user={{
-            firstName: "Sophie",
-            lastName: "Lemoine",
-            email: "mail@mail.com",
-            profileCategory: ProfileCategory.MEDIC,
-            id: 3,
-            isActive: true,
-            createdAt: new Date().toString(),
-            updatedAt: new Date().toString(),
-          }}
-          iconName="send"
-          isCompany={false}
-        />
+        {linkedMedics.length > 0 ? (
+          linkedMedics.map((medic) => (
+            <View key={medic.id} style={{ flexDirection: "column", gap: 8 }}>
+              <ItemUser user={medic} isCompany={false} />
+            </View>
+          ))
+        ) : (
+          <AppText>Aucun soignant lié</AppText>
+        )}
       </View>
     </View>,
   ];
