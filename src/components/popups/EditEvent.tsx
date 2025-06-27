@@ -157,7 +157,7 @@ export default function EditEvent({
         ? (existingEvent as any).specificEvent.theme
         : ""
     );
-    setEventTheme(
+    setEventMaxParticipants(
       eventType === EventCategory.SPORTING_ACTIVITY &&
         (existingEvent as any)?.specificEvent?.maxParticipants
         ? (existingEvent as any).specificEvent.maxParticipants
@@ -191,6 +191,7 @@ export default function EditEvent({
       location: eventLocation,
       time: formattedTime,
       date: eventDate,
+      isActive: Boolean,
     };
 
     if (
@@ -206,6 +207,15 @@ export default function EditEvent({
           : undefined;
     } else if (responsibleIds) {
       baseData.responsibleIds = responsibleIds;
+    } else if (
+      eventType === EventCategory.SPORTING_ACTIVITY &&
+      user &&
+      user.id
+    ) {
+      baseData.responsibleIds = user.id.toString();
+      baseData.isActive = false;
+    } else {
+      baseData.isActive = true;
     }
 
     try {

@@ -92,10 +92,18 @@ export default function DisplayEvent({
     try {
       await eventService.updateEvent(event.id, { isActive: true }, token);
       if (onSubmit) onSubmit();
+      notify({
+        title: "Activitée sportive validée avec succès",
+        type: "success",
+      });
       onClose();
     } catch (err) {
       // Optionally show an error message
       console.error("Failed to validate event", err);
+      notify({
+        title: "Une erreur est survenue lors de la validation",
+        type: "error",
+      });
     } finally {
       setSportingActivityValidationLoading(false);
     }

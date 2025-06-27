@@ -1,4 +1,4 @@
-import React, { JSX, useEffect, useState } from "react";
+import React, { JSX, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -32,6 +32,12 @@ import { Event as EventModel, EventCategory } from "../models/event";
 import { contactService } from "../services/api/contact-service";
 import { UserService } from "../services/api/user-service";
 import { notify } from "../components/NotificationContainer";
+import {
+  useEventPersons,
+  useEventsByCategories,
+} from "../hooks/useEventsByCategories";
+import DisplayEvent from "../components/popups/DisplayEvent";
+import EditEvent from "../components/popups/EditEvent";
 
 export default function CommunityScreen() {
   type NavigationProp = NativeStackNavigationProp<
@@ -210,42 +216,127 @@ export default function CommunityScreen() {
 
   const CommunityPageByProfile: Record<string, CommunityPageRenderer> = {
     sportsman: (user) => {
+      const { eventsByCategory, eventsByCategoriesLoading, error } =
+        useEventsByCategories(
+          [EventCategory.HYPERION, EventCategory.SPORTING_ACTIVITY],
+          token!
+        );
+
+      const [eventSelected, setEventSelected] = useState<EventModel>();
+      const [personOnGoingOfSelectedEvent, setPersonOnGoingOfSelectedEvent] =
+        useState<any[]>([]);
+      const [eventDetailsPopUpVisible, setEventDetailsPopUpVisible] =
+        useState(false);
+
+      const allPersonIds = useMemo(() => {
+        const hyperionEvents = eventsByCategory[EventCategory.HYPERION] || [];
+        const allIds = hyperionEvents
+          .map((event) => event.responsibleIds)
+          .filter(Boolean)
+          .join(";");
+        return allIds;
+      }, [eventsByCategory]);
+
+      const { users: allUsers } = useEventPersons(allPersonIds, token!);
+
+      const usersMap = useMemo(() => {
+        const map = new Map();
+        allUsers.forEach((user) => {
+          map.set(user.id.toString(), user);
+        });
+        return map;
+      }, [allUsers]);
+
+      const getUsersForEvent = (ids: string | null) => {
+        if (!ids) return [];
+
+        return ids
+          .split("; ")
+          .filter(Boolean)
+          .map((id) => usersMap.get(id))
+          .filter(Boolean);
+      };
+
       return (
         <>
-          <View style={{ flexDirection: "column", gap: 24 }}>
+          <View style={{ flexDirection: "column", gap: 24, paddingBottom: 32 }}>
             <View style={{ flexDirection: "column", gap: 16 }}>
               <AppText style={GlobalStyles.h3}>PROCHAINS EVENEMENTS</AppText>
-              {/* <Event
-                title="Evénement Hyperion Vannes"
-                type={EventCategory.HYPERION}
-                personsInvolved={tempAdminUser}
-                location="Parc de Vannes"
-                date={new Date("2025-10-10")}
-                hour="14h00"
-              /> */}
+              {eventsByCategoriesLoading ? (
+                <AppText>Chargement...</AppText>
+              ) : eventsByCategory[EventCategory.HYPERION] &&
+                eventsByCategory[EventCategory.HYPERION].filter(
+                  (e) =>
+                    e.date !== null && new Date(e.date).getTime() > Date.now()
+                ).length > 0 ? (
+                eventsByCategory[EventCategory.HYPERION]
+                  .filter(
+                    (e) =>
+                      e.date !== null && new Date(e.date).getTime() > Date.now()
+                  )
+                  .map((e) => {
+                    const personsInvolved = getUsersForEvent(e.responsibleIds);
+
+                    return (
+                      <Event
+                        key={e.id}
+                        title={e.title ? e.title : "Séance"}
+                        personsInvolved={personsInvolved}
+                        location={e.location || ""}
+                        date={new Date(e.date || "")}
+                        isInPerson
+                        hour={e.time || ""}
+                        type={EventCategory.HYPERION}
+                        onPress={() => {
+                          setEventSelected(e);
+                          setPersonOnGoingOfSelectedEvent(personsInvolved);
+                          setEventDetailsPopUpVisible(true);
+                        }}
+                      />
+                    );
+                  })
+              ) : (
+                <AppText>Aucun évenement n'est prévu actuellement</AppText>
+              )}
             </View>
             <View style={{ flexDirection: "column", gap: 16 }}>
               <AppText style={GlobalStyles.h3}>ACTIVITES PROPOSEES</AppText>
-              {/* <Event
-                title="Sortie running Vannes 10km"
-                type={EventCategory.SPORTING_ACTIVITY}
-                personsInvolved={tempAdminUser}
-                location="Parc de Vannes"
-                date={new Date("2025-10-10")}
-                hour="14h00"
-                infoDescription="Lorem ipsum dolore sit amet"
-                onPress={() =>
-                  displayEventDetailPopup({
-                    title: "Sortie running Vannes 10km",
-                    type: "sportingActivity",
-                    personsInvolved: tempAdminUser,
-                    location: "Parc de Vannes",
-                    date: new Date("2025-10-10"),
-                    hour: "14h00",
-                    infoDescription: "Lorem ipsum dolore sit amet",
+              {eventsByCategoriesLoading ? (
+                <AppText>Chargement...</AppText>
+              ) : eventsByCategory[EventCategory.SPORTING_ACTIVITY] &&
+                eventsByCategory[EventCategory.SPORTING_ACTIVITY].filter(
+                  (e) =>
+                    e.date !== null && new Date(e.date).getTime() > Date.now()
+                ).length > 0 ? (
+                eventsByCategory[EventCategory.SPORTING_ACTIVITY]
+                  .filter(
+                    (e) =>
+                      e.date !== null && new Date(e.date).getTime() > Date.now()
+                  )
+                  .map((e) => {
+                    const personsInvolved = getUsersForEvent(e.responsibleIds);
+
+                    return (
+                      <Event
+                        key={e.id}
+                        title={e.title ? e.title : "Séance"}
+                        personsInvolved={personsInvolved}
+                        location={e.location || ""}
+                        date={new Date(e.date || "")}
+                        isInPerson
+                        hour={e.time || ""}
+                        type={EventCategory.HYPERION}
+                        onPress={() => {
+                          setEventSelected(e);
+                          setPersonOnGoingOfSelectedEvent(personsInvolved);
+                          setEventDetailsPopUpVisible(true);
+                        }}
+                      />
+                    );
                   })
-                }
-              /> */}
+              ) : (
+                <AppText>Aucun évenement n'est prévu actuellement</AppText>
+              )}
               <View
                 style={{ flexDirection: "row", justifyContent: "flex-end" }}
               >
@@ -258,67 +349,27 @@ export default function CommunityScreen() {
               </View>
             </View>
           </View>
-          <Modal
-            visible={editSportingActivityPopUpVisible}
-            transparent
-            onRequestClose={handleEditSportingActivityPopUp}
-          >
-            <Pressable
-              onPress={handleEditSportingActivityPopUp}
-              style={{
-                flex: 1,
-                backgroundColor: "rgba(0,0,0,0.5)",
-                justifyContent: "center",
-                padding: 24,
+          {editSportingActivityPopUpVisible && token && (
+            <EditEvent
+              visible={editSportingActivityPopUpVisible}
+              token={token}
+              onClose={() => setEditSportingActivityPopUpVisible(false)}
+              title={"Créer une nouvelle activitée sportive"}
+              eventType={EventCategory.SPORTING_ACTIVITY}
+            />
+          )}
+          {eventDetailsPopUpVisible && eventSelected && (
+            <DisplayEvent
+              visible={eventDetailsPopUpVisible}
+              event={eventSelected}
+              userConnected={user}
+              listOfUser={personOnGoingOfSelectedEvent}
+              onClose={() => {
+                setEventDetailsPopUpVisible(false);
               }}
-            >
-              <PopUp
-                title="Editer une sortie sportive"
-                onClose={handleEditSportingActivityPopUp}
-                closeText="Annuler"
-                onSubmit={handleEditSportingActivityPopUp}
-                btnText="Valider"
-                btnType="primary"
-                iconName="check"
-                inputs={
-                  <>
-                    <Input
-                      type="text"
-                      label="Nom"
-                      placeholder="Nom de l'évenement"
-                    />
-                    <Input type="text" label="Lieu" placeholder="Adresse" />
-                    <Input
-                      type="text"
-                      label="Lien utile"
-                      placeholder="https://"
-                    />
-                    <Input
-                      type="text"
-                      label="Heure de début"
-                      placeholder="08:00"
-                    />
-                    <Input
-                      type="text"
-                      label="Heure de fin"
-                      placeholder="09:00"
-                    />
-                    <Input type="date" label="Date" placeholder="XX/XX/XXXX" />
-                    <Input
-                      type="number"
-                      label="Nombre de personnes"
-                      placeholder="10"
-                    />
-                    <Input
-                      type="textarea"
-                      label="Description"
-                      placeholder="Décrivez l'activité proposée ici..."
-                    />
-                  </>
-                }
-              />
-            </Pressable>
-          </Modal>
+              token={token!}
+            />
+          )}
         </>
       );
     },
