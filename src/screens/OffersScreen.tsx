@@ -134,22 +134,24 @@ export default function OffersScreen() {
                     if (
                       offer.offerCategory === OfferCategory.DISCOUNT &&
                       offer.discountDetails &&
-                      typeof offer.discountDetails.link === "string"
+                      typeof offer.discountDetails.link === "string" &&
+                      isFree === false
                     ) {
                       Linking.openURL(offer.discountDetails.link);
                     } else if (
-                      offer.offerCategory === OfferCategory.SPONSORSHIP
+                      offer.offerCategory === OfferCategory.SPONSORSHIP &&
+                      isFree === false
                     ) {
                       setSelectedOffer({ offer, company });
                     }
                   }}
                   iconName={
-                    offer.offerCategory === OfferCategory.DISCOUNT
-                      ? "link"
+                    isFree
+                      ? "linkDenied"
                       : offer.offerCategory === OfferCategory.SPONSORSHIP
-                      ? isFree
-                        ? "linkDenied"
-                        : "send"
+                      ? "link"
+                      : offer.offerCategory === OfferCategory.DISCOUNT
+                      ? "send"
                       : undefined
                   }
                 />
