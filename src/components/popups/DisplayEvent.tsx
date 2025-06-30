@@ -23,7 +23,8 @@ import {
   HyperionEventResponse,
   HyperlinkEventResponse,
   MedicalEventResponse,
-  SportingActivityEventResponse,
+  parseIds,
+  SportingActivityEvent,
 } from "@/src/models/event";
 import { getImageSource } from "@/src/utils/imgSrcHandler";
 import EditEvent from "./EditEvent";
@@ -37,7 +38,7 @@ interface Props {
   event: Event;
   hyperlinkProps?: HyperlinkEventResponse;
   hyperionProps?: HyperionEventResponse;
-  sportingActivityProps?: SportingActivityEventResponse;
+  sportingActivityProps?: SportingActivityEvent;
   coachingProps?: CoachingEventResponse;
   medicalProps?: MedicalEventResponse;
   userConnected: LoggedUser;
@@ -174,6 +175,73 @@ export default function DisplayEvent({
       console.error("Failed to delete event", err);
     }
   };
+
+  const handleSportingActivitySubmit = async () => {
+    if (!event?.id || !token) return;
+    try {
+      // Parse the existing ids
+      const existingIds = parseIds(event.personOngoingIds);
+      // Only add if not already present
+      if (!existingIds.includes(userConnected.id)) {
+        existingIds.push(userConnected.id);
+      }
+      // Join back to string with "; " separator
+      const updatedIds =
+        existingIds.join("; ") + (existingIds.length > 0 ? ";" : "");
+      await eventService.updateEvent(
+        event.id,
+        {
+          personOngoingIds: updatedIds,
+        },
+        token
+      );
+      onClose();
+      notify({
+        title: "Votre participation a bien été enregistrée",
+        type: "success",
+      });
+    } catch (e) {
+      console.log("Error while applying to the sporting activity", e);
+      notify({
+        title: "Une erreur est survenue lors de la postulation",
+        type: "error",
+      });
+    }
+  };
+  const handleCancelParticipation = async () => {
+    if (!event?.id || !token) return;
+    try {
+      const existingIds = parseIds(event.personOngoingIds);
+      const filteredIds = existingIds.filter((id) => id !== userConnected.id);
+      const updatedIds =
+        filteredIds.length > 0 ? filteredIds.join("; ") + ";" : "";
+      await eventService.updateEvent(
+        event.id,
+        { personOngoingIds: updatedIds },
+        token
+      );
+      onClose();
+      notify({
+        title: "Votre participation a bien été annulée",
+        type: "success",
+      });
+    } catch (e) {
+      console.log("Error while cancelling participation", e);
+      notify({
+        title: "Une erreur est survenue lors de l'annulation",
+        type: "error",
+      });
+    }
+  };
+
+  const currentParticipants = parseIds(event.personOngoingIds).length;
+  const maxParticipants =
+    sportingActivityProps && sportingActivityProps.maxParticipants
+      ? sportingActivityProps.maxParticipants
+      : Infinity;
+  const hasJoined = parseIds(event.personOngoingIds).includes(userConnected.id);
+  const canJoin = currentParticipants < maxParticipants && !hasJoined;
+
   return (
     <>
       <Modal
@@ -362,18 +430,39 @@ export default function DisplayEvent({
                     )}
                     {actionType === "applyToSportingActivity" && (
                       <>
-                        <Pressable onPress={onClose}>
-                          <AppText>Fermer</AppText>
-                        </Pressable>
-                        <AppButton
-                          type="primary"
-                          title="Postuler"
-                          iconName="plus"
-                          onPress={() => {
-                            console.log("Postulation envoyée !");
-                            handleSubmit();
-                          }}
-                        />
+                        {!canJoin && !hasJoined ? (
+                          <View style={{ flexDirection: "column" }}>
+                            <AppText style={{ color: Colors.red }}>
+                              Nombre maximum de participants atteint
+                            </AppText>
+                            <Pressable onPress={onClose}>
+                              <AppText>Fermer</AppText>
+                            </Pressable>
+                          </View>
+                        ) : (
+                          <>
+                            <Pressable onPress={onClose}>
+                              <AppText>Fermer</AppText>
+                            </Pressable>
+                            {canJoin && (
+                              <AppButton
+                                type="primary"
+                                title="Participer"
+                                iconName="plus"
+                                onPress={handleSportingActivitySubmit}
+                              />
+                            )}
+                            {hasJoined && (
+                              <AppButton
+                                type="secondary"
+                                title="Annuler ma participation"
+                                iconName="close"
+                                onPress={handleCancelParticipation}
+                                buttonStyle={{ backgroundColor: Colors.red }}
+                              />
+                            )}
+                          </>
+                        )}
                       </>
                     )}
                     {actionType === "validateSportingActivity" && (

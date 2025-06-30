@@ -28,7 +28,12 @@ import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../navigation/types";
 import { LoggedUser } from "../models/auth";
-import { Event as EventModel, EventCategory } from "../models/event";
+import {
+  Event as EventModel,
+  EventCategory,
+  SportingActivityEvent,
+  parseIds,
+} from "../models/event";
 import { contactService } from "../services/api/contact-service";
 import { UserService } from "../services/api/user-service";
 import { notify } from "../components/NotificationContainer";
@@ -222,39 +227,36 @@ export default function CommunityScreen() {
           token!
         );
 
+      const [sportingActivityProps, setSportingActivityProps] =
+        useState<SportingActivityEvent>();
+
       const [eventSelected, setEventSelected] = useState<EventModel>();
-      const [personOnGoingOfSelectedEvent, setPersonOnGoingOfSelectedEvent] =
-        useState<any[]>([]);
       const [eventDetailsPopUpVisible, setEventDetailsPopUpVisible] =
         useState(false);
 
-      const allPersonIds = useMemo(() => {
-        const hyperionEvents = eventsByCategory[EventCategory.HYPERION] || [];
-        const allIds = hyperionEvents
-          .map((event) => event.responsibleIds)
-          .filter(Boolean)
-          .join(";");
-        return allIds;
-      }, [eventsByCategory]);
+      const [responsibleUsers, setResponsibleUsers] = useState<User[]>([]);
 
-      const { users: allUsers } = useEventPersons(allPersonIds, token!);
+      const fetchUsersByIds = async (ids: number[], token: string) => {
+        const users = await Promise.all(
+          ids.map((id) => UserService.getUserById(id, token).catch(() => null))
+        );
+        // Filter out failed fetches
+        return users
+          .filter((u): u is UserResponse => u !== null)
+          .map((u) => u.user);
+      };
+      const handleOpenEvent = async (event: EventModel) => {
+        setEventSelected(event);
+        setEventDetailsPopUpVisible(true);
 
-      const usersMap = useMemo(() => {
-        const map = new Map();
-        allUsers.forEach((user) => {
-          map.set(user.id.toString(), user);
-        });
-        return map;
-      }, [allUsers]);
-
-      const getUsersForEvent = (ids: string | null) => {
-        if (!ids) return [];
-
-        return ids
-          .split("; ")
-          .filter(Boolean)
-          .map((id) => usersMap.get(id))
-          .filter(Boolean);
+        // Parse IDs and fetch users
+        const ids = parseIds(event.responsibleIds);
+        if (ids.length && token) {
+          const users = await fetchUsersByIds(ids, token);
+          setResponsibleUsers(users);
+        } else {
+          setResponsibleUsers([]);
+        }
       };
 
       return (
@@ -275,23 +277,17 @@ export default function CommunityScreen() {
                       e.date !== null && new Date(e.date).getTime() > Date.now()
                   )
                   .map((e) => {
-                    const personsInvolved = getUsersForEvent(e.responsibleIds);
-
                     return (
                       <Event
                         key={e.id}
                         title={e.title ? e.title : "Séance"}
-                        personsInvolved={personsInvolved}
+                        personsInvolved={[]}
                         location={e.location || ""}
                         date={new Date(e.date || "")}
                         isInPerson
                         hour={e.time || ""}
                         type={EventCategory.HYPERION}
-                        onPress={() => {
-                          setEventSelected(e);
-                          setPersonOnGoingOfSelectedEvent(personsInvolved);
-                          setEventDetailsPopUpVisible(true);
-                        }}
+                        onPress={() => handleOpenEvent(e)}
                       />
                     );
                   })
@@ -314,23 +310,17 @@ export default function CommunityScreen() {
                       e.date !== null && new Date(e.date).getTime() > Date.now()
                   )
                   .map((e) => {
-                    const personsInvolved = getUsersForEvent(e.responsibleIds);
-
                     return (
                       <Event
                         key={e.id}
                         title={e.title ? e.title : "Séance"}
-                        personsInvolved={personsInvolved}
+                        personsInvolved={[]}
                         location={e.location || ""}
                         date={new Date(e.date || "")}
                         isInPerson
                         hour={e.time || ""}
-                        type={EventCategory.HYPERION}
-                        onPress={() => {
-                          setEventSelected(e);
-                          setPersonOnGoingOfSelectedEvent(personsInvolved);
-                          setEventDetailsPopUpVisible(true);
-                        }}
+                        type={EventCategory.SPORTING_ACTIVITY}
+                        onPress={() => handleOpenEvent(e)}
                       />
                     );
                   })
@@ -363,11 +353,10 @@ export default function CommunityScreen() {
               visible={eventDetailsPopUpVisible}
               event={eventSelected}
               userConnected={user}
-              listOfUser={personOnGoingOfSelectedEvent}
-              onClose={() => {
-                setEventDetailsPopUpVisible(false);
-              }}
+              listOfUser={responsibleUsers}
+              onClose={() => setEventDetailsPopUpVisible(false)}
               token={token!}
+              sportingActivityProps={sportingActivityProps}
             />
           )}
         </>
@@ -443,23 +432,6 @@ export default function CommunityScreen() {
             }}
           />
         )}
-        {/* {eventDetailVisible && (
-          <DisplayEvent
-            visible={!!eventDetailVisible}
-            userConnected={user}
-            listOfUser={[eventDetailVisible.personsInvolved]}
-            onClose={() => displayEventDetailPopup()}
-            title={eventDetailVisible.title}
-            eventType={eventDetailVisible.type}
-            location={eventDetailVisible.location}
-            date={eventDetailVisible.date}
-            hour={eventDetailVisible.hour}
-            theme={eventDetailVisible?.theme}
-            link={eventDetailVisible?.link}
-            infoDescription={eventDetailVisible.infoDescription}
-            createdBy={eventDetailVisible.personsInvolved.id}
-          />
-        )} */}
       </ScrollView>
     </KeyboardAvoidingView>
   );
