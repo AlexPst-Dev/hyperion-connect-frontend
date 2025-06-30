@@ -48,7 +48,7 @@ export default function LoginScreen() {
       console.error("Erreur de connexion : ", error);
       // Afficher le message d'erreur sur l'interface
       notify({
-        title: "Erreur de connexion" + error.message,
+        title: `Erreur de connexion : ${error.message}`,
         type: "error",
       });
       setError(error.message || "Une erreur est survenue lors de la connexion");
