@@ -60,7 +60,7 @@ import { ObjectivesApiService } from "../services/api/objective-service";
 import { EventCategory, isCoachingEvent, parseIds } from "../models/event";
 import { eventService } from "../services/api/event-service";
 import { exerciseService } from "../services/api/exercise-service";
-import { Category } from "../models/category";
+import { Category, CategoryType } from "../models/category";
 import { getSessionExercisesAndStats } from "../utils/session-utils";
 import {
   getCurrentMonthIndex,
@@ -69,6 +69,8 @@ import {
 } from "../models/graph";
 import { GraphService } from "../services/api/graph-service";
 import { useKpis } from "../hooks/useKpis";
+import { ExerciseWithDetails } from "../models/exercise";
+import { categoryService } from "../services/api/category-service";
 
 export default function SessionsScreen() {
   const { user, token } = useAuth();
@@ -1043,7 +1045,10 @@ export default function SessionsScreen() {
       type ModalStep = "selector" | "catalog" | "custom" | "import";
 
       const [modalStep, setModalStep] = useState<ModalStep | null>(null);
-
+      const [allExercises, setAllExercises] = useState<ExerciseWithDetails[]>(
+        []
+      );
+      const [allCategories, setAllCategories] = useState<Category[]>([]);
       const [completeUserProfile, setCompleteUserProfile] =
         useState<CoachProfile>();
 
@@ -1148,6 +1153,33 @@ export default function SessionsScreen() {
         }
         fetchSessionsAndCatalog();
         fetchUserProfile();
+        return () => {
+          isMounted = false;
+        };
+      }, [token]);
+      useEffect(() => {
+        let isMounted = true;
+        async function fetchExercisesAndCategories() {
+          try {
+            const [exercises, categories] = await Promise.all([
+              exerciseService.getAllExercises(token!),
+              categoryService.getCategoriesByType(
+                CategoryType.MUSCLE_GROUP,
+                token!
+              ),
+            ]);
+            if (isMounted) {
+              setAllExercises(exercises);
+              setAllCategories(categories);
+            }
+          } catch (e) {
+            if (isMounted) {
+              setAllExercises([]);
+              setAllCategories([]);
+            }
+          }
+        }
+        fetchExercisesAndCategories();
         return () => {
           isMounted = false;
         };
@@ -1306,8 +1338,8 @@ export default function SessionsScreen() {
                       ]);
                       closeModal();
                     }}
-                    exercises={[]}
-                    categories={[]}
+                    exercises={allExercises}
+                    categories={allCategories}
                   />
                 )}
 

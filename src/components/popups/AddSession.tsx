@@ -11,6 +11,7 @@ import { SessionWithFile } from "@/src/models/session";
 import { getMinutesFromDuration } from "@/src/services/api/session-service";
 import { ExerciseWithDetails } from "@/src/models/exercise";
 import { Category } from "@/src/models/category";
+import Label from "../Label";
 
 interface Props {
   visible: boolean;
@@ -84,10 +85,33 @@ export default function AddSessions({
     }
   }, [visible, filterCategories]);
 
-  const filterOptions = filterCategories.map((cat) => ({
-    label: cat.charAt(0).toUpperCase() + cat.slice(1),
-    value: cat,
+  const allMuscleGroups = Array.from(
+    new Set(
+      listOfSession
+        .flatMap((session) =>
+          getSessionMuscleGroups(session).map((group) => group.label)
+        )
+        .filter(Boolean)
+    )
+  );
+
+  const filterOptions = allMuscleGroups.map((label) => ({
+    label: label.charAt(0).toUpperCase() + label.slice(1),
+    value: label,
   }));
+
+  const handleFilterChange = (value: string) => {
+    if (!value) {
+      setSelectedFilters([]);
+      return;
+    }
+    setSelectedFilters(
+      value
+        .split(",")
+        .map((v) => v.trim())
+        .filter(Boolean)
+    );
+  };
 
   const toggleSelection = (userId: number) => {
     setSelectedSessionIds((prev) =>
@@ -144,24 +168,14 @@ export default function AddSessions({
             }
             inputs={
               <>
-                {/* <Input
-                  type="selector"
-                  label="Groupe musculaire"
-                  placeholder="Jambes"
-                  value={selectedFilters}
-                  onChange={(values) => {
-                    if (Array.isArray(values)) {
-                      setSelectedFilters(
-                        values.filter((v): v is string => typeof v === "string")
-                      );
-                    } else if (typeof values === "string") {
-                      setSelectedFilters([values]);
-                    } else {
-                      setSelectedFilters([]);
-                    }
-                  }}
+                <Input
+                  type="multiSelector"
+                  label="Groupes musculaires"
+                  placeholder="Filtrer par groupe musculaire"
+                  value={selectedFilters.join(",")}
+                  onChangeText={handleFilterChange}
                   options={filterOptions}
-                /> */}
+                />
                 <Input
                   type="text"
                   label="Rechercher"
@@ -199,6 +213,19 @@ export default function AddSessions({
                           <View style={{ width: "89%" }}>
                             <Session
                               title={sessionWithFile.session.label}
+                              labels={sessionMuscleGroups.map(
+                                (muscleGroup, index) => (
+                                  <Label
+                                    key={index}
+                                    title={muscleGroup.label}
+                                    textColor={muscleGroup.textColor}
+                                    backgroundColor={
+                                      muscleGroup.backgroundColor
+                                    }
+                                    size="small"
+                                  />
+                                )
+                              )}
                               hideIcon
                             />
                           </View>
