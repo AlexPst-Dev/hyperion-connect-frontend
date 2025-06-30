@@ -28,6 +28,7 @@ import {
   EventWithHyperlinkResponse,
   EventCompleteResponse,
   EventWithSportingActivityResponse,
+  SportingActivityEvent,
 } from "../models/event";
 import { eventService } from "../services/api/event-service";
 import {
@@ -1011,12 +1012,12 @@ export default function PlanningScreen() {
                         .specificEvent ?? undefined,
                   }
                 : {})}
-              {...((eventDetailVisible as EventWithSportingActivityResponse)
-                .specificEvent != null
+              {...((eventDetailVisible.specificEvent as SportingActivityEvent) !=
+              null
                 ? {
                     sportingActivityProps:
-                      (eventDetailVisible as EventWithSportingActivityResponse)
-                        .specificEvent ?? undefined,
+                      (eventDetailVisible.specificEvent as SportingActivityEvent) ??
+                      undefined,
                   }
                 : {})}
             />
