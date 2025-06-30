@@ -115,15 +115,26 @@ export default function PlanningScreen() {
           switch (category) {
             case EventCategory.COACHING:
               setEvents(
-                eventsByCategory[EventCategory.COACHING].filter((e) =>
-                  (e.responsibleIds || "")
-                    .split(";")
-                    .map((id) => id.trim())
-                    .includes(user.id.toString())
+                eventsByCategory[EventCategory.COACHING].filter(
+                  (e) =>
+                    (e.responsibleIds || "")
+                      .split(";")
+                      .map((id) => id.trim())
+                      .includes(user.id.toString()) &&
+                    (!e.date ||
+                      new Date(e.date).setHours(0, 0, 0, 0) >=
+                        new Date().setHours(0, 0, 0, 0))
                 )
               );
             case EventCategory.HYPERION:
-              setEvents(eventsByCategory[EventCategory.HYPERION]);
+              setEvents(
+                eventsByCategory[EventCategory.HYPERION].filter(
+                  (e) =>
+                    !e.date ||
+                    new Date(e.date).setHours(0, 0, 0, 0) >=
+                      new Date().setHours(0, 0, 0, 0)
+                )
+              );
             default:
               setEvents([]);
           }
@@ -162,11 +173,15 @@ export default function PlanningScreen() {
           ) : eventsByCategory[EventCategory.COACHING] &&
             eventsByCategory[EventCategory.COACHING].length > 0 ? (
             eventsByCategory[EventCategory.COACHING]
-              .filter((e) =>
-                (e.responsibleIds || "")
-                  .split(";")
-                  .map((id) => id.trim())
-                  .includes(user.id.toString())
+              .filter(
+                (e) =>
+                  (e.responsibleIds || "")
+                    .split(";")
+                    .map((id) => id.trim())
+                    .includes(user.id.toString()) &&
+                  (!e.date ||
+                    new Date(e.date).setHours(0, 0, 0, 0) >=
+                      new Date().setHours(0, 0, 0, 0))
               )
               .map((e) => {
                 const personsInvolved = getUsersForEvent(e.personOngoingIds);
@@ -208,26 +223,33 @@ export default function PlanningScreen() {
             <AppText>Chargement...</AppText>
           ) : eventsByCategory[EventCategory.HYPERION] &&
             eventsByCategory[EventCategory.HYPERION].length > 0 ? (
-            eventsByCategory[EventCategory.HYPERION].map((e) => {
-              const personsInvolved = getUsersForEvent(e.responsibleIds);
+            eventsByCategory[EventCategory.HYPERION]
+              .filter(
+                (e) =>
+                  !e.date ||
+                  new Date(e.date).setHours(0, 0, 0, 0) >=
+                    new Date().setHours(0, 0, 0, 0)
+              )
+              .map((e) => {
+                const personsInvolved = getUsersForEvent(e.responsibleIds);
 
-              return (
-                <Event
-                  key={e.id}
-                  title={e.title ? e.title : "Evénement"}
-                  personsInvolved={personsInvolved}
-                  location={e.location || ""}
-                  date={new Date(e.date || "")}
-                  hour={e.time || ""}
-                  type={EventCategory.HYPERION}
-                  onPress={() => {
-                    setEventSelected(e);
-                    setPersonOnGoingOfSelectedEvent(personsInvolved);
-                    setEventDetailsPopUpVisible(true);
-                  }}
-                />
-              );
-            })
+                return (
+                  <Event
+                    key={e.id}
+                    title={e.title ? e.title : "Evénement"}
+                    personsInvolved={personsInvolved}
+                    location={e.location || ""}
+                    date={new Date(e.date || "")}
+                    hour={e.time || ""}
+                    type={EventCategory.HYPERION}
+                    onPress={() => {
+                      setEventSelected(e);
+                      setPersonOnGoingOfSelectedEvent(personsInvolved);
+                      setEventDetailsPopUpVisible(true);
+                    }}
+                  />
+                );
+              })
           ) : (
             <AppText>Aucun événement n'est prévu actuellement</AppText>
           )}
@@ -343,17 +365,31 @@ export default function PlanningScreen() {
           switch (category) {
             case EventCategory.MEDICAL:
               setEvents(
-                eventsByCategory[EventCategory.MEDICAL].filter((e) =>
-                  (e.responsibleIds || "")
-                    .split(";")
-                    .map((id) => id.trim())
-                    .includes(user.id.toString())
+                eventsByCategory[EventCategory.MEDICAL].filter(
+                  (e) =>
+                    (e.responsibleIds || "")
+                      .split(";")
+                      .map((id) => id.trim())
+                      .includes(user.id.toString()) &&
+                    (!e.date ||
+                      new Date(e.date).setHours(0, 0, 0, 0) >=
+                        new Date().setHours(0, 0, 0, 0))
                 )
               );
             case EventCategory.HYPERION:
               setEvents([
-                ...(eventsByCategory[EventCategory.HYPERION] || []),
-                ...(eventsByCategory[EventCategory.HYPERLINK] || []),
+                ...(eventsByCategory[EventCategory.HYPERION].filter(
+                  (e) =>
+                    !e.date ||
+                    new Date(e.date).setHours(0, 0, 0, 0) >=
+                      new Date().setHours(0, 0, 0, 0)
+                ) || []),
+                ...(eventsByCategory[EventCategory.HYPERLINK].filter(
+                  (e) =>
+                    !e.date ||
+                    new Date(e.date).setHours(0, 0, 0, 0) >=
+                      new Date().setHours(0, 0, 0, 0)
+                ) || []),
               ]);
             default:
               setEvents([]);
@@ -393,11 +429,15 @@ export default function PlanningScreen() {
           ) : eventsByCategory[EventCategory.MEDICAL] &&
             eventsByCategory[EventCategory.MEDICAL].length > 0 ? (
             eventsByCategory[EventCategory.MEDICAL]
-              .filter((e) =>
-                (e.responsibleIds || "")
-                  .split(";")
-                  .map((id) => id.trim())
-                  .includes(user.id.toString())
+              .filter(
+                (e) =>
+                  (e.responsibleIds || "")
+                    .split(";")
+                    .map((id) => id.trim())
+                    .includes(user.id.toString()) &&
+                  (!e.date ||
+                    new Date(e.date).setHours(0, 0, 0, 0) >=
+                      new Date().setHours(0, 0, 0, 0))
               )
               .map((e) => {
                 const personsInvolved = getUsersForEvent(e.personOngoingIds);
@@ -440,26 +480,33 @@ export default function PlanningScreen() {
             <AppText>Chargement...</AppText>
           ) : eventsByCategory[EventCategory.HYPERION] &&
             eventsByCategory[EventCategory.HYPERION].length > 0 ? (
-            eventsByCategory[EventCategory.HYPERION].map((e) => {
-              const personsInvolved = getUsersForEvent(e.responsibleIds);
+            eventsByCategory[EventCategory.HYPERION]
+              .filter(
+                (e) =>
+                  !e.date ||
+                  new Date(e.date).setHours(0, 0, 0, 0) >=
+                    new Date().setHours(0, 0, 0, 0)
+              )
+              .map((e) => {
+                const personsInvolved = getUsersForEvent(e.responsibleIds);
 
-              return (
-                <Event
-                  key={e.id}
-                  title={e.title ? e.title : "Evénement"}
-                  personsInvolved={personsInvolved}
-                  location={e.location || ""}
-                  date={new Date(e.date || "")}
-                  hour={e.time || ""}
-                  type={EventCategory.HYPERION}
-                  onPress={() => {
-                    setEventSelected(e);
-                    setPersonOnGoingOfSelectedEvent(personsInvolved);
-                    setEventDetailsPopUpVisible(true);
-                  }}
-                />
-              );
-            })
+                return (
+                  <Event
+                    key={e.id}
+                    title={e.title ? e.title : "Evénement"}
+                    personsInvolved={personsInvolved}
+                    location={e.location || ""}
+                    date={new Date(e.date || "")}
+                    hour={e.time || ""}
+                    type={EventCategory.HYPERION}
+                    onPress={() => {
+                      setEventSelected(e);
+                      setPersonOnGoingOfSelectedEvent(personsInvolved);
+                      setEventDetailsPopUpVisible(true);
+                    }}
+                  />
+                );
+              })
           ) : (
             <AppText>Aucun événement n'est prévu actuellement</AppText>
           )}
@@ -470,26 +517,33 @@ export default function PlanningScreen() {
             <AppText>Chargement...</AppText>
           ) : eventsByCategory[EventCategory.HYPERLINK] &&
             eventsByCategory[EventCategory.HYPERLINK].length > 0 ? (
-            eventsByCategory[EventCategory.HYPERLINK].map((e) => {
-              const personsInvolved = getUsersForEvent(e.responsibleIds);
+            eventsByCategory[EventCategory.HYPERLINK]
+              .filter(
+                (e) =>
+                  !e.date ||
+                  new Date(e.date).setHours(0, 0, 0, 0) >=
+                    new Date().setHours(0, 0, 0, 0)
+              )
+              .map((e) => {
+                const personsInvolved = getUsersForEvent(e.responsibleIds);
 
-              return (
-                <Event
-                  key={e.id}
-                  title={e.title ? e.title : "Evénement"}
-                  personsInvolved={personsInvolved}
-                  location={e.location || ""}
-                  date={new Date(e.date || "")}
-                  hour={e.time || ""}
-                  type={EventCategory.HYPERLINK}
-                  onPress={() => {
-                    setEventSelected(e);
-                    setPersonOnGoingOfSelectedEvent(personsInvolved);
-                    setEventDetailsPopUpVisible(true);
-                  }}
-                />
-              );
-            })
+                return (
+                  <Event
+                    key={e.id}
+                    title={e.title ? e.title : "Evénement"}
+                    personsInvolved={personsInvolved}
+                    location={e.location || ""}
+                    date={new Date(e.date || "")}
+                    hour={e.time || ""}
+                    type={EventCategory.HYPERLINK}
+                    onPress={() => {
+                      setEventSelected(e);
+                      setPersonOnGoingOfSelectedEvent(personsInvolved);
+                      setEventDetailsPopUpVisible(true);
+                    }}
+                  />
+                );
+              })
           ) : (
             <AppText>Aucun événement n'est prévu actuellement</AppText>
           )}

@@ -48,7 +48,7 @@ export default function PlanningHistoryScreen() {
   }
 
   const { eventsByCategory, eventsByCategoriesLoading, error } =
-    useEventsByCategories(eventCategories, token, true);
+    useEventsByCategories(eventCategories, token);
   const [eventSelected, setEventSelected] = useState<EventModel>();
   const [personOnGoingOfSelectedEvent, setPersonOnGoingOfSelectedEvent] =
     useState<any[]>([]);
@@ -132,29 +132,36 @@ export default function PlanningHistoryScreen() {
                   <AppText style={{ fontWeight: "bold", marginBottom: 8 }}>
                     {sectionTitle}
                   </AppText>
-                  {events.map((e) => {
-                    const personsInvolved = getUsersForEvent(
-                      e.personOngoingIds
-                    );
+                  {events
+                    .filter(
+                      (e) =>
+                        !e.date ||
+                        new Date(e.date).setHours(0, 0, 0, 0) <
+                          new Date().setHours(0, 0, 0, 0)
+                    )
+                    .map((e) => {
+                      const personsInvolved = getUsersForEvent(
+                        e.personOngoingIds
+                      );
 
-                    return (
-                      <Event
-                        key={e.id}
-                        title={e.title ? e.title : "Séance"}
-                        personsInvolved={personsInvolved}
-                        location={e.location || ""}
-                        date={new Date(e.date || "")}
-                        isInPerson
-                        hour={e.time || ""}
-                        type={category}
-                        onPress={() => {
-                          setEventSelected(e);
-                          setPersonOnGoingOfSelectedEvent(personsInvolved);
-                          setEventDetailsPopUpVisible(true);
-                        }}
-                      />
-                    );
-                  })}
+                      return (
+                        <Event
+                          key={e.id}
+                          title={e.title ? e.title : "Séance"}
+                          personsInvolved={personsInvolved}
+                          location={e.location || ""}
+                          date={new Date(e.date || "")}
+                          isInPerson
+                          hour={e.time || ""}
+                          type={category}
+                          onPress={() => {
+                            setEventSelected(e);
+                            setPersonOnGoingOfSelectedEvent(personsInvolved);
+                            setEventDetailsPopUpVisible(true);
+                          }}
+                        />
+                      );
+                    })}
                 </View>
               );
             })
