@@ -227,13 +227,14 @@ export default function HealthScreen() {
     </View>,
     <View key={"medicNotes"} style={{ flexDirection: "column", gap: 24 }}>
       <AppText style={{ fontWeight: "bold" }}>Notes médicales</AppText>
-      <View
+      <ScrollView
         style={{
           flexDirection: "column",
           gap: 8,
           paddingLeft: 16,
           borderLeftWidth: 4,
           borderLeftColor: "black",
+          height: 250,
         }}
       >
         {sportsmanNotes.length > 0 ? (
@@ -246,7 +247,7 @@ export default function HealthScreen() {
         ) : (
           <AppText>Aucune note</AppText>
         )}
-      </View>
+      </ScrollView>
       <View style={{ flexDirection: "column", gap: 16 }}>
         <AppText style={GlobalStyles.h3}>Fichiers médicaux</AppText>
         <View style={{ flexDirection: "column", gap: 8 }}>
