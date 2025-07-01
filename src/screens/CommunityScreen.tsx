@@ -284,7 +284,6 @@ export default function CommunityScreen() {
                         personsInvolved={[]}
                         location={e.location || ""}
                         date={new Date(e.date || "")}
-                        isInPerson
                         hour={e.time || ""}
                         type={EventCategory.HYPERION}
                         onPress={() => handleOpenEvent(e)}
@@ -317,7 +316,6 @@ export default function CommunityScreen() {
                         personsInvolved={[]}
                         location={e.location || ""}
                         date={new Date(e.date || "")}
-                        isInPerson
                         hour={e.time || ""}
                         type={EventCategory.SPORTING_ACTIVITY}
                         onPress={() => handleOpenEvent(e)}

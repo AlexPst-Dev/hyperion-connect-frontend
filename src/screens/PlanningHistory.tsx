@@ -151,7 +151,6 @@ export default function PlanningHistoryScreen() {
                           personsInvolved={personsInvolved}
                           location={e.location || ""}
                           date={new Date(e.date || "")}
-                          isInPerson
                           hour={e.time || ""}
                           type={category}
                           onPress={() => {

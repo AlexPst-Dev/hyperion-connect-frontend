@@ -23,7 +23,6 @@ interface Props {
   location?: string;
   date?: Date;
   hour?: string;
-  isInPerson?: boolean;
   hideIcon?: boolean;
 }
 
@@ -44,7 +43,6 @@ export default function Session({
   location,
   date,
   hour,
-  isInPerson,
   hideIcon = false,
 }: Props) {
   function getImageSource(imageUrl?: string): any {
@@ -134,7 +132,7 @@ export default function Session({
                 {date.toLocaleDateString("fr-Fr")} {hour}
               </AppText>
               <AppText style={[GlobalStyles.span, { color: Colors.grey }]}>
-                {isInPerson ? "Présentiel" : "À distance"}
+                {location && location !== "" ? "Présentiel" : "À distance"}
               </AppText>
             </View>
           )}

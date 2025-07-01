@@ -196,7 +196,6 @@ export default function PlanningScreen() {
                     personsInvolved={personsInvolved}
                     location={e.location || ""}
                     date={new Date(e.date || "")}
-                    isInPerson
                     hour={e.time || ""}
                     type={EventCategory.COACHING}
                     onPress={() => {
@@ -452,7 +451,6 @@ export default function PlanningScreen() {
                     personsInvolved={personsInvolved}
                     location={e.location || ""}
                     date={new Date(e.date || "")}
-                    isInPerson
                     hour={e.time || ""}
                     type={EventCategory.MEDICAL}
                     onPress={() => {
@@ -930,7 +928,6 @@ export default function PlanningScreen() {
                         }
                         date={new Date(hyperlinkEvent.date || "")}
                         hour={hyperlinkEvent.time || "Heure non spécifiée"}
-                        isInPerson={true}
                         // Only pass theme if it exists
                         {...((hyperlinkEvent as EventWithHyperlinkResponse)
                           .specificEvent?.theme != null
@@ -988,7 +985,6 @@ export default function PlanningScreen() {
                         location={hyperionEvent.location || "Lieu non spécifié"}
                         date={new Date(hyperionEvent.date || "")}
                         hour={hyperionEvent.time || "Heure non spécifiée"}
-                        isInPerson={true}
                         infoDescription={
                           hyperionEvent.description ||
                           "Aucune description fournie"
@@ -1047,7 +1043,6 @@ export default function PlanningScreen() {
                         hour={
                           sportingActivityEvent.time || "Heure non spécifiée"
                         }
-                        isInPerson={true}
                         infoDescription={
                           sportingActivityEvent.description ||
                           "Aucune description fournie"

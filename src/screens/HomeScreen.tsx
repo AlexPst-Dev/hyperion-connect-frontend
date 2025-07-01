@@ -476,7 +476,6 @@ export default function HomeScreen() {
                     closestEvent.date ? new Date(closestEvent.date) : new Date()
                   }
                   hour={closestEvent.time || ""}
-                  isInPerson={true}
                   infoDescription={closestEvent.description || ""}
                   onPress={() => setEventPopupVisible(true)}
                 />
@@ -621,7 +620,6 @@ export default function HomeScreen() {
                     closestEvent.date ? new Date(closestEvent.date) : new Date()
                   }
                   hour={closestEvent.time || ""}
-                  isInPerson={true}
                   infoDescription={closestEvent.description || ""}
                   onPress={() => setEventPopupVisible(true)}
                 />
@@ -761,7 +759,6 @@ export default function HomeScreen() {
                     closestEvent.date ? new Date(closestEvent.date) : new Date()
                   }
                   hour={closestEvent.time || ""}
-                  isInPerson={true}
                   infoDescription={closestEvent.description || ""}
                   onPress={() => setEventPopupVisible(true)}
                 />
@@ -809,7 +806,6 @@ export default function HomeScreen() {
             location="Parc de Vannes"
             date={new Date("2025-05-08")}
             hour="16h00"
-            isInPerson
             infoDescription="Lorem ipsum dolore sit amet"
           />
         </View>
@@ -1033,7 +1029,6 @@ export default function HomeScreen() {
                     closestEvent.date ? new Date(closestEvent.date) : new Date()
                   }
                   hour={closestEvent.time || ""}
-                  isInPerson={true}
                   infoDescription={closestEvent.description || ""}
                   onPress={() => setEventPopupVisible(true)}
                 />

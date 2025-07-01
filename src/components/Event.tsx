@@ -13,7 +13,6 @@ interface Props {
   location: string;
   date: Date;
   hour: string;
-  isInPerson?: boolean;
   theme?: string;
   infoDescription?: string;
   link?: string;
@@ -27,7 +26,6 @@ export default function Event({
   location,
   date,
   hour,
-  isInPerson,
   theme,
   infoDescription,
   link,
@@ -87,7 +85,7 @@ export default function Event({
           <AppText style={[GlobalStyles.span, { color: Colors.grey }]}>
             {date.toLocaleDateString("fr-Fr")} - {hour.slice(0, 5)}
           </AppText>
-          {isInPerson && (
+          {location && location !== "" && (
             <AppText style={[GlobalStyles.span, { color: Colors.grey }]}>
               Présentiel
             </AppText>
