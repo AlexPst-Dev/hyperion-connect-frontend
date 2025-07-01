@@ -29,6 +29,7 @@ import {
   EventCompleteResponse,
   EventWithSportingActivityResponse,
   SportingActivityEvent,
+  parseIds,
 } from "../models/event";
 import { eventService } from "../services/api/event-service";
 import {
@@ -36,6 +37,7 @@ import {
   useEventsByCategories,
 } from "../hooks/useEventsByCategories";
 import EditEvent from "../components/popups/EditEvent";
+import { UserService } from "../services/api/user-service";
 
 export default function PlanningScreen() {
   type PlanningPageRenderer = (user: LoggedUser) => JSX.Element;
@@ -624,14 +626,90 @@ export default function PlanningScreen() {
       );
     },
     partner: (user) => {
-      const [eventTypeLabel, setEventTypeLabel] = useState("");
+      const [eventSelected, setEventSelected] = useState<EventModel>();
+      const [personOnGoingOfSelectedEvent, setPersonOnGoingOfSelectedEvent] =
+        useState<any[]>([]);
+      const [eventDetailsPopUpVisible, setEventDetailsPopUpVisible] =
+        useState(false);
 
       const [eventDetailVisible, setDisplayEvent] = useState<
         EventModel | false
       >(false);
 
-      const displayEventDetailPopup = (event?: EventModel) =>
-        setDisplayEvent(event ? event : false);
+      // For partner profile, fetch all the HYPERION and HYPERLINK events
+      const { eventsByCategory, eventsByCategoriesLoading, error } =
+        useEventsByCategories(
+          [EventCategory.HYPERLINK, EventCategory.HYPERION],
+          token!
+        );
+
+      const [eventUsersById, setEventUsersById] = useState<
+        Record<number, User[]>
+      >({});
+
+      const allEvents = useMemo(() => {
+        // Get HYPERION events where partner is in personOngoingIds
+        const hyperionEvents = (
+          eventsByCategory[EventCategory.HYPERION] || []
+        ).filter((e) => {
+          if (!e.personOngoingIds) return false;
+          const ids = parseIds(e.personOngoingIds);
+          // ids can be a single number or array
+          if (Array.isArray(ids)) {
+            return ids.includes(user.id);
+          }
+          return ids === user.id;
+        });
+
+        // HYPERLINK events: no filter
+        const hyperlinkEvents = eventsByCategory[EventCategory.HYPERLINK] || [];
+
+        return [...hyperionEvents, ...hyperlinkEvents]
+          .filter(
+            (e) =>
+              !e.date ||
+              new Date(e.date).setHours(0, 0, 0, 0) >=
+                new Date().setHours(0, 0, 0, 0)
+          )
+          .sort((a, b) => {
+            const dateA = a.date ? new Date(a.date).getTime() : 0;
+            const dateB = b.date ? new Date(b.date).getTime() : 0;
+            return dateA - dateB;
+          });
+      }, [eventsByCategory, user.id]);
+
+      useEffect(() => {
+        let isMounted = true;
+        async function fetchUsers() {
+          const newEventUsersById: Record<number, User[]> = {};
+          for (const event of allEvents) {
+            if (event.responsibleIds) {
+              const ids = parseIds(event.responsibleIds);
+              if (ids.length > 0) {
+                const users = await Promise.all(
+                  ids.map((id) =>
+                    UserService.getUserById(id, token!).then((res) => res.user)
+                  )
+                );
+                newEventUsersById[event.id] = users;
+              } else {
+                newEventUsersById[event.id] = [];
+              }
+            } else {
+              newEventUsersById[event.id] = [];
+            }
+          }
+          if (isMounted) setEventUsersById(newEventUsersById);
+        }
+        if (allEvents.length > 0 && token) {
+          fetchUsers();
+        } else {
+          setEventUsersById({});
+        }
+        return () => {
+          isMounted = false;
+        };
+      }, [allEvents, token]);
 
       return (
         <>
@@ -639,65 +717,78 @@ export default function PlanningScreen() {
             <View style={{ flexDirection: "column", gap: 24 }}>
               <AppText style={GlobalStyles.h2}>RENDEZ-VOUS HYPERLINK</AppText>
               <View style={{ flexDirection: "column", gap: 16 }}>
-                <Event
-                  title="Evénement Hyperlink Vannes"
-                  type={EventCategory.HYPERLINK}
-                  personsInvolved={tempAdminUser}
-                  location="Parc de Vannes"
-                  date={new Date("2025-10-10")}
-                  hour="14h00"
-                  infoDescription="Lorem ipsum dolore sit amet"
-                  theme="Soiree de lancement"
-                />
-                <Event
-                  title="Evénement Hyperlink Vannes"
-                  type={EventCategory.HYPERLINK}
-                  personsInvolved={tempAdminUser}
-                  location="Parc de Vannes"
-                  date={new Date("2025-10-10")}
-                  hour="14h00"
-                />
-                <Event
-                  title="Evénement Hyperlink Vannes"
-                  type={EventCategory.HYPERLINK}
-                  personsInvolved={tempAdminUser}
-                  location="Parc de Vannes"
-                  date={new Date("2025-10-10")}
-                  hour="14h00"
-                />
+                {eventsByCategoriesLoading ? (
+                  <AppText>Chargement...</AppText>
+                ) : allEvents.length > 0 ? (
+                  allEvents
+                    .filter((e) => e.eventCategory === EventCategory.HYPERLINK)
+                    .map((e) => {
+                      return (
+                        <Event
+                          key={e.id}
+                          title={e.title ? e.title : "Evénement"}
+                          personsInvolved={eventUsersById[e.id] || []}
+                          location={e.location || ""}
+                          date={new Date(e.date || "")}
+                          hour={e.time || ""}
+                          type={e.eventCategory}
+                          onPress={() => {
+                            setEventSelected(e);
+                            setPersonOnGoingOfSelectedEvent(
+                              eventUsersById[e.id] || []
+                            );
+                            setEventDetailsPopUpVisible(true);
+                          }}
+                        />
+                      );
+                    })
+                ) : (
+                  <AppText>Aucun événement n'est prévu actuellement</AppText>
+                )}
               </View>
-            </View>
-            <View style={{ flexDirection: "column", gap: 24 }}>
-              <AppText style={GlobalStyles.h2}>EVENEMENTS HYPERION</AppText>
+              <AppText style={GlobalStyles.h2}>RENDEZ-VOUS HYPERION</AppText>
               <View style={{ flexDirection: "column", gap: 16 }}>
-                <Event
-                  title="Evénement Hyperion Vannes"
-                  type={EventCategory.HYPERION}
-                  personsInvolved={tempAdminUser}
-                  location="Parc de Vannes"
-                  date={new Date("2025-10-10")}
-                  hour="14h00"
-                />
-                <Event
-                  title="Evénement Hyperion Vannes"
-                  type={EventCategory.HYPERION}
-                  personsInvolved={tempAdminUser}
-                  location="Parc de Vannes"
-                  date={new Date("2025-10-10")}
-                  hour="14h00"
-                />
+                {eventsByCategoriesLoading ? (
+                  <AppText>Chargement...</AppText>
+                ) : allEvents.length > 0 ? (
+                  allEvents
+                    .filter((e) => e.eventCategory === EventCategory.HYPERION)
+                    .map((e) => {
+                      return (
+                        <Event
+                          key={e.id}
+                          title={e.title ? e.title : "Evénement"}
+                          personsInvolved={eventUsersById[e.id] || []}
+                          location={e.location || ""}
+                          date={new Date(e.date || "")}
+                          hour={e.time || ""}
+                          type={e.eventCategory}
+                          onPress={() => {
+                            setEventSelected(e);
+                            setPersonOnGoingOfSelectedEvent(
+                              eventUsersById[e.id] || []
+                            );
+                            setEventDetailsPopUpVisible(true);
+                          }}
+                        />
+                      );
+                    })
+                ) : (
+                  <AppText>Aucun événement n'est prévu actuellement</AppText>
+                )}
               </View>
             </View>
           </View>
-          {eventDetailVisible && (
+          {eventDetailsPopUpVisible && eventSelected && (
             <DisplayEvent
-              visible={!!eventDetailVisible}
+              visible={eventDetailsPopUpVisible}
+              event={eventSelected}
               userConnected={user}
-              event={eventDetailVisible}
-              listOfUser={[]}
-              onClose={function (): void {
-                throw new Error("Function not implemented.");
+              listOfUser={personOnGoingOfSelectedEvent}
+              onClose={() => {
+                setEventDetailsPopUpVisible(false);
               }}
+              token={token!}
             />
           )}
         </>
