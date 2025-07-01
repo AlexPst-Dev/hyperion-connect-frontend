@@ -1,4 +1,4 @@
-import React, { JSX, useEffect, useState } from "react";
+import React, { JSX, useEffect, useMemo, useState } from "react";
 import {
   KeyboardAvoidingView,
   ScrollView,
@@ -53,6 +53,7 @@ import {
   SessionService,
 } from "../services/api/session-service";
 import { Session as SessionModel } from "../models/session";
+import { useEventsByCategories } from "../hooks/useEventsByCategories";
 
 export default function HomeScreen() {
   const tempAdminUser: User = {
@@ -96,6 +97,12 @@ export default function HomeScreen() {
   >([]);
 
   const [lastSession, setLastSession] = useState<SessionModel | null>(null);
+
+  const { eventsByCategory, eventsByCategoriesLoading, error } =
+    useEventsByCategories(
+      [EventCategory.HYPERLINK, EventCategory.HYPERION],
+      token!
+    );
 
   // Fetch last session only for sportsman
   useEffect(() => {
@@ -281,6 +288,76 @@ export default function HomeScreen() {
     );
   }
 
+  // For partner profile, fetch all the HYPERION and HYPERLINK events
+  const [eventUsersById, setEventUsersById] = useState<Record<number, User[]>>(
+    {}
+  );
+
+  const allEvents = useMemo(() => {
+    // Get HYPERION events where partner is in personOngoingIds
+    const hyperionEvents = (
+      eventsByCategory[EventCategory.HYPERION] || []
+    ).filter((e) => {
+      if (!e.personOngoingIds) return false;
+      const ids = parseIds(e.personOngoingIds);
+      // ids can be a single number or array
+      if (Array.isArray(ids)) {
+        return ids.includes(user.id);
+      }
+      return ids === user.id;
+    });
+
+    // HYPERLINK events: no filter
+    const hyperlinkEvents = eventsByCategory[EventCategory.HYPERLINK] || [];
+
+    return [...hyperionEvents, ...hyperlinkEvents]
+      .filter(
+        (e) =>
+          !e.date ||
+          new Date(e.date).setHours(0, 0, 0, 0) >=
+            new Date().setHours(0, 0, 0, 0)
+      )
+      .sort((a, b) => {
+        const dateA = a.date ? new Date(a.date).getTime() : 0;
+        const dateB = b.date ? new Date(b.date).getTime() : 0;
+        return dateA - dateB;
+      })
+      .slice(0, 3);
+  }, [eventsByCategory, user.id]);
+
+  useEffect(() => {
+    let isMounted = true;
+    async function fetchUsers() {
+      const newEventUsersById: Record<number, User[]> = {};
+      for (const event of allEvents) {
+        if (event.responsibleIds) {
+          const ids = parseIds(event.responsibleIds);
+          if (ids.length > 0) {
+            const users = await Promise.all(
+              ids.map((id) =>
+                UserService.getUserById(id, token!).then((res) => res.user)
+              )
+            );
+            newEventUsersById[event.id] = users;
+          } else {
+            newEventUsersById[event.id] = [];
+          }
+        } else {
+          newEventUsersById[event.id] = [];
+        }
+      }
+      if (isMounted) setEventUsersById(newEventUsersById);
+    }
+    if (allEvents.length > 0 && token) {
+      fetchUsers();
+    } else {
+      setEventUsersById({});
+    }
+    return () => {
+      isMounted = false;
+    };
+  }, [allEvents, token]);
+
   // Function to update the latest notification
   const handleUpdateNotification = async (title: string, text: string) => {
     if (!notification || !token) return;
@@ -403,7 +480,7 @@ export default function HomeScreen() {
                   infoDescription={closestEvent.description || ""}
                   onPress={() => setEventPopupVisible(true)}
                 />
-                {eventPopupVisible && (
+                {eventPopupVisible && closestEvent && (
                   <DisplayEvent
                     visible={eventPopupVisible}
                     event={closestEvent}
@@ -838,45 +915,86 @@ export default function HomeScreen() {
         </View>
       </View>
     ),
-    partner: (user) => (
-      <View style={{ flexDirection: "column", gap: 24 }}>
-        <View style={{ flexDirection: "column", gap: 16 }}>
-          <View
-            style={{
-              flexDirection: "row",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-          >
-            <AppText style={GlobalStyles.h3}>PROCHAINS ÉVÉNEMENTS</AppText>
-            <AppButton type="linkSmall" title="Voir plus" iconName="eye" />
+    partner: (user) => {
+      const refreshClosestEvent = async () => {
+        if (!closestEvent || !token) return;
+        try {
+          const { event } = await eventService.getEventById(
+            closestEvent.id,
+            token
+          );
+          console.log(event);
+          setClosestEvent(event); // This will trigger a re-render and update DisplayEvent
+        } catch (error) {
+          console.error("Error refreshing event:", error);
+        }
+      };
+
+      return (
+        <View style={{ flexDirection: "column", gap: 24 }}>
+          <View style={{ flexDirection: "column", gap: 16 }}>
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <AppText style={GlobalStyles.h3}>PROCHAINS ÉVÉNEMENTS</AppText>
+              <AppButton
+                type="linkSmall"
+                title="Voir plus"
+                iconName="eye"
+                textStyle={{ color: Colors.gold }}
+                iconColor={Colors.gold}
+                borderColor={Colors.gold}
+              />
+            </View>
+            <View style={{ flexDirection: "column", gap: 16 }}>
+              {eventsByCategoriesLoading ? (
+                <AppText>Chargement...</AppText>
+              ) : allEvents.length > 0 ? (
+                allEvents.map((e) => {
+                  return (
+                    <Event
+                      key={e.id}
+                      title={e.title ? e.title : "Evénement"}
+                      personsInvolved={eventUsersById[e.id] || []}
+                      location={e.location || ""}
+                      date={new Date(e.date || "")}
+                      hour={e.time || ""}
+                      type={e.eventCategory}
+                      onPress={() => {
+                        setClosestEvent(e);
+                        setEventPopupVisible(true);
+                      }}
+                    />
+                  );
+                })
+              ) : (
+                <AppText>Aucun événement n'est prévu actuellement</AppText>
+              )}
+            </View>
           </View>
-          <View style={{ flexDirection: "column", gap: 8 }}>
-            <Event
-              title="Evenement Hyperlink Vannes"
-              type={EventCategory.HYPERLINK}
-              personsInvolved={tempAdminUser}
-              location="Parc de Vannes"
-              date={new Date("2025-05-17")}
-              hour="14h00"
-              isInPerson
-              infoDescription="Lorem ipsum dolore sit amet"
-              theme="Soirée de lancement"
+          {eventPopupVisible && closestEvent && (
+            <DisplayEvent
+              visible={eventPopupVisible}
+              event={closestEvent}
+              hyperlinkProps={
+                closestEvent.eventCategory === EventCategory.HYPERLINK
+                  ? closestEvent.specificEvent
+                  : undefined
+              }
+              userConnected={user}
+              token={token as string}
+              listOfUser={eventUsersById[closestEvent.id] || []}
+              onClose={() => setEventPopupVisible(false)}
+              onSubmit={refreshClosestEvent}
             />
-            <Event
-              title="Evenement Hyperion Vannes"
-              type={EventCategory.HYPERION}
-              personsInvolved={tempAdminUser}
-              location="Parc de Vannes"
-              date={new Date("2025-05-23")}
-              hour="15h00"
-              isInPerson
-              infoDescription="Lorem ipsum dolore sit amet"
-            />
-          </View>
+          )}
         </View>
-      </View>
-    ),
+      );
+    },
     admin: (user) => {
       const refreshClosestEvent = async () => {
         if (!closestEvent || !token) return;
