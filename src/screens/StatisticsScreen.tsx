@@ -25,6 +25,10 @@ import { LoggedUser } from "../models/auth";
 import { getDynamicMonthLabels } from "../models/graph";
 import { UserService } from "../services/api/user-service";
 import { KpiModel, useKpis } from "../hooks/useKpis";
+import { CompanyService } from "../services/api/company-service";
+import { Company } from "../models/company";
+import { Offer, OfferCategory, OfferCompleteResponse } from "../models/offer";
+import { OffersApiService } from "../services/api/offer-service";
 
 export default function StatisticsScreen() {
   const { user, token } = useAuth();
@@ -42,37 +46,62 @@ export default function StatisticsScreen() {
     token!
   );
 
+  const [connectedCompany, setConnectedCompany] = useState<Company>();
+  const [activeOffers, setActiveOffers] = useState<OfferCompleteResponse[]>([]);
+
+  useEffect(() => {
+    async function fetchCompanyConnectedAndOffers() {
+      if (!token || !user) return;
+      try {
+        const allCompanies = await CompanyService.getAllCompanies(token);
+        const companyConnected = allCompanies.filter(
+          (c) => c.responsibleId === user.id
+        )[0];
+        setConnectedCompany(companyConnected);
+        const offers = await OffersApiService.getOffersByCompanyId(
+          companyConnected.id
+        );
+        setActiveOffers(offers.filter((o) => o.isActive));
+      } catch (e) {
+        console.log(
+          "Error while fetching companies and the connected company : ",
+          e
+        );
+      }
+    }
+    fetchCompanyConnectedAndOffers();
+  }, [user, token]);
+
   const [activeTabIndex, setActiveTabIndex] = useState(0);
   const tabViews: JSX.Element[] = [
-    <View style={{ flexDirection: "column", gap: 24 }}>
+    <View key={"stats"} style={{ flexDirection: "column", gap: 24 }}>
       <AppText>
         Retrouvez ici le résumé global de votre visibilité sur la plteforme
         Hyperion Connect.
       </AppText>
       <View style={{ flexDirection: "row", gap: 8 }}>
-        <View style={{ width: "32%" }}>
-          <Kpi title="Liens cliqués" iconName="link" value="47" />
-        </View>
-        <View style={{ width: "32%" }}>
-          <Kpi title="Offres publiées" iconName="ticket" value="3" />
-        </View>
-        <View style={{ width: "32%" }}>
-          <Kpi
-            title="Title of the KPI"
-            iconName="run"
-            value="XXX"
-            unit="yyy"
-            fillIcon
-          />
-        </View>
+        {kpis.length > 0 &&
+          kpis.map((kpi, index) => (
+            <View style={{ flex: 1 }} key={`view-${index}`}>
+              <Kpi
+                key={index}
+                title={kpi.title}
+                iconName={kpi.iconName}
+                value={kpi.value}
+                unit={kpi.unit}
+                fillIcon={kpi.fillIcon}
+              />
+            </View>
+          ))}
       </View>
     </View>,
-    <View style={{ flexDirection: "column", gap: 24 }}>
+    <View key={"offers"} style={{ flexDirection: "column", gap: 24 }}>
       <View style={{ flexDirection: "row", justifyContent: "flex-end" }}>
         <AppButton
           title="Publier une offre"
           iconName="handshake"
           type="secondary"
+          buttonStyle={{ flex: 1 }}
           onPress={() =>
             setAskForNewOfferPopUpVisible(!askForNewOfferPopUpVisible)
           }
@@ -91,17 +120,37 @@ export default function StatisticsScreen() {
           onPress={() => navigation.navigate("OffersHistory", { companyId: 1 })}
         />
       </View>
-      <OfferCard
-        title="Title of the offer"
-        paragraph="Lorem ipsum dolor sit amet, consectetur adipiscing elit. Quisque posuere turpis nibh, at aliquet justo viverra et. Donec ac sodales sem."
-        conditions="Conditions to respect for this offer"
-        startDate={new Date("2025-07-08")}
-        endDate={new Date("2025-09-07")}
-        companyName="Company name"
-        isSponsorship={false}
-        labelTxt="Label"
-        companyImgUrl="users/companies/nutrisport-logo"
-      />
+      {activeOffers.length > 0 &&
+        connectedCompany &&
+        activeOffers.map((offerComplete) => (
+          <OfferCard
+            key={offerComplete.id}
+            title={offerComplete.title}
+            paragraph={offerComplete.description}
+            conditions={offerComplete.conditions ?? ""}
+            startDate={new Date(offerComplete.startDate)}
+            endDate={new Date(offerComplete.endDate)}
+            companyName={connectedCompany.name}
+            isSponsorship={
+              offerComplete.offerCategory === OfferCategory.SPONSORSHIP
+                ? true
+                : false
+            }
+            labelTxt={
+              offerComplete.offerCategory === OfferCategory.DISCOUNT
+                ? `-${String(offerComplete.discountDetails.amount).slice(
+                    0,
+                    -3
+                  )}%`
+                : undefined
+            }
+            companyImgUrl={
+              connectedCompany.fileImageCompany
+                ? connectedCompany.fileImageCompany.url
+                : ""
+            }
+          />
+        ))}
     </View>,
   ];
 
@@ -194,7 +243,7 @@ export default function StatisticsScreen() {
   > = {
     partner: (user) => (
       <>
-        <View style={{ flexDirection: "column", gap: 24 }}>
+        <View style={{ flexDirection: "column", gap: 24, marginBottom: 32 }}>
           <ViewController
             tabs={[
               { title: "Statistiques", icon: "stats" },

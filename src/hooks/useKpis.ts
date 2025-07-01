@@ -7,6 +7,8 @@ import { clientService } from "../services/api/client-service";
 import { eventService } from "../services/api/event-service";
 import { CoachingEvent, EventCategory, MedicalEvent } from "../models/event";
 import { ObjectivesApiService } from "../services/api/objective-service";
+import { OffersApiService } from "../services/api/offer-service";
+import { CompanyService } from "../services/api/company-service";
 
 export interface KpiModel {
   title: string;
@@ -302,6 +304,62 @@ export function useKpis(profileCategory: ProfileCategory, token: string) {
                   },
                 ]);
               }
+            }
+            break;
+          }
+          case ProfileCategory.PARTNER: {
+            /*
+             * KPI 1 : Number of posted offers (active ones)
+             * KPI 2 : Number of active users on the app
+             */
+            const [usersResponse, offersResponse, companiesResponse] =
+              await Promise.all([
+                UserService.getAllUsers(token),
+                OffersApiService.getAllOffers(token),
+                CompanyService.getAllCompanies(token),
+              ]);
+            // Handle both array and object response
+            const users = Array.isArray(usersResponse)
+              ? usersResponse
+              : usersResponse.users || [];
+            const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
+            const now = Date.now();
+            const activeUsers = users.filter(
+              (u: User) =>
+                u.isActive &&
+                u.updatedAt &&
+                now - new Date(u.updatedAt).getTime() <= THIRTY_DAYS
+            );
+
+            if (!user)
+              setKpisError(
+                "Immpossible de récupérer l'utilisateur pour charger ses KPIs"
+              );
+
+            const company = companiesResponse.filter(
+              (c) => c.responsibleId === user?.id
+            )[0];
+            const offersCount = offersResponse.filter(
+              (o) => o.companyId === company.id && o.isActive
+            ).length;
+
+            if (isMounted) {
+              setKpis([
+                {
+                  title: "Utilisateurs actifs",
+                  iconName: "user",
+                  value: activeUsers.length.toString(),
+                  unit: "actifs",
+                  fillIcon: true,
+                },
+                {
+                  title: "Offres publiées",
+                  iconName: "ticket",
+                  value: offersCount.toString(),
+                  unit: "offres",
+                  fillIcon: false,
+                },
+              ]);
             }
             break;
           }
