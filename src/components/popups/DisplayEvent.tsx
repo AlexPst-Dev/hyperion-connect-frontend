@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import PopUp from "../PopUp";
 import Input from "../Input";
-import { User } from "@/src/models/user";
+import { User, UserResponse } from "@/src/models/user";
 import { ScrollView } from "react-native-gesture-handler";
 import AppButton from "../AppButton";
 import AppText from "../AppText";
@@ -32,6 +32,10 @@ import { eventService } from "@/src/services/api/event-service";
 import { notify } from "../NotificationContainer";
 import { getLocationUrl } from "@/src/utils/urlHandler";
 import { handleAddToCalendar } from "@/src/utils/calendar-utils";
+import { UserService } from "@/src/services/api/user-service";
+import { useNavigation } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { RootStackParamList } from "@/src/navigation/types";
 
 interface Props {
   visible: boolean;
@@ -61,6 +65,12 @@ export default function DisplayEvent({
   onRefused,
   token,
 }: Props) {
+  type NavigationProp = NativeStackNavigationProp<
+    RootStackParamList,
+    "ContactDetail"
+  >;
+  const navigation = useNavigation<NavigationProp>();
+
   /*
    * Form for editing an event
    */
@@ -234,13 +244,38 @@ export default function DisplayEvent({
     }
   };
 
-  const currentParticipants = parseIds(event.personOngoingIds).length;
+  const currentParticipantsCount = parseIds(event.personOngoingIds).length;
   const maxParticipants =
     sportingActivityProps && sportingActivityProps.maxParticipants
       ? sportingActivityProps.maxParticipants
       : Infinity;
   const hasJoined = parseIds(event.personOngoingIds).includes(userConnected.id);
-  const canJoin = currentParticipants < maxParticipants && !hasJoined;
+  const canJoin = currentParticipantsCount < maxParticipants && !hasJoined;
+
+  const [listParticipants, setListParticipants] = useState<UserResponse[]>([]);
+  useEffect(() => {
+    async function fetchSportsmansOfSportingEvent() {
+      if (
+        token &&
+        event.eventCategory === EventCategory.SPORTING_ACTIVITY &&
+        sportingActivityProps
+      ) {
+        try {
+          const currentParticipantUsers = await Promise.all(
+            parseIds(event.personOngoingIds).map((id) =>
+              UserService.getUserById(id, token)
+            )
+          );
+          setListParticipants(currentParticipantUsers);
+        } catch (e) {
+          console.log("Error while fetching list of participants : ", e);
+        }
+      } else {
+        setListParticipants([]);
+      }
+    }
+    fetchSportsmansOfSportingEvent();
+  }, [token]);
 
   return (
     <>
@@ -286,6 +321,36 @@ export default function DisplayEvent({
                           <AppText>Aucun utilisateur trouvé.</AppText>
                         )}
                       </View>
+                      {listParticipants && listParticipants.length > 0 && (
+                        <View style={{ flexDirection: "column", gap: 8 }}>
+                          <AppText>{`Participants (${currentParticipantsCount}/${maxParticipants})`}</AppText>
+                          <View style={styles.participantList}>
+                            {listParticipants.map((participant, index) => {
+                              return (
+                                <Pressable
+                                  onPress={() => {
+                                    navigation.navigate("ContactDetail", {
+                                      contact: participant.user,
+                                    });
+                                    onClose();
+                                  }}
+                                  key={index}
+                                >
+                                  <Image
+                                    key={index}
+                                    source={getImageSource(
+                                      participant.user.image
+                                    )}
+                                    style={styles.participantProfilePicture}
+                                    id={index.toString()}
+                                    alt={participant.user.email}
+                                  />
+                                </Pressable>
+                              );
+                            })}
+                          </View>
+                        </View>
+                      )}
                     </View>
 
                     <View style={styles.dateAndPlaceContainer}>
@@ -349,7 +414,8 @@ export default function DisplayEvent({
                               strokeWidth={2}
                             />
                             <AppText>
-                              {sportingActivityProps.maxParticipants}
+                              {sportingActivityProps.maxParticipants}{" "}
+                              participants maximum
                             </AppText>
                           </View>
                         )}
@@ -556,9 +622,19 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 16,
   },
+  participantList: {
+    flexDirection: "row",
+    gap: 4,
+  },
   profilePicture: {
     width: 64,
     height: 64,
+    borderRadius: 50,
+    backgroundColor: Colors.grey,
+  },
+  participantProfilePicture: {
+    width: 48,
+    height: 48,
     borderRadius: 50,
     backgroundColor: Colors.grey,
   },

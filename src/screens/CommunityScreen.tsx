@@ -1,28 +1,20 @@
-import React, { JSX, useEffect, useMemo, useState } from "react";
+import React, { JSX, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
-  Modal,
   Platform,
   Pressable,
   ScrollView,
   View,
 } from "react-native";
 import AppText from "../components/AppText";
-import GlobalStyles from "../styles/styles";
-import {
-  ProfileCategory,
-  SportsmanProfile,
-  User,
-  UserResponse,
-} from "../models/user";
+import GlobalStyles, { Colors } from "../styles/styles";
+import { ProfileCategory, User, UserResponse } from "../models/user";
 import ViewController from "../components/ViewController";
 import Event from "../components/Event";
 import AddContacts from "../components/popups/AddContacts";
 import { useAuth } from "../hooks/useAuth";
 import AppButton from "../components/AppButton";
-import PopUp from "../components/PopUp";
-import Input from "../components/Input";
 import ItemUser from "../components/ItemUser";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -37,12 +29,10 @@ import {
 import { contactService } from "../services/api/contact-service";
 import { UserService } from "../services/api/user-service";
 import { notify } from "../components/NotificationContainer";
-import {
-  useEventPersons,
-  useEventsByCategories,
-} from "../hooks/useEventsByCategories";
+import { useEventsByCategories } from "../hooks/useEventsByCategories";
 import DisplayEvent from "../components/popups/DisplayEvent";
 import EditEvent from "../components/popups/EditEvent";
+import Label from "../components/Label";
 
 export default function CommunityScreen() {
   type NavigationProp = NativeStackNavigationProp<
@@ -286,7 +276,9 @@ export default function CommunityScreen() {
                         date={new Date(e.date || "")}
                         hour={e.time || ""}
                         type={EventCategory.HYPERION}
-                        onPress={() => handleOpenEvent(e)}
+                        onPress={() => {
+                          handleOpenEvent(e);
+                        }}
                       />
                     );
                   })
@@ -308,18 +300,41 @@ export default function CommunityScreen() {
                     (e) =>
                       e.date !== null && new Date(e.date).getTime() > Date.now()
                   )
-                  .map((e) => {
+                  .map((e, index) => {
                     return (
-                      <Event
-                        key={e.id}
-                        title={e.title ? e.title : "Séance"}
-                        personsInvolved={[]}
-                        location={e.location || ""}
-                        date={new Date(e.date || "")}
-                        hour={e.time || ""}
-                        type={EventCategory.SPORTING_ACTIVITY}
-                        onPress={() => handleOpenEvent(e)}
-                      />
+                      <View key={index} style={{ position: "relative" }}>
+                        {parseIds(e.personOngoingIds).includes(user.id) && (
+                          <Label
+                            title="Inscrit !"
+                            size="small"
+                            backgroundColor={"#DEFFD6"}
+                            textColor={Colors.green}
+                            labelStyle={{
+                              position: "absolute",
+                              zIndex: 99,
+                              top: -8,
+                              right: 8,
+                            }}
+                            labelTextStyle={{ fontWeight: "bold" }}
+                            key={`${e.id}-${index}`}
+                          />
+                        )}
+                        <Event
+                          key={e.id}
+                          title={e.title ? e.title : "Séance"}
+                          personsInvolved={[]}
+                          location={e.location || ""}
+                          date={new Date(e.date || "")}
+                          hour={e.time || ""}
+                          type={EventCategory.SPORTING_ACTIVITY}
+                          onPress={() => {
+                            setSportingActivityProps(
+                              e.specificEvent as SportingActivityEvent
+                            );
+                            handleOpenEvent(e);
+                          }}
+                        />
+                      </View>
                     );
                   })
               ) : (
