@@ -1,5 +1,12 @@
 import React from "react";
-import { StyleSheet, View, Text, Image } from "react-native";
+import {
+  StyleSheet,
+  View,
+  Text,
+  Image,
+  Pressable,
+  Linking,
+} from "react-native";
 import GlobalStyles, { Colors, shadowStyles } from "../styles/styles";
 import Icon from "./Icon";
 
@@ -158,9 +165,12 @@ export default function UserCard({
         </View>
       )}
       {companyLink && (
-        <View style={styles.contactsControllers}>
+        <Pressable
+          style={styles.contactsControllers}
+          onPress={() => Linking.openURL(companyLink)}
+        >
           <Icon name="link" fillColor="transparent" strokeColor="black" />
-        </View>
+        </Pressable>
       )}
     </View>
   );
