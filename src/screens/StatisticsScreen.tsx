@@ -112,14 +112,20 @@ export default function StatisticsScreen() {
         avec Hyperion.
       </AppText>
       <AppText style={GlobalStyles.h2}>OFFRES</AppText>
-      <View style={{ flexDirection: "row", justifyContent: "flex-end" }}>
-        <AppButton
-          type="linkNormal"
-          title="Historique"
-          iconName="eye"
-          onPress={() => navigation.navigate("OffersHistory", { companyId: 1 })}
-        />
-      </View>
+      {connectedCompany && (
+        <View style={{ flexDirection: "row", justifyContent: "flex-end" }}>
+          <AppButton
+            type="linkNormal"
+            title="Historique"
+            iconName="eye"
+            onPress={() =>
+              navigation.navigate("OffersHistory", {
+                companyId: connectedCompany.id,
+              })
+            }
+          />
+        </View>
+      )}
       {activeOffers.length > 0 &&
         connectedCompany &&
         activeOffers.map((offerComplete) => (
