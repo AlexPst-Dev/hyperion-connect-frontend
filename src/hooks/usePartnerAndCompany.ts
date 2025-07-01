@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
-import { User, PartnerProfile } from "../models/user";
+import { UserResponse } from "../models/user";
 import { Company } from "../models/company";
 import { UserService } from "../services/api/user-service";
 import { CompanyService } from "../services/api/company-service";
 
 interface UsePartnerAndCompanyResult {
-  partner: User | null;
+  partner: UserResponse | null;
   company: Company | null;
   partnerAndCompanyLoading: boolean;
   error: string | null;
@@ -20,7 +20,7 @@ export function usePartnerAndCompany(
   partnerId: number | undefined,
   token: string | undefined
 ): UsePartnerAndCompanyResult {
-  const [partner, setPartner] = useState<User | null>(null);
+  const [partner, setPartner] = useState<UserResponse | null>(null);
   const [company, setCompany] = useState<Company | null>(null);
   const [partnerAndCompanyLoading, setPartnerAndCompanyLoading] =
     useState(false);
@@ -34,26 +34,18 @@ export function usePartnerAndCompany(
 
     async function fetchPartnerAndCompany() {
       try {
-        const response = await UserService.getUserById(
+        const completeUser = await UserService.getUserById(
           partnerId as number,
           token
         );
-        const user = { ...response.user, profile: response.profile }; // Attach profile
         if (!isMounted) return;
-        setPartner(user);
-
-        // Get companyId from partner profile
-        const companyId = (user.profile as PartnerProfile)?.companyId;
-        if (companyId) {
-          const companyData = await CompanyService.getCompanyById(
-            companyId,
-            token
-          );
-          if (!isMounted) return;
-          setCompany(companyData);
-        } else {
-          setCompany(null);
-        }
+        setPartner(completeUser);
+        const allCompanies = await CompanyService.getAllCompanies(token);
+        const companyData = allCompanies.filter(
+          (c) => c.responsibleId === completeUser.user.id
+        )[0];
+        if (!isMounted) return;
+        setCompany(companyData);
       } catch (e: any) {
         if (isMounted) setError(e.message || "Erreur lors du chargement.");
       } finally {

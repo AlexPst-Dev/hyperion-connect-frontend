@@ -10,12 +10,7 @@ import GlobalStyles, { Colors } from "../styles/styles";
 import AppText from "../components/AppText";
 import Input from "../components/Input";
 import ViewController from "../components/ViewController";
-import {
-  getMonthStartDates,
-  ProfileCategory,
-  SportsmanProfile,
-  User,
-} from "../models/user";
+import { getMonthStartDates, ProfileCategory, User } from "../models/user";
 import ItemUser from "../components/ItemUser";
 import AppButton from "../components/AppButton";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -35,7 +30,7 @@ import { clientService } from "../services/api/client-service";
 
 // Interface pour le formulaire
 interface UserFormData {
-  // Données utilisateur de base
+  // Base data
   firstName: string;
   lastName: string;
   email: string;
@@ -45,7 +40,7 @@ interface UserFormData {
   postalCode: string;
   birthDate: string;
 
-  // Données spécifiques au profil
+  // Profil data
   sportCategoryId?: number;
   medicCategoryId?: number;
   canImportSessions?: boolean;
@@ -53,7 +48,7 @@ interface UserFormData {
   availableTime?: string;
   listMedicsIds?: string;
 
-  // Données spécifiques aux sportifs
+  // Sporstman data
   objectiveLabel?: string;
   objectiveStartDate?: string;
   objectiveEndDate?: string;
@@ -62,8 +57,10 @@ interface UserFormData {
   billingTotalAmount?: string;
   subscriptionLabel?: string;
 
-  // Autres
+  // Partner data
   companyId?: number;
+  companyName?: string;
+  companyDateEndMembership?: string;
 }
 
 export default function UsersScreen() {
@@ -388,6 +385,16 @@ export default function UsersScreen() {
         ) {
           errors.medicCategoryId = "La profession est requise pour un soignant";
         }
+        if (newUserType === ProfileCategory.PARTNER) {
+          if (!formData.companyName?.trim()) {
+            errors.companyName = "Le nom de l'entreprise est requis";
+          }
+          if (!formData.companyDateEndMembership) {
+            errors.companyDateEndMembership =
+              "La date de fin d'adhésion est requise";
+          }
+        }
+        break;
         break;
 
       case 2: // Plans d'entraînement (sportifs uniquement)
@@ -457,6 +464,26 @@ export default function UsersScreen() {
     try {
       if (!token) {
         throw new Error("Token manquant");
+      }
+
+      let companyId: number | undefined = undefined;
+
+      // If partner, create the company first
+      if (newUserType === ProfileCategory.PARTNER) {
+        const companyPayload = {
+          responsibleId: null,
+          name: formData.companyName!,
+          city: formData.city,
+          postalCode: formData.postalCode,
+          street: formData.street || "",
+          dateEndMembership: formData.companyDateEndMembership,
+        };
+        // Create company with a dummy responsibleId (will update after)
+        const companyRes = await CompanyService.createCompany(
+          companyPayload,
+          token
+        );
+        companyId = companyRes.company.id;
       }
 
       // Construction du payload selon la structure attendue par le backend
@@ -587,6 +614,14 @@ export default function UsersScreen() {
             token
           );
         }
+      }
+
+      if (newUserType === ProfileCategory.PARTNER && companyId) {
+        await CompanyService.updateCompany(
+          companyId,
+          { responsibleId: userResponse.user.id },
+          token
+        );
       }
 
       // Succès - retour à la liste
@@ -1070,20 +1105,29 @@ export default function UsersScreen() {
               {newUserType === ProfileCategory.PARTNER && (
                 <>
                   <Input
-                    type="selector"
-                    label="Entreprise"
-                    options={companies.map((company) => ({
-                      label: company.name,
-                      value: company.id.toString(),
-                    }))}
-                    value={formData.companyId?.toString() || ""}
+                    type="text"
+                    label="Nom de l'entreprise"
+                    placeholder="Nom de l'entreprise"
+                    value={formData.companyName || ""}
+                    onChangeText={(v) => handleInputChange("companyName", v)}
+                  />
+                  {formErrors.companyName && (
+                    <AppText style={{ color: Colors.lightRed, fontSize: 12 }}>
+                      {formErrors.companyName}
+                    </AppText>
+                  )}
+                  <Input
+                    type="date"
+                    label="Date de fin d'adhésion"
+                    placeholder="JJ/MM/AAAA"
+                    value={formData.companyDateEndMembership || ""}
                     onChangeText={(v) =>
-                      handleInputChange("companyId", parseInt(v))
+                      handleInputChange("companyDateEndMembership", v)
                     }
                   />
-                  {formErrors.companyId && (
+                  {formErrors.companyDateEndMembership && (
                     <AppText style={{ color: Colors.lightRed, fontSize: 12 }}>
-                      {formErrors.companyId}
+                      {formErrors.companyDateEndMembership}
                     </AppText>
                   )}
                 </>

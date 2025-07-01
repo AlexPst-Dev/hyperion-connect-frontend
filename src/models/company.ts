@@ -25,7 +25,7 @@ export interface Company {
 }
 
 export interface CreateCompanyPayload {
-  responsibleId: number;
+  responsibleId: number | null;
   name: string;
   description?: string;
   dateEndMembership?: string;
