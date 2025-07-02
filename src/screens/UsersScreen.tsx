@@ -47,6 +47,7 @@ interface UserFormData {
   availableDays?: string;
   availableTime?: string;
   listMedicsIds?: string;
+  isInHyperlinkNetwork?: boolean;
 
   // Sporstman data
   objectiveLabel?: string;
@@ -497,6 +498,7 @@ export default function UsersScreen() {
         postalCode: formData.postalCode,
         birthDate: formData.birthDate,
         isActive: true,
+        isInHyperlinkNetwork: formData.isInHyperlinkNetwork || false,
         profileCategory: newUserType,
       };
 
@@ -1019,14 +1021,24 @@ export default function UsersScreen() {
 
                   {(newUserType === ProfileCategory.MEDIC ||
                     newUserType === ProfileCategory.COACH) && (
-                    <Input
-                      type="checkbox"
-                      label="Peut créer / importer des entrainements et des exercices"
-                      value={formData.canImportSessions || false}
-                      onChange={(v) =>
-                        handleInputChange("canImportSessions", v)
-                      }
-                    />
+                    <View style={{ flexDirection: "column", gap: 8 }}>
+                      <Input
+                        type="checkbox"
+                        label="Peut créer / importer des entrainements et des exercices"
+                        value={formData.canImportSessions || false}
+                        onChange={(v) =>
+                          handleInputChange("canImportSessions", v)
+                        }
+                      />
+                      <Input
+                        type="checkbox"
+                        label="Fait parti de la communauté Hyperlink"
+                        value={formData.isInHyperlinkNetwork || false}
+                        onChange={(v) =>
+                          handleInputChange("isInHyperlinkNetwork", v)
+                        }
+                      />
+                    </View>
                   )}
 
                   {newUserType === ProfileCategory.MEDIC && (

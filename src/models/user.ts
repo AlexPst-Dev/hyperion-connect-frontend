@@ -33,6 +33,7 @@ export interface BaseUser {
   tiktokLink?: string;
   youtubeLink?: string;
   isActive: boolean;
+  isInHyperlinkNetwork: boolean;
   profileCategory: ProfileCategory;
   createdAt: string;
   updatedAt: string;
@@ -175,6 +176,7 @@ export interface CreateUserPayload {
   instagramLink?: string;
   linkedinLink?: string;
   tiktokLink?: string;
+  isInHyperlinkNetwork: boolean;
   profileCategory: ProfileCategory;
 }
 

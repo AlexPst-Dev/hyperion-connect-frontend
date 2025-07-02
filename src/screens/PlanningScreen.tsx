@@ -7,14 +7,12 @@ import {
   ScrollView,
   View,
 } from "react-native";
-import GlobalStyles, { Colors } from "../styles/styles";
+import GlobalStyles from "../styles/styles";
 import AppText from "../components/AppText";
 import Event from "../components/Event";
-import { ProfileCategory, User } from "../models/user";
+import { User, UserResponse } from "../models/user";
 import { useAuth } from "../hooks/useAuth";
 import AppButton from "../components/AppButton";
-import PopUp from "../components/PopUp";
-import Input from "../components/Input";
 import AddContacts from "../components/popups/AddContacts";
 import DisplayEvent from "../components/popups/DisplayEvent";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -27,7 +25,6 @@ import {
   EventCategory,
   EventWithHyperlinkResponse,
   EventCompleteResponse,
-  EventWithSportingActivityResponse,
   SportingActivityEvent,
   parseIds,
 } from "../models/event";
@@ -42,17 +39,6 @@ import { UserService } from "../services/api/user-service";
 export default function PlanningScreen() {
   type PlanningPageRenderer = (user: LoggedUser) => JSX.Element;
   const { token, user } = useAuth();
-
-  const tempAdminUser: User = {
-    id: 1,
-    firstName: "Chloé",
-    lastName: "Marchegay",
-    email: "chloe.marchegay@hyperion.com",
-    profileCategory: ProfileCategory.ADMIN,
-    isActive: true,
-    createdAt: "2025-05-05",
-    updatedAt: "2025-05-05",
-  };
 
   const PlanningPageByProfile: Record<string, PlanningPageRenderer> = {
     sportsman: (user) => <></>,
@@ -80,9 +66,17 @@ export default function PlanningScreen() {
       );
       const { eventsByCategory, eventsByCategoriesLoading, error } =
         useEventsByCategories(
-          [EventCategory.COACHING, EventCategory.HYPERION],
+          [
+            EventCategory.COACHING,
+            EventCategory.HYPERION,
+            EventCategory.HYPERLINK,
+          ],
           token!
         );
+
+      const [completeUser, setCompleteUser] = useState<UserResponse>();
+      const [isInHyperlinkNetwork, setIsInHyperlinkNetwork] =
+        useState<boolean>(false);
 
       const allPersonIds = useMemo(() => {
         const coachingEvents = eventsByCategory[EventCategory.COACHING] || [];
@@ -147,6 +141,21 @@ export default function PlanningScreen() {
       useEffect(() => {
         fetchEventsByCategory(EventCategory.COACHING);
       }, [token]);
+
+      // Fetch complete user info on mount
+      useEffect(() => {
+        async function fetchCompleteUser() {
+          try {
+            const completeUser = await UserService.getUserById(user.id);
+            setCompleteUser(completeUser);
+            setIsInHyperlinkNetwork(!!completeUser.user.isInHyperlinkNetwork);
+          } catch (e) {
+            console.log("Error while fetching user complete response : ", e);
+            setIsInHyperlinkNetwork(false);
+          }
+        }
+        fetchCompleteUser();
+      }, [user.id]);
 
       const displayAddContactPopUp = () =>
         setAddContactPopUpVisible(!addContactPopUpVisible);
@@ -221,6 +230,7 @@ export default function PlanningScreen() {
         // Tab 1 : Company Events
         <View key="events" style={{ flexDirection: "column", gap: 16 }}>
           <AppText style={GlobalStyles.h3}>PROCHAINS EVENEMENTS</AppText>
+          <AppText style={GlobalStyles.h3}>HYPERION</AppText>
           {eventsByCategoriesLoading ? (
             <AppText>Chargement...</AppText>
           ) : eventsByCategory[EventCategory.HYPERION] &&
@@ -254,6 +264,47 @@ export default function PlanningScreen() {
               })
           ) : (
             <AppText>Aucun événement n'est prévu actuellement</AppText>
+          )}
+          {isInHyperlinkNetwork && (
+            <>
+              <AppText style={[GlobalStyles.h3, { marginTop: 16 }]}>
+                HYPERLINK
+              </AppText>
+              {eventsByCategoriesLoading ? (
+                <AppText>Chargement...</AppText>
+              ) : eventsByCategory[EventCategory.HYPERLINK] &&
+                eventsByCategory[EventCategory.HYPERLINK].length > 0 ? (
+                eventsByCategory[EventCategory.HYPERLINK]
+                  .filter(
+                    (e) =>
+                      !e.date ||
+                      new Date(e.date).setHours(0, 0, 0, 0) >=
+                        new Date().setHours(0, 0, 0, 0)
+                  )
+                  .map((e) => {
+                    const personsInvolved = getUsersForEvent(e.responsibleIds);
+
+                    return (
+                      <Event
+                        key={e.id}
+                        title={e.title ? e.title : "Evénement"}
+                        personsInvolved={personsInvolved}
+                        location={e.location || ""}
+                        date={new Date(e.date || "")}
+                        hour={e.time || ""}
+                        type={EventCategory.HYPERLINK}
+                        onPress={() => {
+                          setEventSelected(e);
+                          setPersonOnGoingOfSelectedEvent(personsInvolved);
+                          setEventDetailsPopUpVisible(true);
+                        }}
+                      />
+                    );
+                  })
+              ) : (
+                <AppText>Aucun événement n'est prévu actuellement</AppText>
+              )}
+            </>
           )}
         </View>,
       ];
@@ -332,6 +383,9 @@ export default function PlanningScreen() {
           ],
           token!
         );
+      const [completeUser, setCompleteUser] = useState<UserResponse>();
+      const [isInHyperlinkNetwork, setIsInHyperlinkNetwork] =
+        useState<boolean>(false);
 
       const allPersonIds = useMemo(() => {
         const medicEvents = eventsByCategory[EventCategory.MEDICAL] || [];
@@ -386,12 +440,6 @@ export default function PlanningScreen() {
                     new Date(e.date).setHours(0, 0, 0, 0) >=
                       new Date().setHours(0, 0, 0, 0)
                 ) || []),
-                ...(eventsByCategory[EventCategory.HYPERLINK].filter(
-                  (e) =>
-                    !e.date ||
-                    new Date(e.date).setHours(0, 0, 0, 0) >=
-                      new Date().setHours(0, 0, 0, 0)
-                ) || []),
               ]);
             default:
               setEvents([]);
@@ -402,6 +450,21 @@ export default function PlanningScreen() {
       useEffect(() => {
         fetchEventsByCategory(EventCategory.MEDICAL);
       }, [token]);
+
+      // Fetch complete user info on mount
+      useEffect(() => {
+        async function fetchCompleteUser() {
+          try {
+            const completeUser = await UserService.getUserById(user.id);
+            setCompleteUser(completeUser);
+            setIsInHyperlinkNetwork(!!completeUser.user.isInHyperlinkNetwork);
+          } catch (e) {
+            console.log("Error while fetching user complete response : ", e);
+            setIsInHyperlinkNetwork(false);
+          }
+        }
+        fetchCompleteUser();
+      }, [user.id]);
 
       const displayAddContactPopUp = () =>
         setAddContactPopUpVisible(!addContactPopUpVisible);
@@ -511,42 +574,46 @@ export default function PlanningScreen() {
           ) : (
             <AppText>Aucun événement n'est prévu actuellement</AppText>
           )}
-          <AppText style={[GlobalStyles.h3, { marginTop: 16 }]}>
-            HYPERLINK
-          </AppText>
-          {eventsByCategoriesLoading ? (
-            <AppText>Chargement...</AppText>
-          ) : eventsByCategory[EventCategory.HYPERLINK] &&
-            eventsByCategory[EventCategory.HYPERLINK].length > 0 ? (
-            eventsByCategory[EventCategory.HYPERLINK]
-              .filter(
-                (e) =>
-                  !e.date ||
-                  new Date(e.date).setHours(0, 0, 0, 0) >=
-                    new Date().setHours(0, 0, 0, 0)
-              )
-              .map((e) => {
-                const personsInvolved = getUsersForEvent(e.responsibleIds);
+          {isInHyperlinkNetwork && (
+            <>
+              <AppText style={[GlobalStyles.h3, { marginTop: 16 }]}>
+                HYPERLINK
+              </AppText>
+              {eventsByCategoriesLoading ? (
+                <AppText>Chargement...</AppText>
+              ) : eventsByCategory[EventCategory.HYPERLINK] &&
+                eventsByCategory[EventCategory.HYPERLINK].length > 0 ? (
+                eventsByCategory[EventCategory.HYPERLINK]
+                  .filter(
+                    (e) =>
+                      !e.date ||
+                      new Date(e.date).setHours(0, 0, 0, 0) >=
+                        new Date().setHours(0, 0, 0, 0)
+                  )
+                  .map((e) => {
+                    const personsInvolved = getUsersForEvent(e.responsibleIds);
 
-                return (
-                  <Event
-                    key={e.id}
-                    title={e.title ? e.title : "Evénement"}
-                    personsInvolved={personsInvolved}
-                    location={e.location || ""}
-                    date={new Date(e.date || "")}
-                    hour={e.time || ""}
-                    type={EventCategory.HYPERLINK}
-                    onPress={() => {
-                      setEventSelected(e);
-                      setPersonOnGoingOfSelectedEvent(personsInvolved);
-                      setEventDetailsPopUpVisible(true);
-                    }}
-                  />
-                );
-              })
-          ) : (
-            <AppText>Aucun événement n'est prévu actuellement</AppText>
+                    return (
+                      <Event
+                        key={e.id}
+                        title={e.title ? e.title : "Evénement"}
+                        personsInvolved={personsInvolved}
+                        location={e.location || ""}
+                        date={new Date(e.date || "")}
+                        hour={e.time || ""}
+                        type={EventCategory.HYPERLINK}
+                        onPress={() => {
+                          setEventSelected(e);
+                          setPersonOnGoingOfSelectedEvent(personsInvolved);
+                          setEventDetailsPopUpVisible(true);
+                        }}
+                      />
+                    );
+                  })
+              ) : (
+                <AppText>Aucun événement n'est prévu actuellement</AppText>
+              )}
+            </>
           )}
         </View>,
       ];
@@ -604,7 +671,7 @@ export default function PlanningScreen() {
                 <Event
                   title="Evénement Hyperion Vannes"
                   type={EventCategory.HYPERION}
-                  personsInvolved={tempAdminUser}
+                  personsInvolved={[]}
                   location="Parc de Vannes"
                   date={new Date("2025-10-10")}
                   hour="14h00"
@@ -612,7 +679,7 @@ export default function PlanningScreen() {
                 <Event
                   title="Evénement Hyperion Vannes"
                   type={EventCategory.HYPERION}
-                  personsInvolved={tempAdminUser}
+                  personsInvolved={[]}
                   location="Parc de Vannes"
                   date={new Date("2025-10-10")}
                   hour="14h00"
