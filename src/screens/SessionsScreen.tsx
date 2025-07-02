@@ -126,6 +126,7 @@ export default function SessionsScreen() {
         contributions: sessionForm.contributions,
       };
 
+      console.log(baseData);
       try {
         await SessionService.createSession(baseData, token).then(
           async (res) => {
@@ -645,7 +646,6 @@ export default function SessionsScreen() {
                   date={ev.date ? new Date(ev.date) : undefined}
                   isToDo={!ev.specificEvent?.isDone}
                   isDone={ev.specificEvent?.isDone}
-                  isInPerson
                   hasChangeStateBtn
                   onChangeStateBtnPress={() => {
                     setSelectedEventId(ev.id);
@@ -1351,7 +1351,7 @@ export default function SessionsScreen() {
                     iconName="pencil"
                     closeText="Annuler"
                     onSubmit={() => {
-                      handleEditSessionSubmit;
+                      handleEditSessionSubmit();
                       setEditSessionPopUp(false);
                     }}
                     btnType="primary"
@@ -1687,7 +1687,10 @@ export default function SessionsScreen() {
                     btnText="Editer"
                     iconName="pencil"
                     closeText="Annuler"
-                    onSubmit={handleEditSessionSubmit}
+                    onSubmit={() => {
+                      handleEditSessionSubmit();
+                      setEditSessionPopUp(false);
+                    }}
                     btnType="primary"
                     inputs={
                       sessionEditionLoading ? (
@@ -1960,7 +1963,10 @@ export default function SessionsScreen() {
                   btnText="Editer"
                   iconName="pencil"
                   closeText="Annuler"
-                  onSubmit={handleEditSessionSubmit}
+                  onSubmit={() => {
+                    handleEditSessionSubmit();
+                    setEditSessionPopUp(false);
+                  }}
                   btnType="primary"
                   inputs={
                     sessionEditionLoading ? (

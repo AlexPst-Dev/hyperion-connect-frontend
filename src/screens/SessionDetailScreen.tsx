@@ -882,7 +882,7 @@ export default function SessionDetailScreen() {
                       />
                       <Input
                         type="number"
-                        placeholder="XX minutes"
+                        placeholder="XX"
                         label="Durée"
                         value={exerciseForm.durationTime}
                         onChangeText={(v) =>
