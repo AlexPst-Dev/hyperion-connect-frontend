@@ -211,11 +211,7 @@ export default function ExerciceDetailScreen() {
   const screenWidth = Dimensions.get("window").width;
 
   let isEditable: boolean = false;
-  if (
-    user.profileCategory !== "sportsman" &&
-    user.profileCategory !== "free" &&
-    user.profileCategory !== "partner"
-  ) {
+  if (user.profileCategory === "admin") {
     isEditable = true;
   }
 
