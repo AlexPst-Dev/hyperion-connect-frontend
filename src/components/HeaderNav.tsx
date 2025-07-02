@@ -15,6 +15,7 @@ import Icon from "./Icon";
 import OptionMenuOverlay from "./OptionMenuOverlay";
 import { useAuth } from "../hooks/useAuth";
 import MemberCard from "./MemberCard";
+import { ProfileCategory } from "../models/user";
 
 interface Props {
   profilePictureUrl?: string;
@@ -69,7 +70,7 @@ export default function HeaderNav({ profilePictureUrl }: Props) {
   const [menuVisible, setMenuVisible] = useState(false);
   const [memberCard, setMemberCard] = useState(false);
   const navigation = useNavigation();
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
 
   const handleLogout = async () => {
     setMenuVisible(false);
@@ -89,7 +90,11 @@ export default function HeaderNav({ profilePictureUrl }: Props) {
           onPress={() => navigation.navigate("Main" as never)}
         >
           <Image source={{ uri: appImageUrl }} style={styles.appImage} />
-          <Text style={styles.appTitle}>HYPERION</Text>
+          <Text style={styles.appTitle}>
+            {user?.profileCategory === ProfileCategory.PARTNER
+              ? "HYPERLINK"
+              : "HYPERION"}
+          </Text>
         </Pressable>
 
         <Pressable style={styles.rightPart} onPress={() => setMemberCard(true)}>
