@@ -16,12 +16,11 @@ import OptionMenuOverlay from "./OptionMenuOverlay";
 import { useAuth } from "../hooks/useAuth";
 import MemberCard from "./MemberCard";
 import { ProfileCategory } from "../models/user";
+import { getImageSource } from "../utils/imgSrcHandler";
 
 interface Props {
   profilePictureUrl?: string;
 }
-
-const appImageUrl = "https://reactnative.dev/img/tiny_logo.png";
 
 const styles = StyleSheet.create<{
   container: ViewStyle;
@@ -89,7 +88,10 @@ export default function HeaderNav({ profilePictureUrl }: Props) {
           style={styles.leftPart}
           onPress={() => navigation.navigate("Main" as never)}
         >
-          <Image source={{ uri: appImageUrl }} style={styles.appImage} />
+          <Image
+            source={getImageSource("white-logo")}
+            style={styles.appImage}
+          />
           <Text style={styles.appTitle}>
             {user?.profileCategory === ProfileCategory.PARTNER
               ? "HYPERLINK"
