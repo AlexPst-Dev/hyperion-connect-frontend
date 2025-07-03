@@ -30,8 +30,8 @@ export const clientService = {
     method: "add" | "remove",
     token: string
   ): Promise<{ message: string; clientIds: string[] }> {
-    return apiClient.put<{ message: string; clientIds: string[] }>(
-      `/clients/${professionalId}`,
+    return apiClient.post<{ message: string; clientIds: string[] }>(
+      `/clients/update/${professionalId}`,
       { clientId, method },
       token
     );

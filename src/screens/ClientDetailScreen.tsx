@@ -76,6 +76,7 @@ import { CompanyService } from "../services/api/company-service";
 import { notify } from "../components/NotificationContainer";
 import { eventService } from "../services/api/event-service";
 import { CoachingEvent, EventCategory, isCoachingEvent } from "../models/event";
+import { clientService } from "../services/api/client-service";
 
 type ClientDetailRouteProp = RouteProp<RootStackParamList, "ClientDetail">;
 
@@ -548,6 +549,7 @@ export default function ClientDetailScreen() {
     setObjectiveLoading(true);
     let createdObjective: ObjectiveModel | null = null;
     try {
+      // Create objective
       if (client.profileCategory === ProfileCategory.SPORTSMAN && token) {
         const objectivePayload = {
           sportsmanId: client.id,
@@ -607,6 +609,41 @@ export default function ClientDetailScreen() {
             token
           );
         }
+        // Add sportsman to client table for coach if sporstman's id wasn't already in it
+        if (selectedCoach) {
+          let listClientOfSelectedPro = null;
+          try {
+            listClientOfSelectedPro =
+              await clientService.getClientListByProfessionalId(
+                selectedCoach.id,
+                token
+              );
+          } catch (error: any) {
+            // If 404, it means no client list exists yet for this pro
+            if (error.status !== 404) {
+              console.error("Erreur lors de la récupération du client:", error);
+              // skip this pro if another error
+              return;
+            }
+          }
+          if (
+            listClientOfSelectedPro &&
+            !listClientOfSelectedPro.clientIds.includes(client.id)
+          ) {
+            await clientService.updateClientListByProfessionalId(
+              selectedCoach.id,
+              client.id,
+              "add",
+              token
+            );
+          } else {
+            await clientService.createClientList(
+              selectedCoach.id,
+              client.id,
+              token
+            );
+          }
+        }
       }
       setAddObjectivePopUpVisible(false);
       notify({
@@ -663,12 +700,47 @@ export default function ClientDetailScreen() {
           { listMedicsIds: updatedList },
           token
         );
+        if (selectedMedics && selectedMedics.length > 0) {
+          for (const medic of selectedMedics) {
+            let listClientOfSelectedPro = null;
+            try {
+              listClientOfSelectedPro =
+                await clientService.getClientListByProfessionalId(
+                  medic.id,
+                  token
+                );
+            } catch (error: any) {
+              // If 404, it means no client list exists yet for this pro
+              if (error.status !== 404) {
+                console.error(
+                  "Erreur lors de la récupération du client:",
+                  error
+                );
+                continue; // skip this medic if another error
+              }
+            }
+            if (listClientOfSelectedPro) {
+              await clientService.updateClientListByProfessionalId(
+                medic.id,
+                client.id,
+                "add",
+                token
+              );
+            } else {
+              await clientService.createClientList(medic.id, client.id, token);
+            }
+          }
+        }
 
         // Optionally, fetch updated medic users for display
         const users = await Promise.all(
           mergedIds.map((id) => UserService.getUserById(id, token))
         );
         if (isMounted) setLinkedMedics(users.map((res) => res.user));
+        notify({
+          title: "Médecin ajouté avec succès",
+          type: "success",
+        });
       } catch {
         if (isMounted) setLinkedMedics([]);
       }
@@ -710,6 +782,10 @@ export default function ClientDetailScreen() {
         currentIds.map((id) => UserService.getUserById(id, token))
       );
       if (isMounted) setLinkedMedics(users.map((res) => res.user));
+      notify({
+        title: "Médecin retiré avec succès",
+        type: "success",
+      });
     } catch {
       if (isMounted) setLinkedMedics([]);
     }
@@ -733,6 +809,37 @@ export default function ClientDetailScreen() {
       });
       // Optionally refresh objectives/clients here
       setAddObjectivePopUpVisible(false);
+      if (selectedSportsman) {
+        let listClientOfSelectedPro = null;
+        try {
+          listClientOfSelectedPro =
+            await clientService.getClientListByProfessionalId(client.id, token);
+        } catch (error: any) {
+          // If 404, it means no client list exists yet for this pro
+          if (error.status !== 404) {
+            console.error("Erreur lors de la récupération du client:", error);
+            // skip this pro if another error
+            return;
+          }
+        }
+        if (
+          listClientOfSelectedPro &&
+          !listClientOfSelectedPro.clientIds.includes(selectedSportsman.id)
+        ) {
+          await clientService.updateClientListByProfessionalId(
+            client.id,
+            selectedSportsman.id,
+            "add",
+            token
+          );
+        } else {
+          await clientService.createClientList(
+            client.id,
+            selectedSportsman.id,
+            token
+          );
+        }
+      }
     } catch (e) {
       // Optionally show an error message
     } finally {

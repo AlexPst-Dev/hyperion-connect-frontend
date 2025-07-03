@@ -27,6 +27,7 @@ import { CompanyService } from "../services/api/company-service";
 import { ObjectivesApiService } from "../services/api/objective-service";
 import { billingService } from "../services/api/billing-service";
 import { clientService } from "../services/api/client-service";
+import { notify } from "../components/NotificationContainer";
 
 // Interface pour le formulaire
 interface UserFormData {
@@ -618,6 +619,67 @@ export default function UsersScreen() {
         }
       }
 
+      // 4. Add the sportsman user id in client list of selected coach and medic
+      if (newUserType === ProfileCategory.SPORTSMAN) {
+        if (selectedCoach) {
+          const listClientOfSelectedCoach =
+            await clientService.getClientListByProfessionalId(
+              selectedCoach.id,
+              token
+            );
+          if (listClientOfSelectedCoach) {
+            await clientService.updateClientListByProfessionalId(
+              selectedCoach.id,
+              userResponse.user.id,
+              "add",
+              token
+            );
+          } else {
+            await clientService.createClientList(
+              selectedCoach.id,
+              userResponse.user.id,
+              token
+            );
+          }
+        }
+        if (selectedUsers && selectedUsers.length > 0) {
+          for (const medic of selectedUsers) {
+            let listClientOfSelectedPro = null;
+            try {
+              listClientOfSelectedPro =
+                await clientService.getClientListByProfessionalId(
+                  medic.id,
+                  token
+                );
+            } catch (error: any) {
+              // If 404, it means no client list exists yet for this pro
+              if (error.status !== 404) {
+                console.error(
+                  "Erreur lors de la récupération du client:",
+                  error
+                );
+                continue; // skip this medic if another error
+              }
+            }
+            if (listClientOfSelectedPro) {
+              await clientService.updateClientListByProfessionalId(
+                medic.id,
+                userResponse.user.id,
+                "add",
+                token
+              );
+            } else {
+              await clientService.createClientList(
+                medic.id,
+                userResponse.user.id,
+                token
+              );
+            }
+          }
+        }
+        // ...existing code...
+      }
+
       if (newUserType === ProfileCategory.PARTNER && companyId) {
         await CompanyService.updateCompany(
           companyId,
@@ -639,6 +701,10 @@ export default function UsersScreen() {
       // Vous pouvez ajouter ici une notification d'erreur pour l'utilisateur
     } finally {
       setIsLoading(false);
+      notify({
+        title: "Utilisateur créé avec succès",
+        type: "success",
+      });
     }
   };
 
