@@ -1,5 +1,6 @@
 import { Exercise, ExerciseWithDetails } from "./exercise";
 import { File } from "./file";
+import { User } from "./user";
 
 export interface Session {
   id: number;
@@ -12,6 +13,8 @@ export interface Session {
   recommendations: string;
   contributions: string;
   done: boolean;
+  author: User;
+  authorId: number;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -22,6 +25,7 @@ export interface CreateSessionRequest {
   numberOfExercises: number;
   durationTime: string;
   filePictureId?: number;
+  authorId?: number;
   listExercises?: string;
   recommendations?: string;
   contributions?: string;
@@ -32,6 +36,7 @@ export interface UpdateSessionRequest {
   numberOfExercises?: number;
   durationTime?: string;
   filePictureId?: number;
+  authorId?: number;
   listExercises?: string;
   recommendations?: string;
   contributions?: string;

@@ -241,7 +241,7 @@ export default function ExerciceDetailScreen() {
             >
               <Image
                 source={getImageSource(currentExercise.filePicture.url)}
-                style={{ borderRadius: 8 }}
+                style={{ borderRadius: 8, height: "100%", width: "100%" }}
               />
             </View>
           )}

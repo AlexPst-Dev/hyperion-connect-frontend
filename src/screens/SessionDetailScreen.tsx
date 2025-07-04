@@ -152,7 +152,7 @@ export default function SessionDetailScreen() {
   if (!user || !token) return null;
 
   let isEditable: boolean = false;
-  if (user.profileCategory === "admin") {
+  if (user.profileCategory === "admin" || user.id === session.authorId) {
     isEditable = true;
   }
 
@@ -434,31 +434,40 @@ export default function SessionDetailScreen() {
   };
 
   useEffect(() => {
-    if (currentSession) {
-      setSessionForm({
-        label: currentSession.label || "",
-        filePictureUrl: currentSession.filePicture?.url || "",
-        recommendations: currentSession.recommendations || "",
-        contributions: currentSession.contributions || "",
-      });
-      handleFetchExercises(currentSession.id);
-      fetchAllMuscleGroups();
-      async function fetchUserProfile() {
-        if (token && user) {
-          try {
-            const profileConnected = await UserService.getUserById(
-              user.id,
-              token
-            );
+    async function fetchSessionAndRelatedData() {
+      if (!session?.id || !token) return;
+      try {
+        const updated = await SessionService.getSessionById(session.id, token);
+        setCurrentSession({
+          ...updated.session,
+          filePicture: updated.filePicture || updated.session.filePicture,
+        });
+        setSessionForm({
+          label: updated.session.label || "",
+          filePictureUrl: updated.filePicture?.url || "",
+          recommendations: updated.session.recommendations || "",
+          contributions: updated.session.contributions || "",
+        });
+        handleFetchExercises(updated.session.id);
+        fetchAllMuscleGroups();
+        if (user) {
+          const profileConnected = await UserService.getUserById(
+            user.id,
+            token
+          );
+          if (user.profileCategory === ProfileCategory.MEDIC) {
             setCompleteUserProfile(profileConnected.profile as MedicProfile);
-          } catch (error) {
-            console.error("Erreur lors de la récupération du profil :", error);
+          } else if (user.profileCategory === ProfileCategory.COACH) {
+            setCompleteUserProfile(profileConnected.profile as CoachProfile);
           }
         }
+      } catch (error) {
+        console.error("Erreur lors du chargement de la session :", error);
       }
-      fetchUserProfile();
     }
-  }, [currentSession, token, user]);
+    fetchSessionAndRelatedData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session.id, token, user]);
 
   return (
     <KeyboardAvoidingView
@@ -486,7 +495,7 @@ export default function SessionDetailScreen() {
             >
               <Image
                 source={getImageSource(currentSession.filePicture.url)}
-                style={{ borderRadius: 8 }}
+                style={{ borderRadius: 8, width: "100%", height: "100%" }}
               />
             </View>
           ) : null}
@@ -651,6 +660,11 @@ export default function SessionDetailScreen() {
                     durationTime={getMinutesFromDuration(
                       item.exercise.durationTime
                     )}
+                    imageUrl={
+                      item.exercise.filePicture
+                        ? item.exercise.filePicture.url
+                        : "default-session"
+                    }
                     labels={item.muscleGroups.map((muscleGroup) => (
                       <Label
                         key={muscleGroup.id}

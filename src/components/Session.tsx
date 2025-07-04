@@ -69,7 +69,10 @@ export default function Session({
     <Pressable onPress={onPress} style={[styles.container, shadowStyles.small]}>
       <View style={styles.content}>
         <View style={styles.img}>
-          <Image source={getImageSource(imageUrl)} />
+          <Image
+            source={getImageSource(imageUrl)}
+            style={{ width: "100%", height: "100%", borderRadius: 8 }}
+          />
         </View>
         <View style={styles.separator} />
         <View style={styles.infos}>
