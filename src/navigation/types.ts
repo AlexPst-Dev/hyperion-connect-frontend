@@ -18,6 +18,7 @@ export type RootStackParamList = {
   ExerciceDetail: {
     exercise: ExerciseWithDetails;
     muscleGroups: Category[];
+    isEditable?: boolean;
   };
   PlanningHistory: undefined;
   ContactDetail: {

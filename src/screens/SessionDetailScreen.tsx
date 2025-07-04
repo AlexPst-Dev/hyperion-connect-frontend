@@ -678,6 +678,7 @@ export default function SessionDetailScreen() {
                       navigation.navigate("ExerciceDetail", {
                         exercise: item.exercise,
                         muscleGroups: item.muscleGroups,
+                        isEditable: isEditable,
                       })
                     }
                   />
@@ -863,7 +864,7 @@ export default function SessionDetailScreen() {
                       />
                       <Input
                         type="multiSelector"
-                        placeholder="Jambes"
+                        placeholder="Aucune sélection"
                         label="Groupes musculaire"
                         value={exerciseForm.muscleGroups.map((mg) =>
                           String(mg.id)

@@ -35,7 +35,7 @@ type ExerciceDetailRouteProp = RouteProp<RootStackParamList, "ExerciceDetail">;
 
 export default function ExerciceDetailScreen() {
   const route = useRoute<ExerciceDetailRouteProp>();
-  const { exercise, muscleGroups } = route.params;
+  const { exercise, muscleGroups, isEditable } = route.params;
   const { user, token } = useAuth();
   const navigation = useNavigation();
 
@@ -209,11 +209,6 @@ export default function ExerciceDetailScreen() {
   }, [exercise, muscleGroups]);
 
   const screenWidth = Dimensions.get("window").width;
-
-  let isEditable: boolean = false;
-  if (user.profileCategory === "admin") {
-    isEditable = true;
-  }
 
   return (
     <KeyboardAvoidingView
