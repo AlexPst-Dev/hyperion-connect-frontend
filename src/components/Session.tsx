@@ -12,6 +12,7 @@ interface Props {
   nbExercises?: number;
   imageUrl?: string;
   isExercice?: boolean;
+  isImportedFile?: boolean;
   labels?: React.ReactElement | React.ReactElement[];
   onPress?: () => void;
   isDone?: boolean;
@@ -32,6 +33,7 @@ export default function Session({
   nbExercises,
   imageUrl,
   isExercice = false,
+  isImportedFile = false,
   labels,
   onPress,
   isDone = false,
@@ -45,12 +47,7 @@ export default function Session({
   hour,
   hideIcon = false,
 }: Props) {
-  function getImageSource(imageUrl?: string): any {
-    if (!imageUrl) {
-      // fallback
-      return require("../assets/images/default-session.png");
-    }
-
+  function getImageSource(imageUrl: string): any {
     if (imageUrl.startsWith("http") || imageUrl.startsWith("https")) {
       return { uri: imageUrl };
     }
@@ -68,11 +65,44 @@ export default function Session({
   return (
     <Pressable onPress={onPress} style={[styles.container, shadowStyles.small]}>
       <View style={styles.content}>
-        <View style={styles.img}>
-          <Image
-            source={getImageSource(imageUrl)}
-            style={{ width: "100%", height: "100%", borderRadius: 8 }}
-          />
+        <View
+          style={[
+            styles.img,
+            isImportedFile || !imageUrl
+              ? {
+                  borderWidth: 1,
+                  borderColor: "rgb(172, 172, 172)",
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }
+              : "",
+          ]}
+        >
+          {imageUrl && (
+            <Image
+              source={getImageSource(imageUrl)}
+              style={{ width: "100%", height: "100%", borderRadius: 8 }}
+            />
+          )}
+          {isImportedFile && (
+            <Icon
+              name="download"
+              width={32}
+              height={32}
+              strokeColor="black"
+              fillColor="transparent"
+            />
+          )}
+          {!imageUrl && !isImportedFile && (
+            <Icon
+              name="eye"
+              width={32}
+              height={32}
+              strokeColor="black"
+              fillColor="transparent"
+            />
+          )}
         </View>
         <View style={styles.separator} />
         <View style={styles.infos}>
@@ -218,7 +248,7 @@ const styles = StyleSheet.create({
     width: 92,
     height: 64,
     borderRadius: 8,
-    backgroundColor: Colors.grey,
+    backgroundColor: "white",
   },
   separator: {
     width: 1,

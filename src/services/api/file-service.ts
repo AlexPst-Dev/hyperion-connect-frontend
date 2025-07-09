@@ -4,7 +4,7 @@ import { File, FileCategory } from "../../models/file";
 export const fileService = {
   async createFile(
     data: Pick<File, "label" | "url" | "fileCategory">,
-    token: string
+    token: string,
   ): Promise<File> {
     return apiClient.post<File>("/files", data, token);
   },

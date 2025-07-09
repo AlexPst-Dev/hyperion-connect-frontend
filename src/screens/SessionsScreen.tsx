@@ -48,7 +48,7 @@ import {
   SessionWithFile,
 } from "../models/session";
 import { fileService } from "../services/api/file-service";
-import { FileCategory } from "../models/file";
+import { FileCategory, File as FileModel } from "../models/file";
 import { notify } from "../components/NotificationContainer";
 import { UserService } from "../services/api/user-service";
 import {
@@ -71,6 +71,9 @@ import { GraphService } from "../services/api/graph-service";
 import { useKpis } from "../hooks/useKpis";
 import { ExerciseWithDetails } from "../models/exercise";
 import { categoryService } from "../services/api/category-service";
+import { FileUploadButton } from "../components/FileUploadButton";
+import * as FileSystem from "expo-file-system";
+import env from "@/env";
 
 export default function SessionsScreen() {
   const { user, token } = useAuth();
@@ -187,6 +190,8 @@ export default function SessionsScreen() {
     { label: "19:00 - 22:00", value: "4" },
   ];
 
+  const [isDownloading, setIsDownloading] = useState(false);
+
   // Fetch sportsman profile on mount or after update
   async function fetchProfile() {
     if (user && token) {
@@ -250,6 +255,83 @@ export default function SessionsScreen() {
       } finally {
         setDispoLoading(false);
       }
+    }
+  };
+
+  const handleFileDownload = async (filePicture: FileModel) => {
+    if (!filePicture.url) {
+      notify({
+        title: "URL du fichier non disponible",
+        type: "error",
+      });
+      return;
+    }
+
+    setIsDownloading(true);
+
+    try {
+      const fullUrl = `${env.API_URL}/files/download/${filePicture.id}`;
+
+      if (Platform.OS === "web") {
+        // Version web
+        const response = await fetch(fullUrl, {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error(`Erreur HTTP: ${response.status}`);
+        }
+
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = filePicture.label;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      } else {
+        // Version mobile - reste identique
+        const { downloadAsync } = await import("expo-file-system");
+        const { shareAsync, isAvailableAsync } = await import("expo-sharing");
+
+        const headers: Record<string, string> = {};
+        if (token) {
+          headers.Authorization = `Bearer ${token}`;
+        }
+
+        const fileUri = `${FileSystem.documentDirectory}${filePicture.label}`;
+        const downloadResult = await downloadAsync(fullUrl, fileUri, {
+          headers,
+        });
+
+        if (downloadResult.status === 200) {
+          const isSharingAvailable = await isAvailableAsync();
+          if (isSharingAvailable) {
+            await shareAsync(downloadResult.uri, {
+              UTI: "com.adobe.pdf",
+              mimeType: "application/pdf",
+            });
+          }
+        }
+      }
+
+      notify({
+        title: "Fichier téléchargé avec succès",
+        type: "success",
+      });
+    } catch (error) {
+      console.error("Erreur téléchargement:", error);
+      notify({
+        title: "Impossible de télécharger le fichier",
+        type: "error",
+      });
+    } finally {
+      setIsDownloading(false);
     }
   };
 
@@ -1065,20 +1147,6 @@ export default function SessionsScreen() {
         []
       );
 
-      const handleImport = async () => {
-        const result = await DocumentPicker.getDocumentAsync({
-          type: "application/pdf",
-          copyToCacheDirectory: true,
-        });
-
-        if (result.canceled) {
-          console.log("Annulé");
-          return;
-        }
-
-        console.log("Fichier sélectionné :", result.assets[0]);
-      };
-
       useEffect(() => {
         let isMounted = true;
         async function fetchSessionsAndCatalog() {
@@ -1207,14 +1275,32 @@ export default function SessionsScreen() {
                     key={completeSession.session.id}
                     title={completeSession.session.label}
                     imageUrl={
-                      completeSession.filePicture
+                      completeSession.filePicture &&
+                      completeSession.filePicture.fileCategory ===
+                        FileCategory.IMAGE
                         ? completeSession.filePicture.url
                         : undefined
                     }
+                    isImportedFile={
+                      completeSession.filePicture &&
+                      completeSession.filePicture.fileCategory ===
+                        FileCategory.SESSION_IMPORTED
+                        ? true
+                        : false
+                    }
                     onPress={() => {
-                      navigation.navigate("SessionDetail", {
-                        session: completeSession.session,
-                      });
+                      if (
+                        completeSession.filePicture &&
+                        completeSession.filePicture.fileCategory ===
+                          FileCategory.SESSION_IMPORTED
+                      ) {
+                        if (isDownloading) return;
+                        handleFileDownload(completeSession.filePicture);
+                      } else {
+                        navigation.navigate("SessionDetail", {
+                          session: completeSession.session,
+                        });
+                      }
                     }}
                   />
                 ))
@@ -1286,19 +1372,36 @@ export default function SessionsScreen() {
                         {completeUserProfile?.canImportSessions && (
                           <View
                             style={{
-                              flexDirection: "row",
-                              justifyContent: "center",
+                              flexDirection: "column",
+                              alignItems: "flex-start",
                             }}
                           >
-                            <AppButton
-                              type="secondary"
-                              title="Importer"
-                              iconName="download"
-                              onPress={() => {
-                                setModalStep("import");
-                                handleImport();
-                              }}
-                            />
+                            <AppText>
+                              Vous pouvez aussi importer un programme depuis
+                              votre appareil (format PDF) :
+                            </AppText>
+                            <View style={{ alignSelf: "center" }}>
+                              <FileUploadButton
+                                fileCategory={FileCategory.SESSION_IMPORTED}
+                                label="Importer une session"
+                                authToken={token!}
+                                authUser={user}
+                                onUploadSuccess={(file, newSession) => {
+                                  setSessions((prev) => [
+                                    ...prev,
+                                    {
+                                      session: newSession.session,
+                                      filePicture: file,
+                                    },
+                                  ]);
+                                  closeModal();
+                                }}
+                                onUploadError={(error) => {
+                                  console.error("Erreur:", error);
+                                  closeModal();
+                                }}
+                              />
+                            </View>
                           </View>
                         )}
                         <Pressable
