@@ -3,6 +3,7 @@ export enum FileCategory {
   MEDICAL_FILE = "MEDICAL_FILE",
   SESSION_IMPORTED = "SESSION_IMPORTED",
   SUBSCRIPTION = "SUBSCRIPTION",
+  USER_FILE = "USER_FILE",
 }
 
 export interface File {
