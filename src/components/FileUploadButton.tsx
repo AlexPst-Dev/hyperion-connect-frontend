@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import {
   View,
-  Text,
   TouchableOpacity,
   Alert,
   StyleSheet,
@@ -13,9 +12,10 @@ import AppText from "./AppText";
 import GlobalStyles from "../styles/styles";
 import Icon from "./Icon";
 import { notify } from "./NotificationContainer";
-import { useAuth } from "../hooks/useAuth";
 import { SessionService } from "../services/api/session-service";
 import { LoggedUser } from "../models/auth";
+import { UserService } from "../services/api/user-service";
+import { fileService } from "../services/api/file-service";
 
 interface FileUploadButtonProps {
   fileCategory: FileCategory;
@@ -100,6 +100,33 @@ export const FileUploadButton: React.FC<FileUploadButtonProps> = ({
           } catch (e) {
             console.log(
               "Error while create a new imported session and link it to user : ",
+              e
+            );
+          }
+        } else if (fileCategory === FileCategory.IMAGE) {
+          try {
+            const userToUpdate = await UserService.getUserById(
+              authUser.id,
+              authToken
+            );
+            const updatedUser = UserService.updateUserById(
+              authUser.id,
+              {
+                filePicture: result.data,
+                filePictureId: result.data.id,
+              },
+              authToken
+            );
+            if (userToUpdate.filePicture) {
+              await fileService.deleteFile(
+                userToUpdate.filePicture.id,
+                authToken
+              );
+            }
+            onUploadSuccess?.(result.data);
+          } catch (e) {
+            console.log(
+              "Error while create a new image for the connected user : ",
               e
             );
           }

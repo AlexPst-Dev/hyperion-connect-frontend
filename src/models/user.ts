@@ -219,6 +219,7 @@ export type CreateUserProfilePayload =
 export interface UserResponse {
   user: User;
   profile?: UserProfile;
+  filePicture?: File;
 }
 
 // Utilitaires pour les jours disponibles (pour les sportifs)

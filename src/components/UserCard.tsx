@@ -24,6 +24,7 @@ interface Props {
   companyName?: string;
   companyAdress?: string;
   companyLink?: string;
+  token?: string;
 }
 
 const styles = StyleSheet.create({
@@ -90,6 +91,7 @@ export default function UserCard({
   companyName,
   companyAdress,
   companyLink,
+  token,
 }: Props) {
   function getImageSource(imageUrl?: string): any {
     if (!imageUrl) {
@@ -114,7 +116,7 @@ export default function UserCard({
     <View style={[styles.container, shadowStyles.small]}>
       <View style={styles.header}>
         <Image
-          source={getImageSource(profilePictureUrl)}
+          source={{ uri: profilePictureUrl }}
           style={styles.profilePicture}
         />
         <View style={styles.separator} />

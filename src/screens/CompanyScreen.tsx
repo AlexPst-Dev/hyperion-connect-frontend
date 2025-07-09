@@ -114,6 +114,7 @@ export default function Companycreen() {
       );
       setConnectedCompany(updatedCompany);
       setEditCompanyPopupVisible(false);
+      setEditSocialsLinks(false);
       notify({
         title: "Informations modifiées avec succès",
         type: "success",
@@ -265,7 +266,32 @@ export default function Companycreen() {
                 </Pressable>
               </View>
             ) : (
-              <AppText>Aucun réseaux social enregistré pour le moment.</AppText>
+              <>
+                <AppText>
+                  Aucun réseaux social enregistré pour le moment.
+                </AppText>
+                <Pressable
+                  style={{
+                    width: 64,
+                    height: 64,
+                    borderRadius: 16,
+                    backgroundColor: "transparent",
+                    borderWidth: 1,
+                    borderStyle: "dashed",
+                    borderColor: Colors.deepBlue,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                  onPress={() => setEditSocialsLinks(true)}
+                >
+                  <Icon
+                    name="pencil"
+                    strokeColor={Colors.deepBlue}
+                    fillColor="transparent"
+                  />
+                </Pressable>
+              </>
             )}
             <AppText>{connectedCompany.description}</AppText>
             <AppText>
