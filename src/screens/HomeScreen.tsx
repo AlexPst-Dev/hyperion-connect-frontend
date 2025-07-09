@@ -65,6 +65,7 @@ export default function HomeScreen() {
     createdAt: "2025-05-05",
     updatedAt: "2025-05-05",
     email: "chloé.marchegay@mail.com",
+    isInHyperlinkNetwork: true,
   };
 
   const [newsTitle, setNewsTitle] = useState("");

@@ -28,6 +28,9 @@ export default function MemberCard({ onClose }: Props) {
     }
   }, [user]);
 
+  if (!connectedUser)
+    return <AppText>Informations client indisponibles</AppText>;
+
   return (
     <Pressable style={styles.overlay} onPress={onClose}>
       <Pressable style={styles.container} onPress={() => {}}>
@@ -45,7 +48,9 @@ export default function MemberCard({ onClose }: Props) {
         </View>
         <View style={styles.qrCodeContainer}>
           <Image
-            source={getImageSource(connectedUser?.image)}
+            source={getImageSource(
+              connectedUser.filePicture ? connectedUser?.filePicture.url : ""
+            )}
             style={styles.qrCodeImg}
           />
         </View>

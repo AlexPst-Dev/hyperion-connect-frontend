@@ -12,13 +12,13 @@ interface Props {
 
 export default function ItemClient({ user, objectives }: Props) {
   function getImageSource(): any {
-    if (!user.image) {
+    if (!user.filePicture) {
       // fallback
       return require("../assets/images/react-logo.png");
     }
 
-    if (user.image.startsWith("http") || user.image.startsWith("https")) {
-      return { uri: user.image };
+    if (user.filePicture.url.startsWith("http")) {
+      return { uri: user.filePicture.url };
     }
 
     // Mapping of konwn local images
@@ -27,7 +27,8 @@ export default function ItemClient({ user, objectives }: Props) {
     };
 
     return (
-      localImages[user.image] || require("../assets/images/react-logo.png")
+      localImages[user.filePicture.url] ||
+      require("../assets/images/react-logo.png")
     );
   }
 

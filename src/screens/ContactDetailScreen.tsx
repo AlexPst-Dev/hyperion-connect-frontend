@@ -114,7 +114,9 @@ export default function ContactDetailScreen() {
               phone={contact.phone}
               sport={sportLabel}
               age={UserService.getUserAge(contact)?.toString()}
-              profilePictureUrl={contact.image}
+              profilePictureUrl={
+                contact.filePicture ? contact.filePicture.url : ""
+              }
             />
             {(contact.facebookLink ||
               contact.instagramLink ||

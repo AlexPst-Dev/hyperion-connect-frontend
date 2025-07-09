@@ -959,7 +959,7 @@ export default function ClientDetailScreen() {
           sport={getCategoryLabel()}
           age={getAge(client.birthDate)}
           profilePictureUrl={
-            client.image || "users/profilePicture/img-profile-1"
+            client.filePicture?.url || "users/profilePicture/img-profile-1"
           }
         />
         {(client.facebookLink ||
@@ -2112,7 +2112,7 @@ export default function ClientDetailScreen() {
                   sport={getCategoryLabel()}
                   age={getAge(client.birthDate)}
                   profilePictureUrl={
-                    client.image || "users/profilePicture/img-profile-1"
+                    client.filePicture ? client.filePicture.url : ""
                   }
                 />
                 {(client.facebookLink ||
@@ -2278,7 +2278,7 @@ export default function ClientDetailScreen() {
                   sport={getCategoryLabel()}
                   age={getAge(client.birthDate)}
                   profilePictureUrl={
-                    client.image || "users/profilePicture/img-profile-1"
+                    client.filePicture ? client.filePicture.url : ""
                   }
                 />
                 {(client.facebookLink ||
@@ -2765,7 +2765,9 @@ export default function ClientDetailScreen() {
                     email={client.email}
                     phone={client.phone}
                     age={getAge(client.birthDate)}
-                    profilePictureUrl={client.image || undefined}
+                    profilePictureUrl={
+                      client.filePicture ? client.filePicture.url : undefined
+                    }
                   />
                   {(client.facebookLink ||
                     client.instagramLink ||

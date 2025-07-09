@@ -310,7 +310,9 @@ export default function DisplayEvent({
                             return (
                               <Image
                                 key={index}
-                                source={getImageSource(user.image)}
+                                source={getImageSource(
+                                  user.filePicture ? user.filePicture.url : ""
+                                )}
                                 style={styles.profilePicture}
                                 id={index.toString()}
                                 alt={user.email}
@@ -339,7 +341,9 @@ export default function DisplayEvent({
                                   <Image
                                     key={index}
                                     source={getImageSource(
-                                      participant.user.image
+                                      participant.user.filePicture
+                                        ? participant.user.filePicture.url
+                                        : ""
                                     )}
                                     style={styles.participantProfilePicture}
                                     id={index.toString()}

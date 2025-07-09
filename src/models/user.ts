@@ -2,6 +2,7 @@ import { Category } from "./category";
 import { Company } from "./company";
 import { Graph } from "./graph";
 import { Subscription } from "./subscription";
+import { File } from "./file";
 
 // types/enums.ts
 export enum ProfileCategory {
@@ -24,7 +25,8 @@ export interface BaseUser {
   city?: string;
   postalCode?: string;
   description?: string;
-  image?: string;
+  filePicture?: File;
+  filePictureId?: string;
   birthDate?: string;
   stravaLink?: string;
   facebookLink?: string;

@@ -68,7 +68,7 @@ export default function ItemUser({
   return (
     <View style={[styles.header, shadowStyles.small]}>
       <Image
-        source={getImageSource(user.image)}
+        source={getImageSource(user.filePicture ? user.filePicture.url : "")}
         style={styles.profilePicture}
       />
       <View style={styles.separator} />
