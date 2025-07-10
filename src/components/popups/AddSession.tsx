@@ -8,7 +8,6 @@ import Session from "../Session";
 import Icon from "../Icon";
 import { Colors } from "@/src/styles/styles";
 import { SessionWithFile } from "@/src/models/session";
-import { getMinutesFromDuration } from "@/src/services/api/session-service";
 import { ExerciseWithDetails } from "@/src/models/exercise";
 import { Category } from "@/src/models/category";
 import Label from "../Label";
@@ -69,27 +68,30 @@ export default function AddSessions({
     new Set(
       listOfSession
         .flatMap((session) =>
-          getSessionMuscleGroups(session).map((group) => group.label)
+          session.session.listExercises && session.session.listExercises !== ""
+            ? getSessionMuscleGroups(session).map((group) => group.label)
+            : []
         )
         .filter(Boolean)
     )
   );
 
+  // Reset filters when popup opens
   useEffect(() => {
-    if (
-      visible &&
-      filterCategories.length > 0 &&
-      selectedFilters.length === 0
-    ) {
-      setSelectedFilters(filterCategories);
+    if (visible) {
+      setSelectedFilters([]);
+      setSearchTerm("");
+      setSelectedSessionIds([]);
     }
-  }, [visible, filterCategories]);
+  }, [visible]);
 
   const allMuscleGroups = Array.from(
     new Set(
       listOfSession
         .flatMap((session) =>
-          getSessionMuscleGroups(session).map((group) => group.label)
+          session.session.listExercises && session.session.listExercises !== ""
+            ? getSessionMuscleGroups(session).map((group) => group.label)
+            : []
         )
         .filter(Boolean)
     )
@@ -130,7 +132,11 @@ export default function AddSessions({
   };
 
   const filteredSessions = listOfSession.filter((sessionWithFile) => {
-    const sessionMuscleGroups = getSessionMuscleGroups(sessionWithFile);
+    const sessionMuscleGroups =
+      sessionWithFile.session.listExercises &&
+      sessionWithFile.session.listExercises !== ""
+        ? getSessionMuscleGroups(sessionWithFile)
+        : [];
 
     const matchesSearch =
       searchTerm.length < 3 ||
@@ -138,12 +144,22 @@ export default function AddSessions({
         .toLowerCase()
         .startsWith(searchTerm.toLowerCase());
 
-    // If no filters, show all
-    const matchesFilter =
-      selectedFilters.length === 0 ||
-      sessionMuscleGroups.some((group) =>
-        selectedFilters.includes(group.label)
-      );
+    // Logique de filtrage corrigée
+    let matchesFilter = true;
+
+    if (selectedFilters.length > 0) {
+      // Si des filtres sont sélectionnés
+      if (sessionMuscleGroups.length === 0) {
+        // Session sans groupes musculaires : ne pas afficher
+        matchesFilter = false;
+      } else {
+        // Session avec groupes musculaires : vérifier la correspondance
+        matchesFilter = sessionMuscleGroups.some((group) =>
+          selectedFilters.includes(group.label)
+        );
+      }
+    }
+    // Si aucun filtre sélectionné, matchesFilter reste true (toutes les sessions)
 
     return matchesSearch && matchesFilter;
   });
@@ -194,7 +210,10 @@ export default function AddSessions({
                         sessionWithFile.session.id
                       );
                       const sessionMuscleGroups =
-                        getSessionMuscleGroups(sessionWithFile);
+                        sessionWithFile.session.listExercises &&
+                        sessionWithFile.session.listExercises !== ""
+                          ? getSessionMuscleGroups(sessionWithFile)
+                          : [];
 
                       return (
                         <Pressable
@@ -213,19 +232,23 @@ export default function AddSessions({
                           <View style={{ width: "89%" }}>
                             <Session
                               title={sessionWithFile.session.label}
-                              labels={sessionMuscleGroups.map(
-                                (muscleGroup, index) => (
-                                  <Label
-                                    key={index}
-                                    title={muscleGroup.label}
-                                    textColor={muscleGroup.textColor}
-                                    backgroundColor={
-                                      muscleGroup.backgroundColor
-                                    }
-                                    size="small"
-                                  />
-                                )
-                              )}
+                              labels={
+                                sessionMuscleGroups.length > 0
+                                  ? sessionMuscleGroups.map(
+                                      (muscleGroup, index) => (
+                                        <Label
+                                          key={index}
+                                          title={muscleGroup.label}
+                                          textColor={muscleGroup.textColor}
+                                          backgroundColor={
+                                            muscleGroup.backgroundColor
+                                          }
+                                          size="small"
+                                        />
+                                      )
+                                    )
+                                  : undefined
+                              }
                               hideIcon
                             />
                           </View>
