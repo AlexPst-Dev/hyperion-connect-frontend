@@ -131,38 +131,40 @@ export default function AddSessions({
     onClose();
   };
 
-  const filteredSessions = listOfSession.filter((sessionWithFile) => {
-    const sessionMuscleGroups =
-      sessionWithFile.session.listExercises &&
-      sessionWithFile.session.listExercises !== ""
-        ? getSessionMuscleGroups(sessionWithFile)
-        : [];
+  const filteredSessions = listOfSession
+    .filter((s) => s.session.isActive)
+    .filter((sessionWithFile) => {
+      const sessionMuscleGroups =
+        sessionWithFile.session.listExercises &&
+        sessionWithFile.session.listExercises !== ""
+          ? getSessionMuscleGroups(sessionWithFile)
+          : [];
 
-    const matchesSearch =
-      searchTerm.length < 3 ||
-      sessionWithFile.session.label
-        .toLowerCase()
-        .startsWith(searchTerm.toLowerCase());
+      const matchesSearch =
+        searchTerm.length < 3 ||
+        sessionWithFile.session.label
+          .toLowerCase()
+          .startsWith(searchTerm.toLowerCase());
 
-    // Logique de filtrage corrigée
-    let matchesFilter = true;
+      // Logique de filtrage corrigée
+      let matchesFilter = true;
 
-    if (selectedFilters.length > 0) {
-      // Si des filtres sont sélectionnés
-      if (sessionMuscleGroups.length === 0) {
-        // Session sans groupes musculaires : ne pas afficher
-        matchesFilter = false;
-      } else {
-        // Session avec groupes musculaires : vérifier la correspondance
-        matchesFilter = sessionMuscleGroups.some((group) =>
-          selectedFilters.includes(group.label)
-        );
+      if (selectedFilters.length > 0) {
+        // Si des filtres sont sélectionnés
+        if (sessionMuscleGroups.length === 0) {
+          // Session sans groupes musculaires : ne pas afficher
+          matchesFilter = false;
+        } else {
+          // Session avec groupes musculaires : vérifier la correspondance
+          matchesFilter = sessionMuscleGroups.some((group) =>
+            selectedFilters.includes(group.label)
+          );
+        }
       }
-    }
-    // Si aucun filtre sélectionné, matchesFilter reste true (toutes les sessions)
+      // Si aucun filtre sélectionné, matchesFilter reste true (toutes les sessions)
 
-    return matchesSearch && matchesFilter;
-  });
+      return matchesSearch && matchesFilter;
+    });
 
   return (
     <Modal
