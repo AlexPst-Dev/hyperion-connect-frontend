@@ -6,6 +6,7 @@ export interface UploadFileParams {
   label: string;
   fileCategory: FileCategory;
   authToken: string;
+  uploadToASpecificId?: number;
 }
 
 export interface UploadResult {
@@ -66,6 +67,9 @@ export class FileUploadService {
 
       formData.append("label", params.label);
       formData.append("fileCategory", params.fileCategory);
+      if (params.uploadToASpecificId) {
+        formData.append("uploadToASpecificId", params.uploadToASpecificId.toString());
+      }
 
       // Configuration de la requête avec timeout
       const controller = new AbortController();

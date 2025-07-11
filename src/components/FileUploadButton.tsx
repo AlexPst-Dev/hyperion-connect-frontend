@@ -16,6 +16,7 @@ import { SessionService } from "../services/api/session-service";
 import { LoggedUser } from "../models/auth";
 import { UserService } from "../services/api/user-service";
 import { fileService } from "../services/api/file-service";
+import { ProfileCategory, SportsmanProfile } from "../models/user";
 
 interface FileUploadButtonProps {
   fileCategory: FileCategory;
@@ -24,6 +25,8 @@ interface FileUploadButtonProps {
   onUploadError?: (error: string) => void;
   authToken: string;
   authUser: LoggedUser;
+  uploadToUserId?: number;
+  styleAddButton?: boolean;
 }
 
 export const FileUploadButton: React.FC<FileUploadButtonProps> = ({
@@ -33,6 +36,8 @@ export const FileUploadButton: React.FC<FileUploadButtonProps> = ({
   onUploadError,
   authToken,
   authUser,
+  uploadToUserId,
+  styleAddButton = false,
 }) => {
   const [uploading, setUploading] = useState(false);
 
@@ -68,6 +73,7 @@ export const FileUploadButton: React.FC<FileUploadButtonProps> = ({
         label: file.name,
         fileCategory,
         authToken,
+        uploadToASpecificId: uploadToUserId ? uploadToUserId : undefined,
       });
 
       if (result.success) {
@@ -130,6 +136,94 @@ export const FileUploadButton: React.FC<FileUploadButtonProps> = ({
               e
             );
           }
+        } else if (fileCategory === FileCategory.USER_FILE && uploadToUserId) {
+          try {
+            const userToUpdate = await UserService.getUserById(
+              uploadToUserId,
+              authToken
+            );
+            if (
+              userToUpdate.user.profileCategory === ProfileCategory.SPORTSMAN &&
+              userToUpdate.profile
+            ) {
+              const currentList =
+                (userToUpdate.profile as SportsmanProfile)?.listUserFiles || "";
+              const currentIds = currentList
+                ? currentList
+                    .split(";")
+                    .map((id) => parseInt(id.trim(), 10))
+                    .filter((id) => !isNaN(id))
+                : [];
+
+              // Get new medic IDs from selection
+              const newId = result.data.id;
+
+              // Merge and deduplicate
+              const mergedIds = Array.from(new Set([...currentIds, newId]));
+
+              // Build new list string
+              const updatedList = mergedIds.join("; ");
+              const updatedUser = UserService.updateSportsman(
+                uploadToUserId,
+                {
+                  listUserFiles: updatedList,
+                },
+                authToken
+              );
+              onUploadSuccess?.(result.data, updatedUser);
+            }
+          } catch (e) {
+            console.log(
+              "Error while fetching for user and uploading user file : ",
+              e
+            );
+          }
+        } else if (
+          fileCategory === FileCategory.MEDICAL_FILE &&
+          uploadToUserId
+        ) {
+          try {
+            const userToUpdate = await UserService.getUserById(
+              uploadToUserId,
+              authToken
+            );
+            if (
+              userToUpdate.user.profileCategory === ProfileCategory.SPORTSMAN &&
+              userToUpdate.profile
+            ) {
+              const currentList =
+                (userToUpdate.profile as SportsmanProfile)?.listMedicFiles ||
+                "";
+              const currentIds = currentList
+                ? currentList
+                    .split(";")
+                    .map((id) => parseInt(id.trim(), 10))
+                    .filter((id) => !isNaN(id))
+                : [];
+
+              // Get new medic IDs from selection
+              const newId = result.data.id;
+
+              // Merge and deduplicate
+              const mergedIds = Array.from(new Set([...currentIds, newId]));
+
+              // Build new list string
+              const updatedList = mergedIds.join("; ");
+              const updatedUser = UserService.updateSportsman(
+                uploadToUserId,
+                {
+                  listMedicFiles: updatedList,
+                },
+                authToken
+              );
+              onUploadSuccess?.(result.data, updatedUser);
+            }
+          } catch (e) {
+            console.log(
+              "Error while fetching for user and uploading user file : ",
+              e
+            );
+          }
         } else {
           onUploadSuccess?.(result.data);
         }
@@ -158,7 +252,9 @@ export const FileUploadButton: React.FC<FileUploadButtonProps> = ({
     <TouchableOpacity
       style={[
         GlobalStyles.buttonBase,
-        GlobalStyles.button_secondary,
+        styleAddButton
+          ? GlobalStyles.button_add
+          : GlobalStyles.button_secondary,
         uploading && styles.buttonDisabled,
       ]}
       onPress={handleUpload}
@@ -171,13 +267,15 @@ export const FileUploadButton: React.FC<FileUploadButtonProps> = ({
         </View>
       ) : (
         <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
-          <AppText style={styles.buttonText}>{label}</AppText>
+          {!styleAddButton && (
+            <AppText style={styles.buttonText}>{label}</AppText>
+          )}
           <Icon
-            name="download"
+            name={styleAddButton ? "plus" : "download"}
             strokeColor="white"
             fillColor="transparent"
-            width={20}
-            height={20}
+            width={styleAddButton ? 24 : 20}
+            height={styleAddButton ? 24 : 20}
           />
         </View>
       )}

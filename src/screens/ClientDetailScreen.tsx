@@ -40,7 +40,7 @@ import Input from "../components/Input";
 import ProgressGraph from "../components/ProgressGraph";
 import { LoggedUser } from "../models/auth";
 import { Category, CategoryType } from "../models/category";
-import { File } from "../models/file";
+import { File, FileCategory } from "../models/file";
 import {
   getMonthsBetween,
   getOngoingMonth,
@@ -77,6 +77,8 @@ import { notify } from "../components/NotificationContainer";
 import { eventService } from "../services/api/event-service";
 import { CoachingEvent, EventCategory, isCoachingEvent } from "../models/event";
 import { clientService } from "../services/api/client-service";
+import { FileUploadButton } from "../components/FileUploadButton";
+import ItemFile from "../components/ItemFile";
 
 type ClientDetailRouteProp = RouteProp<RootStackParamList, "ClientDetail">;
 
@@ -104,7 +106,7 @@ export default function ClientDetailScreen() {
   const [sportCategories, setSportCategories] = useState<Category[]>([]);
   const [medicCategories, setMedicCategories] = useState<Category[]>([]);
 
-  const [subscriptionFile, setSubscriptionFile] = useState<File | null>(null);
+  const [userFiles, setUserFiles] = useState<File[]>([]);
   const [medicFiles, setMedicFiles] = useState<File[]>([]);
 
   const [objectives, setObjectives] = useState<ObjectiveModel[]>([]);
@@ -199,219 +201,217 @@ export default function ClientDetailScreen() {
     graphMeasuredValue: string;
   }>();
 
-  useEffect(() => {
-    let isMounted = true;
-    async function fetchAllClientData() {
-      // Optionally: set a loading state here
+  let isMounted = true;
+
+  // User files
+  async function fetchListOfUserFiles(token: string) {
+    if ((client.profile as SportsmanProfile)?.listUserFiles) {
+      const listUserFiles = (client.profile as SportsmanProfile).listUserFiles;
+      const ids = listUserFiles
+        ? listUserFiles
+            .split(";")
+            .map((id) => parseInt(id, 10))
+            .filter((id) => !isNaN(id))
+        : [];
       try {
-        // Fetch categories in parallel
-        const [sports, medics, muscleGroups] = await Promise.all([
-          categoryService.getCategoriesByType(CategoryType.SPORT, token ?? ""),
-          categoryService.getCategoriesByType(
-            CategoryType.MEDICAL,
-            token ?? ""
-          ),
-          categoryService.getCategoriesByType(
-            CategoryType.MUSCLE_GROUP,
-            token ?? ""
-          ),
-        ]);
-        if (!isMounted) return;
-        setSportCategories(sports);
-        setMedicCategories(medics);
-        setMuscleGroupCategories(muscleGroups);
-
-        // Only fetch sportsman-specific data if needed
-        if (
-          client.profileCategory === ProfileCategory.SPORTSMAN &&
-          client.id &&
-          token
-        ) {
-          // Fetch objectives, graph, sessions, exercises, medics, files, billings in parallel
-          const [objectives, graphs, allSessions, exercises, eventsComplete] =
-            await Promise.all([
-              ObjectivesApiService.getObjectivesBySportsman(client.id, token),
-              GraphService.getGraphsByUserId(client.id, token),
-              SessionService.getAllSessions(token),
-              exerciseService.getAllExercises(token),
-              eventService.getEventsByUserId(client.id, token),
-            ]);
-          if (!isMounted) return;
-          setObjectives(objectives);
-
-          setSportsmanNotes(
-            getAllNotes((client.profile as SportsmanProfile)?.listMedicNotes)
-          );
-          if (eventsComplete.events.length > 0) {
-            // Filter only coaching events using the type guard
-            const coachingEvents =
-              eventsComplete.events.filter(isCoachingEvent);
-
-            // Fetch full event details for each coaching event in parallel
-            const coachingEventDetails = await Promise.all(
-              coachingEvents.map(async (e) => {
-                const { event } = await eventService.getEventById(e.id, token);
-                // Return both the parent event id and the coaching event details
-                return {
-                  eventId: event.id, // parent event id
-                  coachingEvent: event.specificEvent as CoachingEvent,
-                };
-              })
-            );
-            if (isMounted) setCurrentCoachingEvents(coachingEventDetails);
-          }
-
-          const sessionsWithFiles: SessionWithFile[] = await Promise.all(
-            allSessions.map(async (session) => ({
-              session,
-              filePicture: session.filePictureId
-                ? await fileService
-                    .getFileById(session.filePictureId, token)
-                    .catch(() => null)
-                : null,
-            }))
-          );
-          setAllSessions(sessionsWithFiles);
-          setAllExercises(exercises as ExerciseWithDetails[]);
-
-          // Graph
-          setGraph(graphs[0] || null);
-          const graph = graphs.find((g) => g.isActive) || graphs[0];
-          if (graph && graph.listMonthlyValue && graph.startDate) {
-            const entries = graph.listMonthlyValue
-              .split(";")
-              .map((entry) => entry.trim())
-              .filter(Boolean);
-            const monthLabels = getDynamicMonthLabels(
-              graph.startDate,
-              entries.length
-            );
-            const data = entries.map((entry, idx) => {
-              const [monthNum, value] = entry.split(":").map((s) => s.trim());
-              return {
-                month: monthLabels[idx] || monthNum,
-                value: Number(value),
-              };
-            });
-            setProgressGraphData(data);
-          } else {
-            setProgressGraphData([]);
-          }
-
-          // Subscription file
-          if ((client.profile as SportsmanProfile)?.subscriptionId) {
-            try {
-              const subscription =
-                await new SubscriptionService().getSubscriptionById(
-                  (client.profile as SportsmanProfile).subscriptionId!,
-                  token
-                );
-              if (subscription?.subscriptionFileId) {
-                const file = await fileService.getFileById(
-                  subscription.subscriptionFileId,
-                  token
-                );
-                setSubscriptionFileOfSportsman(file);
-                if (isMounted) setSubscriptionFile(file);
-              }
-            } catch {
-              if (isMounted) setSubscriptionFile(null);
-            }
-          }
-
-          // Medic files
-          if ((client.profile as SportsmanProfile)?.listMedicFiles) {
-            const listMedicFiles = (client.profile as SportsmanProfile)
-              .listMedicFiles;
-            const ids = listMedicFiles
-              ? listMedicFiles
-                  .split(";")
-                  .map((id) => parseInt(id, 10))
-                  .filter((id) => !isNaN(id))
-              : [];
-            try {
-              const files = await Promise.all(
-                ids.map((id) => fileService.getFileById(id, token))
-              );
-              if (isMounted) setMedicFiles(files);
-            } catch {
-              if (isMounted) setMedicFiles([]);
-            }
-          }
-
-          // Linked medics
-          if ((client.profile as SportsmanProfile)?.listMedicsIds) {
-            const listMedicsIds = (client.profile as SportsmanProfile)
-              .listMedicsIds;
-            const ids = listMedicsIds
-              ? listMedicsIds
-                  .split(";")
-                  .map((id) => parseInt(id.trim(), 10))
-                  .filter((id) => !isNaN(id))
-              : [];
-            try {
-              const users = await Promise.all(
-                ids.map((id) => UserService.getUserById(id, token))
-              );
-              if (isMounted) setLinkedMedics(users.map((res) => res.user));
-            } catch {
-              if (isMounted) setLinkedMedics([]);
-            }
-          } else {
-            setLinkedMedics([]);
-          }
-
-          // Active sessions
-          try {
-            const sessionService = new SessionService();
-            const linkedSessions = await SessionService.getSessionsByUser(
-              client.id,
-              token
-            );
-            const sessionPromises = linkedSessions.map((ls) =>
-              SessionService.getSessionById(ls.sessionId, token)
-            );
-            const allActiveSessions = await Promise.all(sessionPromises);
-            const onlyActive = allActiveSessions.filter(
-              (s) => s.session.isActive
-            );
-            if (isMounted) setActiveSessions(onlyActive);
-          } catch {
-            if (isMounted) setActiveSessions([]);
-          }
-
-          // Billings
-          if (user?.profileCategory === ProfileCategory.ADMIN) {
-            try {
-              const objectives =
-                await ObjectivesApiService.getObjectivesBySportsman(
-                  client.id,
-                  token
-                );
-              const activeObjectives = objectives.filter((obj) => obj.isActive);
-              const groups = await Promise.all(
-                activeObjectives.map(async (objective) => {
-                  const { billings } =
-                    await billingService.getBillingsByObjectiveId(
-                      objective.id,
-                      token
-                    );
-                  return { objective, billings };
-                })
-              );
-              if (isMounted) setBillingGroups(groups);
-            } catch {
-              if (isMounted) setBillingGroups([]);
-            }
-          }
-        }
-      } catch (e) {
-        console.error(
-          "Erreur lors de la récupération des données du client :",
-          e
+        const files = await Promise.all(
+          ids.map((id) => fileService.getFileById(id, token))
         );
+        if (isMounted) setUserFiles(files);
+      } catch {
+        if (isMounted) setUserFiles([]);
       }
     }
+  }
+
+  async function fetchAllClientData() {
+    // Optionally: set a loading state here
+    try {
+      // Fetch categories in parallel
+      const [sports, medics, muscleGroups] = await Promise.all([
+        categoryService.getCategoriesByType(CategoryType.SPORT, token ?? ""),
+        categoryService.getCategoriesByType(CategoryType.MEDICAL, token ?? ""),
+        categoryService.getCategoriesByType(
+          CategoryType.MUSCLE_GROUP,
+          token ?? ""
+        ),
+      ]);
+      if (!isMounted) return;
+      setSportCategories(sports);
+      setMedicCategories(medics);
+      setMuscleGroupCategories(muscleGroups);
+
+      // Only fetch sportsman-specific data if needed
+      if (
+        client.profileCategory === ProfileCategory.SPORTSMAN &&
+        client.id &&
+        token
+      ) {
+        // Fetch objectives, graph, sessions, exercises, medics, files, billings in parallel
+        const [objectives, graphs, allSessions, exercises, eventsComplete] =
+          await Promise.all([
+            ObjectivesApiService.getObjectivesBySportsman(client.id, token),
+            GraphService.getGraphsByUserId(client.id, token),
+            SessionService.getAllSessions(token),
+            exerciseService.getAllExercises(token),
+            eventService.getEventsByUserId(client.id, token),
+          ]);
+        if (!isMounted) return;
+        setObjectives(objectives);
+
+        setSportsmanNotes(
+          getAllNotes((client.profile as SportsmanProfile)?.listMedicNotes)
+        );
+        if (eventsComplete.events.length > 0) {
+          // Filter only coaching events using the type guard
+          const coachingEvents = eventsComplete.events.filter(isCoachingEvent);
+
+          // Fetch full event details for each coaching event in parallel
+          const coachingEventDetails = await Promise.all(
+            coachingEvents.map(async (e) => {
+              const { event } = await eventService.getEventById(e.id, token);
+              // Return both the parent event id and the coaching event details
+              return {
+                eventId: event.id, // parent event id
+                coachingEvent: event.specificEvent as CoachingEvent,
+              };
+            })
+          );
+          if (isMounted) setCurrentCoachingEvents(coachingEventDetails);
+        }
+
+        const sessionsWithFiles: SessionWithFile[] = await Promise.all(
+          allSessions.map(async (session) => ({
+            session,
+            filePicture: session.filePictureId
+              ? await fileService
+                  .getFileById(session.filePictureId, token)
+                  .catch(() => null)
+              : null,
+          }))
+        );
+        setAllSessions(sessionsWithFiles);
+        setAllExercises(exercises as ExerciseWithDetails[]);
+
+        // Graph
+        setGraph(graphs[0] || null);
+        const graph = graphs.find((g) => g.isActive) || graphs[0];
+        if (graph && graph.listMonthlyValue && graph.startDate) {
+          const entries = graph.listMonthlyValue
+            .split(";")
+            .map((entry) => entry.trim())
+            .filter(Boolean);
+          const monthLabels = getDynamicMonthLabels(
+            graph.startDate,
+            entries.length
+          );
+          const data = entries.map((entry, idx) => {
+            const [monthNum, value] = entry.split(":").map((s) => s.trim());
+            return {
+              month: monthLabels[idx] || monthNum,
+              value: Number(value),
+            };
+          });
+          setProgressGraphData(data);
+        } else {
+          setProgressGraphData([]);
+        }
+
+        fetchListOfUserFiles(token);
+
+        // Medic files
+        if ((client.profile as SportsmanProfile)?.listMedicFiles) {
+          const listMedicFiles = (client.profile as SportsmanProfile)
+            .listMedicFiles;
+          const ids = listMedicFiles
+            ? listMedicFiles
+                .split(";")
+                .map((id) => parseInt(id, 10))
+                .filter((id) => !isNaN(id))
+            : [];
+          try {
+            const files = await Promise.all(
+              ids.map((id) => fileService.getFileById(id, token))
+            );
+            if (isMounted) setMedicFiles(files);
+          } catch {
+            if (isMounted) setMedicFiles([]);
+          }
+        }
+
+        // Linked medics
+        if ((client.profile as SportsmanProfile)?.listMedicsIds) {
+          const listMedicsIds = (client.profile as SportsmanProfile)
+            .listMedicsIds;
+          const ids = listMedicsIds
+            ? listMedicsIds
+                .split(";")
+                .map((id) => parseInt(id.trim(), 10))
+                .filter((id) => !isNaN(id))
+            : [];
+          try {
+            const users = await Promise.all(
+              ids.map((id) => UserService.getUserById(id, token))
+            );
+            if (isMounted) setLinkedMedics(users.map((res) => res.user));
+          } catch {
+            if (isMounted) setLinkedMedics([]);
+          }
+        } else {
+          setLinkedMedics([]);
+        }
+
+        // Active sessions
+        try {
+          const linkedSessions = await SessionService.getSessionsByUser(
+            client.id,
+            token
+          );
+          const sessionPromises = linkedSessions.map((ls) =>
+            SessionService.getSessionById(ls.sessionId, token)
+          );
+          const allActiveSessions = await Promise.all(sessionPromises);
+          const onlyActive = allActiveSessions.filter(
+            (s) => s.session.isActive
+          );
+          if (isMounted) setActiveSessions(onlyActive);
+        } catch {
+          if (isMounted) setActiveSessions([]);
+        }
+
+        // Billings
+        if (user?.profileCategory === ProfileCategory.ADMIN) {
+          try {
+            const objectives =
+              await ObjectivesApiService.getObjectivesBySportsman(
+                client.id,
+                token
+              );
+            const activeObjectives = objectives.filter((obj) => obj.isActive);
+            const groups = await Promise.all(
+              activeObjectives.map(async (objective) => {
+                const { billings } =
+                  await billingService.getBillingsByObjectiveId(
+                    objective.id,
+                    token
+                  );
+                return { objective, billings };
+              })
+            );
+            if (isMounted) setBillingGroups(groups);
+          } catch {
+            if (isMounted) setBillingGroups([]);
+          }
+        }
+      }
+    } catch (e) {
+      console.error(
+        "Erreur lors de la récupération des données du client :",
+        e
+      );
+    }
+  }
+  useEffect(() => {
     fetchAllClientData();
     return () => {
       isMounted = false;
@@ -940,6 +940,19 @@ export default function ClientDetailScreen() {
     }
   };
 
+  const handleFileDeletedForUserFilesList = (
+    deletedFileId: number,
+    newListUserFiles: string
+  ) => {
+    setUserFiles((prev) => prev.filter((file) => file.id !== deletedFileId));
+  };
+  const handleFileDeletedForMedicalFilesList = (
+    deletedFileId: number,
+    newListUserFiles: string
+  ) => {
+    setMedicFiles((prev) => prev.filter((file) => file.id !== deletedFileId));
+  };
+
   const clientInformationsContent: JSX.Element = (
     <>
       <View style={{ flexDirection: "column", gap: 24 }}>
@@ -1029,31 +1042,41 @@ export default function ClientDetailScreen() {
         <View style={{ flexDirection: "column", gap: 16 }}>
           <AppText style={GlobalStyles.h2}>TESTS SPORTIFS & BILANS</AppText>
           <View style={{ flexDirection: "column", gap: 8 }}>
-            {subscriptionFile ? (
-              <View
-                style={{
-                  flexDirection: "row",
-                  justifyContent: "space-between",
-                }}
-              >
-                <AppText>{subscriptionFile.label}</AppText>
-                <Icon
-                  name="download"
-                  width={24}
-                  height={24}
-                  fillColor="transparent"
-                  strokeColor="black"
-                  strokeWidth={2}
+            {userFiles.length > 0 ? (
+              userFiles.map((file) => (
+                <ItemFile
+                  key={file.id}
+                  file={file}
+                  displayControllers={
+                    user.profileCategory === "admin" ||
+                    user.profileCategory === "coach"
+                  }
+                  token={token!}
+                  uploadToASpecificId={client.id}
+                  onDeleteSuccess={handleFileDeletedForUserFilesList}
                 />
-              </View>
+              ))
             ) : (
-              <AppText>Aucun fichier de test sportif</AppText>
+              <AppText>Aucun tests sportifs ou bilans</AppText>
             )}
           </View>
           {(user.profileCategory === "admin" ||
             user.profileCategory === "coach") && (
             <View style={{ flexDirection: "row", justifyContent: "flex-end" }}>
-              <AppButton type="add" iconName="plus" />
+              <FileUploadButton
+                fileCategory={FileCategory.USER_FILE}
+                label=""
+                authToken={token!}
+                authUser={user}
+                uploadToUserId={client.id}
+                onUploadSuccess={(file) => {
+                  setUserFiles((prev) => [...prev, file]);
+                }}
+                onUploadError={(error) => {
+                  console.error("Erreur:", error);
+                }}
+                styleAddButton
+              />
             </View>
           )}
         </View>
@@ -1063,23 +1086,17 @@ export default function ClientDetailScreen() {
           <View style={{ flexDirection: "column", gap: 8 }}>
             {medicFiles.length > 0 ? (
               medicFiles.map((file) => (
-                <View
+                <ItemFile
                   key={file.id}
-                  style={{
-                    flexDirection: "row",
-                    justifyContent: "space-between",
-                  }}
-                >
-                  <AppText>{file.label}</AppText>
-                  <Icon
-                    name="download"
-                    width={24}
-                    height={24}
-                    fillColor="transparent"
-                    strokeColor="black"
-                    strokeWidth={2}
-                  />
-                </View>
+                  file={file}
+                  displayControllers={
+                    user.profileCategory === "admin" ||
+                    user.profileCategory === "medic"
+                  }
+                  token={token!}
+                  uploadToASpecificId={client.id}
+                  onDeleteSuccess={handleFileDeletedForMedicalFilesList}
+                />
               ))
             ) : (
               <AppText>Aucun compte rendu médical</AppText>
@@ -1088,7 +1105,20 @@ export default function ClientDetailScreen() {
           {(user.profileCategory === "admin" ||
             user.profileCategory === "medic") && (
             <View style={{ flexDirection: "row", justifyContent: "flex-end" }}>
-              <AppButton type="add" iconName="plus" />
+              <FileUploadButton
+                fileCategory={FileCategory.MEDICAL_FILE}
+                label=""
+                authToken={token!}
+                authUser={user}
+                uploadToUserId={client.id}
+                onUploadSuccess={(file) => {
+                  setMedicFiles((prev) => [...prev, file]);
+                }}
+                onUploadError={(error) => {
+                  console.error("Erreur:", error);
+                }}
+                styleAddButton
+              />
             </View>
           )}
         </View>

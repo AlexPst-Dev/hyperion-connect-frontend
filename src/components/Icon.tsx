@@ -48,6 +48,8 @@ import Billing from "@assets/icons/billing-icon.svg";
 import Archive from "@assets/icons/archive-icon.svg";
 import Ticket from "@assets/icons/ticket-icon.svg";
 import Hearth from "@assets/icons/hearth-icon.svg";
+import Image from "@assets/icons/image-icon.svg";
+import Paperclip from "@assets/icons/paperclip-icon.svg";
 
 const icons = {
   user: User,
@@ -97,6 +99,8 @@ const icons = {
   archive: Archive,
   ticket: Ticket,
   hearth: Hearth,
+  image: Image,
+  paperclip: Paperclip,
 };
 
 export type IconName = keyof typeof icons;

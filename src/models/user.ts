@@ -46,11 +46,12 @@ export interface SportsmanProfile {
   user: BaseUser;
   sportCategory?: Category;
   sportCategoryId?: number;
-  availableDays?: string; // Format: "1010100" (7 caractersfor the days of the week)
-  availableTime?: string;
+  availableDays?: string; // Format: "1010100" (7 caracters for the days of the week)
+  availableTime?: string; // Format: "10101" (5 caracters for available predefined slot time)
   listMedicNotes?: string;
   listMedicFiles?: string;
   listMedicsIds?: string;
+  listUserFiles?: string;
   graph?: Graph;
   graphId?: number;
   subscription?: Subscription;
