@@ -80,11 +80,28 @@ export default function PlanningScreen() {
 
       const allPersonIds = useMemo(() => {
         const coachingEvents = eventsByCategory[EventCategory.COACHING] || [];
-        const allIds = coachingEvents
-          .map((event) => event.personOngoingIds)
-          .filter(Boolean)
-          .join(";");
-        return allIds;
+        const hyperlinkEvents = eventsByCategory[EventCategory.HYPERLINK] || [];
+        const hyperionEvents = eventsByCategory[EventCategory.HYPERION] || [];
+
+        // Récupère tous les IDs selon le type d'événement
+        const allIds = [
+          // IDs des événements coaching (personOngoingIds)
+          ...coachingEvents
+            .map((event) => event.personOngoingIds)
+            .filter(Boolean),
+
+          // IDs des événements hyperlink (responsibleIds)
+          ...hyperlinkEvents
+            .map((event) => event.responsibleIds)
+            .filter(Boolean),
+
+          // IDs des événements hyperion (responsibleIds)
+          ...hyperionEvents
+            .map((event) => event.responsibleIds)
+            .filter(Boolean),
+        ];
+
+        return allIds.join("; ");
       }, [eventsByCategory]);
 
       const { users: allUsers } = useEventPersons(allPersonIds, token!);
@@ -99,9 +116,9 @@ export default function PlanningScreen() {
 
       const getUsersForEvent = (ids: string | null) => {
         if (!ids) return [];
-
         return ids
-          .split("; ")
+          .split(/[;,]/)
+          .map((id) => id.trim())
           .filter(Boolean)
           .map((id) => usersMap.get(id))
           .filter(Boolean);
@@ -115,7 +132,7 @@ export default function PlanningScreen() {
                 eventsByCategory[EventCategory.COACHING].filter(
                   (e) =>
                     (e.responsibleIds || "")
-                      .split(";")
+                      .split("; ")
                       .map((id) => id.trim())
                       .includes(user.id.toString()) &&
                     (!e.date ||
@@ -188,7 +205,7 @@ export default function PlanningScreen() {
               .filter(
                 (e) =>
                   (e.responsibleIds || "")
-                    .split(";")
+                    .split("; ")
                     .map((id) => id.trim())
                     .includes(user.id.toString()) &&
                   (!e.date ||
@@ -388,12 +405,28 @@ export default function PlanningScreen() {
         useState<boolean>(false);
 
       const allPersonIds = useMemo(() => {
-        const medicEvents = eventsByCategory[EventCategory.MEDICAL] || [];
-        const allIds = medicEvents
-          .map((event) => event.personOngoingIds)
-          .filter(Boolean)
-          .join(";");
-        return allIds;
+        const medicalEvents = eventsByCategory[EventCategory.MEDICAL] || [];
+        const hyperlinkEvents = eventsByCategory[EventCategory.HYPERLINK] || [];
+        const hyperionEvents = eventsByCategory[EventCategory.HYPERION] || [];
+
+        // Récupère tous les IDs selon le type d'événement
+        const allIds = [
+          ...medicalEvents
+            .map((event) => event.personOngoingIds)
+            .filter(Boolean),
+
+          // IDs des événements hyperlink (responsibleIds)
+          ...hyperlinkEvents
+            .map((event) => event.responsibleIds)
+            .filter(Boolean),
+
+          // IDs des événements hyperion (responsibleIds)
+          ...hyperionEvents
+            .map((event) => event.responsibleIds)
+            .filter(Boolean),
+        ];
+
+        return allIds.join("; ");
       }, [eventsByCategory]);
 
       const { users: allUsers } = useEventPersons(allPersonIds, token!);
@@ -408,9 +441,9 @@ export default function PlanningScreen() {
 
       const getUsersForEvent = (ids: string | null) => {
         if (!ids) return [];
-
         return ids
-          .split("; ")
+          .split(/[;,]/)
+          .map((id) => id.trim())
           .filter(Boolean)
           .map((id) => usersMap.get(id))
           .filter(Boolean);
@@ -424,7 +457,7 @@ export default function PlanningScreen() {
                 eventsByCategory[EventCategory.MEDICAL].filter(
                   (e) =>
                     (e.responsibleIds || "")
-                      .split(";")
+                      .split("; ")
                       .map((id) => id.trim())
                       .includes(user.id.toString()) &&
                     (!e.date ||
@@ -497,7 +530,7 @@ export default function PlanningScreen() {
               .filter(
                 (e) =>
                   (e.responsibleIds || "")
-                    .split(";")
+                    .split("; ")
                     .map((id) => id.trim())
                     .includes(user.id.toString()) &&
                   (!e.date ||
@@ -942,17 +975,30 @@ export default function PlanningScreen() {
       // Extraire tous les personOngoingIds des événements HYPERLINK
       const allPersonIds = useMemo(() => {
         const hyperlinkEvents = eventsByCategory[EventCategory.HYPERLINK] || [];
-        const allIds = hyperlinkEvents
-          .map((event) => event.responsibleIds)
-          .filter(Boolean)
-          .join(";");
-        return allIds;
+        const hyperionEvents = eventsByCategory[EventCategory.HYPERION] || [];
+        const sportingActivityEvent =
+          eventsByCategory[EventCategory.SPORTING_ACTIVITY] || [];
+
+        // Récupère tous les IDs selon le type d'événement
+        const allIds = [
+          ...sportingActivityEvent
+            .map((event) => event.responsibleIds)
+            .filter(Boolean),
+
+          ...hyperlinkEvents
+            .map((event) => event.responsibleIds)
+            .filter(Boolean),
+
+          ...hyperionEvents
+            .map((event) => event.responsibleIds)
+            .filter(Boolean),
+        ];
+
+        return allIds.join("; ");
       }, [eventsByCategory]);
 
-      // Charger tous les utilisateurs en une seule fois
       const { users: allUsers } = useEventPersons(allPersonIds, token!);
 
-      // Créer un map pour un accès rapide aux utilisateurs
       const usersMap = useMemo(() => {
         const map = new Map();
         allUsers.forEach((user) => {
@@ -961,12 +1007,11 @@ export default function PlanningScreen() {
         return map;
       }, [allUsers]);
 
-      // Fonction pour récupérer les utilisateurs d'un événement
-      const getUsersForEvent = (personOngoingIds: string | null) => {
-        if (!personOngoingIds) return [];
-
-        return personOngoingIds
-          .split(";")
+      const getUsersForEvent = (ids: string | null) => {
+        if (!ids) return [];
+        return ids
+          .split(/[;,]/)
+          .map((id) => id.trim())
           .filter(Boolean)
           .map((id) => usersMap.get(id))
           .filter(Boolean);
