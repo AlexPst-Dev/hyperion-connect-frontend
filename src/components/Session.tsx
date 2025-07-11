@@ -270,6 +270,7 @@ const styles = StyleSheet.create({
   },
   categoryLabels: {
     flexDirection: "row",
+    flexWrap: "wrap",
     gap: 8,
   },
   rightPart: {

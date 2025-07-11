@@ -39,7 +39,6 @@ import { CreateExerciseRequest, ExerciseWithDetails } from "../models/exercise";
 import { Category, CategoryType } from "../models/category";
 import AddExercises from "../components/popups/AddExercise";
 import {
-  AdminProfile,
   CoachProfile,
   MedicProfile,
   ProfileCategory,
@@ -49,6 +48,8 @@ import { UserService } from "../services/api/user-service";
 import { FileCategory, File as FileModel } from "../models/file";
 import { notify } from "../components/NotificationContainer";
 import { categoryService } from "../services/api/category-service";
+import * as FileSystem from "expo-file-system";
+import env from "@/env";
 
 type SessionDetailRouteProp = RouteProp<RootStackParamList, "SessionDetail">;
 
@@ -196,6 +197,8 @@ export default function SessionDetailScreen() {
   const handleExerciseFormChange = (field: string, value: any) => {
     setExerciseForm((prev) => ({ ...prev, [field]: value }));
   };
+
+  const [isDownloading, setIsDownloading] = useState(false);
 
   // Fetch and update session after edit
   const refreshSession = async () => {
@@ -433,6 +436,83 @@ export default function SessionDetailScreen() {
     }
   };
 
+  const handleFileDownload = async (filePicture: FileModel) => {
+    if (!filePicture.url) {
+      notify({
+        title: "URL du fichier non disponible",
+        type: "error",
+      });
+      return;
+    }
+
+    setIsDownloading(true);
+
+    try {
+      const fullUrl = `${env.API_URL}/files/download/${filePicture.id}?targetUserId=${currentSession.authorId}`;
+
+      if (Platform.OS === "web") {
+        // Version web
+        const response = await fetch(fullUrl, {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error(`Erreur HTTP: ${response.status}`);
+        }
+
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = filePicture.label;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      } else {
+        // Version mobile - reste identique
+        const { downloadAsync } = await import("expo-file-system");
+        const { shareAsync, isAvailableAsync } = await import("expo-sharing");
+
+        const headers: Record<string, string> = {};
+        if (token) {
+          headers.Authorization = `Bearer ${token}`;
+        }
+
+        const fileUri = `${FileSystem.documentDirectory}${filePicture.label}`;
+        const downloadResult = await downloadAsync(fullUrl, fileUri, {
+          headers,
+        });
+
+        if (downloadResult.status === 200) {
+          const isSharingAvailable = await isAvailableAsync();
+          if (isSharingAvailable) {
+            await shareAsync(downloadResult.uri, {
+              UTI: "com.adobe.pdf",
+              mimeType: "application/pdf",
+            });
+          }
+        }
+      }
+
+      notify({
+        title: "Fichier téléchargé avec succès",
+        type: "success",
+      });
+    } catch (error) {
+      console.error("Erreur téléchargement:", error);
+      notify({
+        title: "Impossible de télécharger le fichier",
+        type: "error",
+      });
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
   useEffect(() => {
     async function fetchSessionAndRelatedData() {
       if (!session?.id || !token) return;
@@ -523,26 +603,37 @@ export default function SessionDetailScreen() {
             {/* labels */}
             {getAllDistinctMuscleGroups()}
           </View>
-          <View style={{ flexDirection: "column", gap: 8 }}>
-            {/* recommandations */}
-            <AppText style={{ fontWeight: "bold" }}>Recommandations</AppText>
-            <AppText>{currentSession.recommendations}</AppText>
-          </View>
-          <View style={{ flexDirection: "column", gap: 8 }}>
-            {/* interets */}
-            <AppText style={{ fontWeight: "bold" }}>Apports & Interets</AppText>
-            <AppText>{currentSession.contributions}</AppText>
-          </View>
-          {isEditable && (
-            <View style={{ flexDirection: "row", justifyContent: "flex-end" }}>
-              <AppButton
-                title="Modifier"
-                iconName="pencil"
-                type="primary"
-                onPress={() => setEditSessionPopUpVisible(true)}
-              />
+          {currentSession.recommendations && (
+            <View style={{ flexDirection: "column", gap: 8 }}>
+              {/* recommandations */}
+              <AppText style={{ fontWeight: "bold" }}>Recommandations</AppText>
+              <AppText>{currentSession.recommendations}</AppText>
             </View>
           )}
+          {currentSession.contributions && (
+            <View style={{ flexDirection: "column", gap: 8 }}>
+              {/* interets */}
+              <AppText style={{ fontWeight: "bold" }}>
+                Apports & Interets
+              </AppText>
+              <AppText>{currentSession.contributions}</AppText>
+            </View>
+          )}
+          {currentSession.filePicture &&
+            currentSession.filePicture.fileCategory !==
+              FileCategory.SESSION_IMPORTED &&
+            isEditable && (
+              <View
+                style={{ flexDirection: "row", justifyContent: "flex-end" }}
+              >
+                <AppButton
+                  title="Modifier"
+                  iconName="pencil"
+                  type="primary"
+                  onPress={() => setEditSessionPopUpVisible(true)}
+                />
+              </View>
+            )}
 
           <Modal
             transparent
@@ -628,84 +719,106 @@ export default function SessionDetailScreen() {
             </Pressable>
           </Modal>
 
-          <View
-            style={{ flexDirection: "row", justifyContent: "space-between" }}
-          >
-            <AppText style={GlobalStyles.h3}>PROGRAMMES</AppText>
-            <View
-              style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
-            >
-              <Icon
-                name="dumbell"
-                fillColor="transparent"
-                strokeColor={Colors.grey}
-                strokeWidth={1}
-                width={12}
-                height={12}
-              />
-              <AppText style={[GlobalStyles.span, { color: Colors.grey }]}>
-                {muscleGroupsByExercise.length} exercices
-              </AppText>
-            </View>
-          </View>
-          {/* Exercises */}
-          <View style={{ flexDirection: "column", gap: 8 }}>
-            {muscleGroupsByExercise.length > 0 ? (
-              muscleGroupsByExercise.map((item) => {
-                return (
-                  <Session
-                    key={item.exercise.id}
-                    isExercice
-                    title={item.exercise.label}
-                    durationTime={getMinutesFromDuration(
-                      item.exercise.durationTime
-                    )}
-                    imageUrl={
-                      item.exercise.filePicture
-                        ? item.exercise.filePicture.url
-                        : "default-session"
-                    }
-                    labels={item.muscleGroups.map((muscleGroup) => (
-                      <Label
-                        key={muscleGroup.id}
-                        title={muscleGroup.label}
-                        textColor={muscleGroup.textColor}
-                        backgroundColor={muscleGroup.backgroundColor}
-                        size="small"
-                      />
-                    ))}
-                    onPress={() =>
-                      navigation.navigate("ExerciceDetail", {
-                        exercise: item.exercise,
-                        muscleGroups: item.muscleGroups,
-                        isEditable: isEditable,
-                      })
-                    }
+          {muscleGroupsByExercise.length > 0 ? (
+            <>
+              <View
+                style={{
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                }}
+              >
+                <AppText style={GlobalStyles.h3}>PROGRAMMES</AppText>
+                <View
+                  style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
+                >
+                  <Icon
+                    name="dumbell"
+                    fillColor="transparent"
+                    strokeColor={Colors.grey}
+                    strokeWidth={1}
+                    width={12}
+                    height={12}
                   />
-                );
-              })
-            ) : (
-              <AppText>Aucun exercises dans ce plan d'entrainement</AppText>
-            )}
-            {isEditable && (
-              <View style={{ flexDirection: "row", justifyContent: "center" }}>
-                <AppButton
-                  iconName="plus"
-                  type="add"
-                  onPress={() => setModalStep("selector")}
-                />
+                  <AppText style={[GlobalStyles.span, { color: Colors.grey }]}>
+                    {muscleGroupsByExercise.length} exercices
+                  </AppText>
+                </View>
               </View>
-            )}
-          </View>
 
-          {isEditable && (
-            <View
-              style={{
-                flexDirection: "row",
-                justifyContent: "space-between",
-                alignItems: "center",
-              }}
-            >
+              <View style={{ flexDirection: "column", gap: 8 }}>
+                {muscleGroupsByExercise.length > 0 ? (
+                  muscleGroupsByExercise.map((item) => {
+                    return (
+                      <Session
+                        key={item.exercise.id}
+                        isExercice
+                        title={item.exercise.label}
+                        durationTime={getMinutesFromDuration(
+                          item.exercise.durationTime
+                        )}
+                        imageUrl={
+                          item.exercise.filePicture
+                            ? item.exercise.filePicture.url
+                            : "default-session"
+                        }
+                        labels={item.muscleGroups.map((muscleGroup) => (
+                          <Label
+                            key={muscleGroup.id}
+                            title={muscleGroup.label}
+                            textColor={muscleGroup.textColor}
+                            backgroundColor={muscleGroup.backgroundColor}
+                            size="small"
+                          />
+                        ))}
+                        onPress={() =>
+                          navigation.navigate("ExerciceDetail", {
+                            exercise: item.exercise,
+                            muscleGroups: item.muscleGroups,
+                            isEditable: isEditable,
+                          })
+                        }
+                      />
+                    );
+                  })
+                ) : (
+                  <AppText>Aucun exercises dans ce plan d'entrainement</AppText>
+                )}
+                {isEditable && (
+                  <View
+                    style={{ flexDirection: "row", justifyContent: "center" }}
+                  >
+                    <AppButton
+                      iconName="plus"
+                      type="add"
+                      onPress={() => setModalStep("selector")}
+                    />
+                  </View>
+                )}
+              </View>
+            </>
+          ) : (
+            <AppText>Aucun exercises dans ce plan d'entrainement</AppText>
+          )}
+
+          {currentSession.filePicture &&
+            currentSession.filePicture.fileCategory ===
+              FileCategory.SESSION_IMPORTED && (
+              <AppButton
+                type="secondary"
+                title="Télécharger"
+                iconName="download"
+                onPress={() => handleFileDownload(currentSession.filePicture)}
+              />
+            )}
+
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            {isEditable && (
               <Pressable
                 onPress={handleDeleteSession}
                 style={{
@@ -724,14 +837,18 @@ export default function SessionDetailScreen() {
                   strokeWidth={1}
                 />
               </Pressable>
+            )}
+            {(user.profileCategory === ProfileCategory.ADMIN ||
+              user.profileCategory === ProfileCategory.COACH ||
+              user.profileCategory === ProfileCategory.MEDIC) && (
               <AppButton
                 type="secondary"
                 title="Envoyer"
                 iconName="send"
                 onPress={handleAddContactPopUpVisible}
               />
-            </View>
-          )}
+            )}
+          </View>
         </View>
 
         <Modal

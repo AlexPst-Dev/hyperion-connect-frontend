@@ -48,7 +48,7 @@ import {
   SessionWithFile,
 } from "../models/session";
 import { fileService } from "../services/api/file-service";
-import { FileCategory, File as FileModel } from "../models/file";
+import { FileCategory } from "../models/file";
 import { notify } from "../components/NotificationContainer";
 import { UserService } from "../services/api/user-service";
 import {
@@ -72,8 +72,6 @@ import { useKpis } from "../hooks/useKpis";
 import { ExerciseWithDetails } from "../models/exercise";
 import { categoryService } from "../services/api/category-service";
 import { FileUploadButton } from "../components/FileUploadButton";
-import * as FileSystem from "expo-file-system";
-import env from "@/env";
 
 export default function SessionsScreen() {
   const { user, token } = useAuth();
@@ -190,8 +188,6 @@ export default function SessionsScreen() {
     { label: "19:00 - 22:00", value: "4" },
   ];
 
-  const [isDownloading, setIsDownloading] = useState(false);
-
   // Fetch sportsman profile on mount or after update
   async function fetchProfile() {
     if (user && token) {
@@ -258,83 +254,6 @@ export default function SessionsScreen() {
     }
   };
 
-  const handleFileDownload = async (filePicture: FileModel) => {
-    if (!filePicture.url) {
-      notify({
-        title: "URL du fichier non disponible",
-        type: "error",
-      });
-      return;
-    }
-
-    setIsDownloading(true);
-
-    try {
-      const fullUrl = `${env.API_URL}/files/download/${filePicture.id}`;
-
-      if (Platform.OS === "web") {
-        // Version web
-        const response = await fetch(fullUrl, {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        if (!response.ok) {
-          throw new Error(`Erreur HTTP: ${response.status}`);
-        }
-
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = filePicture.label;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        window.URL.revokeObjectURL(url);
-      } else {
-        // Version mobile - reste identique
-        const { downloadAsync } = await import("expo-file-system");
-        const { shareAsync, isAvailableAsync } = await import("expo-sharing");
-
-        const headers: Record<string, string> = {};
-        if (token) {
-          headers.Authorization = `Bearer ${token}`;
-        }
-
-        const fileUri = `${FileSystem.documentDirectory}${filePicture.label}`;
-        const downloadResult = await downloadAsync(fullUrl, fileUri, {
-          headers,
-        });
-
-        if (downloadResult.status === 200) {
-          const isSharingAvailable = await isAvailableAsync();
-          if (isSharingAvailable) {
-            await shareAsync(downloadResult.uri, {
-              UTI: "com.adobe.pdf",
-              mimeType: "application/pdf",
-            });
-          }
-        }
-      }
-
-      notify({
-        title: "Fichier téléchargé avec succès",
-        type: "success",
-      });
-    } catch (error) {
-      console.error("Erreur téléchargement:", error);
-      notify({
-        title: "Impossible de télécharger le fichier",
-        type: "error",
-      });
-    } finally {
-      setIsDownloading(false);
-    }
-  };
-
   const SessionPageByProfile: Record<string, SessionPageRenderer> = {
     sportsman: (user) => {
       const [activeTabIndex, setActiveTabIndex] = useState(0);
@@ -363,15 +282,18 @@ export default function SessionsScreen() {
       >([]);
       const [allInactivesSportsmanSessions, setAllInactivesSporstmanSessions] =
         useState<SessionModel[]>([]);
-      const [sessionsWithMuscleGroups, setSessionsWithMuscleGroups] = useState<
-        { session: SessionModel; muscleGroups: Category[] }[]
-      >([]);
 
       const [archivedSessionsStats, setArchivedSessionsStats] = useState<
         { session: SessionModel; nbExercises: number; durationTime: number }[]
       >([]);
+      const [sessionsWithMuscleGroups, setSessionsWithMuscleGroups] = useState<
+        { session: SessionModel; muscleGroups: Category[] }[]
+      >([]);
       const [activeSessionsStats, setActiveSessionsStats] = useState<
         { session: SessionModel; nbExercises: number; durationTime: number }[]
+      >([]);
+      const [sessionsWithoutExercises, setSessionsWithoutExercises] = useState<
+        SessionModel[]
       >([]);
 
       const [graph, setGraph] = useState<Graph | null>(null);
@@ -585,17 +507,37 @@ export default function SessionsScreen() {
           console.log("Error while fetching user infos", e);
         }
       }, [user, token]);
+
       useEffect(() => {
         if (!allSportsmanSessions.length || !token) return;
-
         let isMounted = true;
 
-        async function fetchMuscleGroupsForSessions() {
+        async function fetchSessionsData() {
           if (!token) return;
-          const result: { session: SessionModel; muscleGroups: Category[] }[] =
-            [];
 
-          for (const session of allSportsmanSessions) {
+          // Séparer les sessions avec et sans exercices
+          const sessionsWithExercises = allSportsmanSessions.filter(
+            (s) => s.listExercises && s.listExercises.trim() !== ""
+          );
+          const sessionsWithoutExercises = allSportsmanSessions.filter(
+            (s) => !s.listExercises || s.listExercises.trim() === ""
+          );
+
+          // Stocker les sessions sans exercices
+          if (isMounted) setSessionsWithoutExercises(sessionsWithoutExercises);
+
+          // Traiter les sessions avec exercices
+          const muscleGroupsResult: {
+            session: SessionModel;
+            muscleGroups: Category[];
+          }[] = [];
+          const statsResult: {
+            session: SessionModel;
+            nbExercises: number;
+            durationTime: number;
+          }[] = [];
+
+          for (const session of sessionsWithExercises) {
             // Get exercises for this session
             const exercisesResp = await SessionService.getExercisesBySessionId(
               session.id,
@@ -620,28 +562,27 @@ export default function SessionsScreen() {
               (mg, idx, arr) => arr.findIndex((m) => m.id === mg.id) === idx
             );
 
-            result.push({ session, muscleGroups: uniqueMuscleGroups });
+            muscleGroupsResult.push({
+              session,
+              muscleGroups: uniqueMuscleGroups,
+            });
+
+            // Calculer les stats pour cette session
+            const stats = await getSessionExercisesAndStats(session, token);
+            statsResult.push({
+              session,
+              nbExercises: stats.nbExercises,
+              durationTime: stats.durationTime,
+            });
           }
 
-          if (isMounted) setSessionsWithMuscleGroups(result);
+          if (isMounted) {
+            setSessionsWithMuscleGroups(muscleGroupsResult);
+            setActiveSessionsStats(statsResult);
+          }
         }
 
-        async function fetchStats() {
-          const result = await Promise.all(
-            allSportsmanSessions.map(async (session) => {
-              const stats = await getSessionExercisesAndStats(session, token!);
-              return {
-                session,
-                nbExercises: stats.nbExercises,
-                durationTime: stats.durationTime,
-              };
-            })
-          );
-          if (isMounted) setActiveSessionsStats(result);
-        }
-
-        fetchMuscleGroupsForSessions();
-        fetchStats();
+        fetchSessionsData();
 
         return () => {
           isMounted = false;
@@ -672,6 +613,75 @@ export default function SessionsScreen() {
           isMounted = false;
         };
       }, [allInactivesSportsmanSessions, token]);
+
+      // Fonction pour obtenir les groupes musculaires d'une session
+      const getMuscleGroupsForSession = (sessionId: number) => {
+        return (
+          sessionsWithMuscleGroups.find((s) => s.session.id === sessionId)
+            ?.muscleGroups || []
+        );
+      };
+
+      // Fonction pour obtenir les stats d'une session
+      const getStatsForSession = (sessionId: number) => {
+        return activeSessionsStats.find((s) => s.session.id === sessionId);
+      };
+
+      const renderAllSessions = () => {
+        return allSportsmanSessions.map((session) => {
+          const hasExercises =
+            session.listExercises && session.listExercises.trim() !== "";
+
+          if (hasExercises) {
+            // Session avec exercices - afficher avec stats et groupes musculaires
+            const stats = getStatsForSession(session.id);
+            const muscleGroups = getMuscleGroupsForSession(session.id);
+
+            return (
+              <Session
+                key={session.id}
+                title={session.label}
+                nbExercises={
+                  stats?.nbExercises === 0 ? undefined : stats?.nbExercises
+                }
+                durationTime={
+                  stats && !isNaN(stats.durationTime)
+                    ? stats.durationTime
+                    : undefined
+                }
+                onPress={() =>
+                  navigation.navigate("SessionDetail", { session })
+                }
+                labels={
+                  muscleGroups.length > 0
+                    ? muscleGroups.map((mg) => (
+                        <Label
+                          key={mg.id}
+                          title={mg.label}
+                          textColor={mg.textColor}
+                          backgroundColor={mg.backgroundColor}
+                          size="small"
+                        />
+                      ))
+                    : undefined
+                }
+              />
+            );
+          } else {
+            // Session sans exercices - afficher simplement
+            return (
+              <Session
+                key={session.id}
+                title={session.label}
+                onPress={() =>
+                  navigation.navigate("SessionDetail", { session })
+                }
+                // Pas de nbExercises, durationTime, ni labels
+              />
+            );
+          }
+        });
+      };
 
       const handleDispoPopUpVisibility = () =>
         setChangeDispoPopUpVisible(!changeDispoPopUpVisible);
@@ -745,36 +755,7 @@ export default function SessionsScreen() {
         // Tab 1 : Mes séances
         <View key="seances" style={{ flexDirection: "column", gap: 24 }}>
           <View style={{ flexDirection: "column", gap: 16, paddingBottom: 32 }}>
-            {activeSessionsStats.length === 0 ? (
-              <AppText>Aucune séance trouvée.</AppText>
-            ) : (
-              activeSessionsStats.map(
-                ({ session, nbExercises, durationTime }) => (
-                  <Session
-                    key={session.id}
-                    title={session.label}
-                    nbExercises={nbExercises}
-                    durationTime={durationTime}
-                    onPress={() =>
-                      navigation.navigate("SessionDetail", { session })
-                    }
-                    labels={
-                      sessionsWithMuscleGroups
-                        .find((s) => s.session.id === session.id)
-                        ?.muscleGroups.map((mg) => (
-                          <Label
-                            key={mg.id}
-                            title={mg.label}
-                            textColor={mg.textColor}
-                            backgroundColor={mg.backgroundColor}
-                            size="small"
-                          />
-                        )) || undefined
-                    }
-                  />
-                )
-              )
-            )}
+            {renderAllSessions()}
           </View>
         </View>,
 
@@ -1270,40 +1251,33 @@ export default function SessionsScreen() {
               {loading ? (
                 <ActivityIndicator size="large" color={Colors.deepBlue} />
               ) : sessionsComplete.length > 0 ? (
-                sessionsComplete.map((completeSession) => (
-                  <Session
-                    key={completeSession.session.id}
-                    title={completeSession.session.label}
-                    imageUrl={
-                      completeSession.filePicture &&
-                      completeSession.filePicture.fileCategory ===
-                        FileCategory.IMAGE
-                        ? completeSession.filePicture.url
-                        : undefined
-                    }
-                    isImportedFile={
-                      completeSession.filePicture &&
-                      completeSession.filePicture.fileCategory ===
-                        FileCategory.SESSION_IMPORTED
-                        ? true
-                        : false
-                    }
-                    onPress={() => {
-                      if (
+                sessionsComplete
+                  .filter((s) => s.session.isActive)
+                  .map((completeSession) => (
+                    <Session
+                      key={completeSession.session.id}
+                      title={completeSession.session.label}
+                      imageUrl={
+                        completeSession.filePicture &&
+                        completeSession.filePicture.fileCategory ===
+                          FileCategory.IMAGE
+                          ? completeSession.filePicture.url
+                          : undefined
+                      }
+                      isImportedFile={
                         completeSession.filePicture &&
                         completeSession.filePicture.fileCategory ===
                           FileCategory.SESSION_IMPORTED
-                      ) {
-                        if (isDownloading) return;
-                        handleFileDownload(completeSession.filePicture);
-                      } else {
+                          ? true
+                          : false
+                      }
+                      onPress={() => {
                         navigation.navigate("SessionDetail", {
                           session: completeSession.session,
                         });
-                      }
-                    }}
-                  />
-                ))
+                      }}
+                    />
+                  ))
               ) : (
                 <AppText>Aucune séance trouvée.</AppText>
               )}
@@ -1531,20 +1505,6 @@ export default function SessionsScreen() {
         []
       );
 
-      const handleImport = async () => {
-        const result = await DocumentPicker.getDocumentAsync({
-          type: "application/pdf",
-          copyToCacheDirectory: true,
-        });
-
-        if (result.canceled) {
-          console.log("Annulé");
-          return;
-        }
-
-        console.log("Fichier sélectionné :", result.assets[0]);
-      };
-
       useEffect(() => {
         let isMounted = true;
         async function fetchSessionsAndCatalog() {
@@ -1641,22 +1601,33 @@ export default function SessionsScreen() {
               {loading ? (
                 <ActivityIndicator size="large" color={Colors.deepBlue} />
               ) : sessionsComplete.length > 0 ? (
-                sessionsComplete.map((completeSession) => (
-                  <Session
-                    key={completeSession.session.id}
-                    title={completeSession.session.label}
-                    imageUrl={
-                      completeSession.filePicture
-                        ? completeSession.filePicture.url
-                        : undefined
-                    }
-                    onPress={() => {
-                      navigation.navigate("SessionDetail", {
-                        session: completeSession.session,
-                      });
-                    }}
-                  />
-                ))
+                sessionsComplete
+                  .filter((s) => s.session.isActive)
+                  .map((completeSession) => (
+                    <Session
+                      key={completeSession.session.id}
+                      title={completeSession.session.label}
+                      imageUrl={
+                        completeSession.filePicture &&
+                        completeSession.filePicture.fileCategory ===
+                          FileCategory.IMAGE
+                          ? completeSession.filePicture.url
+                          : undefined
+                      }
+                      isImportedFile={
+                        completeSession.filePicture &&
+                        completeSession.filePicture.fileCategory ===
+                          FileCategory.SESSION_IMPORTED
+                          ? true
+                          : false
+                      }
+                      onPress={() => {
+                        navigation.navigate("SessionDetail", {
+                          session: completeSession.session,
+                        });
+                      }}
+                    />
+                  ))
               ) : (
                 <AppText>Aucune séance trouvée.</AppText>
               )}
@@ -1725,19 +1696,36 @@ export default function SessionsScreen() {
                         {completeUserProfile?.canImportSessions && (
                           <View
                             style={{
-                              flexDirection: "row",
-                              justifyContent: "center",
+                              flexDirection: "column",
+                              alignItems: "flex-start",
                             }}
                           >
-                            <AppButton
-                              type="secondary"
-                              title="Importer"
-                              iconName="download"
-                              onPress={() => {
-                                setModalStep("import");
-                                handleImport();
-                              }}
-                            />
+                            <AppText>
+                              Vous pouvez aussi importer un programme depuis
+                              votre appareil (format PDF) :
+                            </AppText>
+                            <View style={{ alignSelf: "center" }}>
+                              <FileUploadButton
+                                fileCategory={FileCategory.SESSION_IMPORTED}
+                                label="Importer une session"
+                                authToken={token!}
+                                authUser={user}
+                                onUploadSuccess={(file, newSession) => {
+                                  setSessions((prev) => [
+                                    ...prev,
+                                    {
+                                      session: newSession.session,
+                                      filePicture: file,
+                                    },
+                                  ]);
+                                  closeModal();
+                                }}
+                                onUploadError={(error) => {
+                                  console.error("Erreur:", error);
+                                  closeModal();
+                                }}
+                              />
+                            </View>
                           </View>
                         )}
                         <Pressable
