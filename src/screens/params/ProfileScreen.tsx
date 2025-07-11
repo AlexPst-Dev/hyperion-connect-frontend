@@ -4,6 +4,7 @@ import AppText from "@/src/components/AppText";
 import { FileUploadButton } from "@/src/components/FileUploadButton";
 import Icon from "@/src/components/Icon";
 import Input from "@/src/components/Input";
+import ItemFile from "@/src/components/ItemFile";
 import { notify } from "@/src/components/NotificationContainer";
 import PopUp from "@/src/components/PopUp";
 import UserCard from "@/src/components/UserCard";
@@ -16,7 +17,13 @@ import {
   CoachProfile,
   MedicProfile,
 } from "@/src/models/user";
+import {
+  getMonthsBetween,
+  getOngoingMonth,
+  Objective as ObjectiveModel,
+} from "@/src/models/objective";
 import { categoryService } from "@/src/services/api/category-service";
+import { fileService } from "@/src/services/api/file-service";
 import { UserService } from "@/src/services/api/user-service";
 import GlobalStyles, { Colors } from "@/src/styles/styles";
 import React, { useEffect, useState } from "react";
@@ -31,6 +38,13 @@ import {
   Pressable,
   Modal,
 } from "react-native";
+import { Billing } from "@/src/models/billing";
+import { ObjectivesApiService } from "@/src/services/api/objective-service";
+import { SessionService } from "@/src/services/api/session-service";
+import Objective from "@/src/components/Objective";
+import { billingService } from "@/src/services/api/billing-service";
+import BillingGroup from "@/src/components/BillingGroup";
+import BillingLine from "@/src/components/BillingLine";
 
 export default function ProfileScreen() {
   const { user, token } = useAuth();
@@ -39,6 +53,14 @@ export default function ProfileScreen() {
 
   const [userLoading, setUserLoading] = useState(false);
   const [completeUser, setCompleteUser] = useState<UserResponse | null>(null);
+
+  const [objectives, setObjectives] = useState<ObjectiveModel[]>([]);
+  const [billingGroups, setBillingGroups] = useState<
+    {
+      objective: ObjectiveModel;
+      billings: Billing[];
+    }[]
+  >([]);
 
   const [sportLabel, setSportLabel] = useState<string>("");
 
@@ -67,6 +89,10 @@ export default function ProfileScreen() {
     tiktokLink: "",
     youtubeLink: "",
   });
+
+  const [userFiles, setUserFiles] = useState<File[]>([]);
+  const [medicFiles, setMedicFiles] = useState<File[]>([]);
+  let isMounted = true;
 
   async function fetchCompleteUserProfile() {
     if (token && user) {
@@ -106,6 +132,72 @@ export default function ProfileScreen() {
         }
       } else {
         setSportLabel("");
+      }
+
+      if (req.user.profileCategory === ProfileCategory.SPORTSMAN) {
+        // User files
+        if ((req.profile as SportsmanProfile)?.listUserFiles) {
+          const listUserFiles = (req.profile as SportsmanProfile).listUserFiles;
+          const ids = listUserFiles
+            ? listUserFiles
+                .split(";")
+                .map((id) => parseInt(id, 10))
+                .filter((id) => !isNaN(id))
+            : [];
+          try {
+            const files = await Promise.all(
+              ids.map((id) => fileService.getFileById(id, token))
+            );
+            if (isMounted) setUserFiles(files);
+          } catch {
+            if (isMounted) setUserFiles([]);
+          }
+        }
+
+        // Medic files
+        if ((req.profile as SportsmanProfile)?.listMedicFiles) {
+          const listMedicFiles = (req.profile as SportsmanProfile)
+            .listMedicFiles;
+          const ids = listMedicFiles
+            ? listMedicFiles
+                .split(";")
+                .map((id) => parseInt(id, 10))
+                .filter((id) => !isNaN(id))
+            : [];
+          try {
+            const files = await Promise.all(
+              ids.map((id) => fileService.getFileById(id, token))
+            );
+            if (isMounted) setMedicFiles(files);
+          } catch {
+            if (isMounted) setMedicFiles([]);
+          }
+        }
+
+        const objectives = await ObjectivesApiService.getObjectivesBySportsman(
+          req.user.id,
+          token
+        );
+
+        if (!isMounted) return;
+        setObjectives(objectives);
+
+        try {
+          const activeObjectives = objectives.filter((obj) => obj.isActive);
+          const groups = await Promise.all(
+            activeObjectives.map(async (objective) => {
+              const { billings } =
+                await billingService.getBillingsByObjectiveId(
+                  objective.id,
+                  token
+                );
+              return { objective, billings };
+            })
+          );
+          if (isMounted) setBillingGroups(groups);
+        } catch {
+          if (isMounted) setBillingGroups([]);
+        }
       }
 
       setUserLoading(false);
@@ -278,147 +370,178 @@ export default function ProfileScreen() {
         {userLoading ? (
           <ActivityIndicator />
         ) : (
-          <View style={{ flexDirection: "column", gap: 24 }}>
-            <UserCard
-              detailled
-              canBeContacted
-              firstName={completeUser.user.firstName}
-              lastName={completeUser.user.lastName}
-              email={completeUser.user.email}
-              phone={completeUser.user.phone}
-              sport={sportLabel}
-              age={UserService.getUserAge(completeUser.user)?.toString()}
-              profilePictureUrl={completeUser.filePicture ? profilePicture : ""}
-              token={token}
-            />
-            <FileUploadButton
-              fileCategory={FileCategory.IMAGE}
-              label="Changer de photo de profil"
-              authToken={token}
-              authUser={user}
-              onUploadSuccess={(file) => {
-                fetchCompleteUserProfile();
-                setEditUserCardPopupVisible(false);
-              }}
-              onUploadError={(error) => {
-                console.error("Erreur:", error);
-              }}
-            />
-            {completeUser.user.facebookLink ||
-            completeUser.user.instagramLink ||
-            completeUser.user.linkedinLink ||
-            completeUser.user.stravaLink ||
-            completeUser.user.tiktokLink ||
-            completeUser.user.youtubeLink ? (
-              <>
-                <AppText>Réseaux sociaux</AppText>
-                <View
-                  style={{ flexDirection: "row", gap: 16, flexWrap: "wrap" }}
-                >
-                  <View style={{ flexDirection: "row", gap: 16 }}>
-                    {completeUser.user.stravaLink && (
-                      <View
-                        style={{
-                          width: 64,
-                          height: 64,
-                          borderRadius: 16,
-                          overflow: "hidden",
-                        }}
-                      >
-                        <Image
-                          source={{
-                            uri: "https://reactnative.dev/img/tiny_logo.png",
+          <>
+            <View style={{ flexDirection: "column", gap: 24 }}>
+              <UserCard
+                detailled
+                canBeContacted
+                firstName={completeUser.user.firstName}
+                lastName={completeUser.user.lastName}
+                email={completeUser.user.email}
+                phone={completeUser.user.phone}
+                sport={sportLabel}
+                age={UserService.getUserAge(completeUser.user)?.toString()}
+                profilePictureUrl={
+                  completeUser.filePicture ? profilePicture : ""
+                }
+                token={token}
+              />
+              <FileUploadButton
+                fileCategory={FileCategory.IMAGE}
+                label="Changer de photo de profil"
+                authToken={token}
+                authUser={user}
+                onUploadSuccess={(file) => {
+                  fetchCompleteUserProfile();
+                  setEditUserCardPopupVisible(false);
+                }}
+                onUploadError={(error) => {
+                  console.error("Erreur:", error);
+                }}
+              />
+              {completeUser.user.facebookLink ||
+              completeUser.user.instagramLink ||
+              completeUser.user.linkedinLink ||
+              completeUser.user.stravaLink ||
+              completeUser.user.tiktokLink ||
+              completeUser.user.youtubeLink ? (
+                <>
+                  <AppText>Réseaux sociaux</AppText>
+                  <View
+                    style={{ flexDirection: "row", gap: 16, flexWrap: "wrap" }}
+                  >
+                    <View style={{ flexDirection: "row", gap: 16 }}>
+                      {completeUser.user.stravaLink && (
+                        <View
+                          style={{
+                            width: 64,
+                            height: 64,
+                            borderRadius: 16,
+                            overflow: "hidden",
                           }}
-                          style={{ height: "100%" }}
-                        />
-                      </View>
-                    )}
-                    {completeUser.user.facebookLink && (
-                      <View
-                        style={{
-                          width: 64,
-                          height: 64,
-                          borderRadius: 16,
-                          overflow: "hidden",
-                        }}
-                      >
-                        <Image
-                          source={{
-                            uri: "https://reactnative.dev/img/tiny_logo.png",
+                        >
+                          <Image
+                            source={{
+                              uri: "https://reactnative.dev/img/tiny_logo.png",
+                            }}
+                            style={{ height: "100%" }}
+                          />
+                        </View>
+                      )}
+                      {completeUser.user.facebookLink && (
+                        <View
+                          style={{
+                            width: 64,
+                            height: 64,
+                            borderRadius: 16,
+                            overflow: "hidden",
                           }}
-                          style={{ height: "100%" }}
-                        />
-                      </View>
-                    )}
-                    {completeUser.user.instagramLink && (
-                      <View
-                        style={{
-                          width: 64,
-                          height: 64,
-                          borderRadius: 16,
-                          overflow: "hidden",
-                        }}
-                      >
-                        <Image
-                          source={{
-                            uri: "https://reactnative.dev/img/tiny_logo.png",
+                        >
+                          <Image
+                            source={{
+                              uri: "https://reactnative.dev/img/tiny_logo.png",
+                            }}
+                            style={{ height: "100%" }}
+                          />
+                        </View>
+                      )}
+                      {completeUser.user.instagramLink && (
+                        <View
+                          style={{
+                            width: 64,
+                            height: 64,
+                            borderRadius: 16,
+                            overflow: "hidden",
                           }}
-                          style={{ height: "100%" }}
-                        />
-                      </View>
-                    )}
-                    {completeUser.user.linkedinLink && (
-                      <View
-                        style={{
-                          width: 64,
-                          height: 64,
-                          borderRadius: 16,
-                          overflow: "hidden",
-                        }}
-                      >
-                        <Image
-                          source={{
-                            uri: "https://reactnative.dev/img/tiny_logo.png",
+                        >
+                          <Image
+                            source={{
+                              uri: "https://reactnative.dev/img/tiny_logo.png",
+                            }}
+                            style={{ height: "100%" }}
+                          />
+                        </View>
+                      )}
+                      {completeUser.user.linkedinLink && (
+                        <View
+                          style={{
+                            width: 64,
+                            height: 64,
+                            borderRadius: 16,
+                            overflow: "hidden",
                           }}
-                          style={{ height: "100%" }}
-                        />
-                      </View>
-                    )}
-                    {completeUser.user.tiktokLink && (
-                      <View
-                        style={{
-                          width: 64,
-                          height: 64,
-                          borderRadius: 16,
-                          overflow: "hidden",
-                        }}
-                      >
-                        <Image
-                          source={{
-                            uri: "https://reactnative.dev/img/tiny_logo.png",
+                        >
+                          <Image
+                            source={{
+                              uri: "https://reactnative.dev/img/tiny_logo.png",
+                            }}
+                            style={{ height: "100%" }}
+                          />
+                        </View>
+                      )}
+                      {completeUser.user.tiktokLink && (
+                        <View
+                          style={{
+                            width: 64,
+                            height: 64,
+                            borderRadius: 16,
+                            overflow: "hidden",
                           }}
-                          style={{ height: "100%" }}
-                        />
-                      </View>
-                    )}
-                    {completeUser.user.youtubeLink && (
-                      <View
-                        style={{
-                          width: 64,
-                          height: 64,
-                          borderRadius: 16,
-                          overflow: "hidden",
-                        }}
-                      >
-                        <Image
-                          source={{
-                            uri: "https://reactnative.dev/img/tiny_logo.png",
+                        >
+                          <Image
+                            source={{
+                              uri: "https://reactnative.dev/img/tiny_logo.png",
+                            }}
+                            style={{ height: "100%" }}
+                          />
+                        </View>
+                      )}
+                      {completeUser.user.youtubeLink && (
+                        <View
+                          style={{
+                            width: 64,
+                            height: 64,
+                            borderRadius: 16,
+                            overflow: "hidden",
                           }}
-                          style={{ height: "100%" }}
-                        />
-                      </View>
-                    )}
+                        >
+                          <Image
+                            source={{
+                              uri: "https://reactnative.dev/img/tiny_logo.png",
+                            }}
+                            style={{ height: "100%" }}
+                          />
+                        </View>
+                      )}
+                    </View>
+                    <Pressable
+                      style={{
+                        width: 64,
+                        height: 64,
+                        borderRadius: 16,
+                        backgroundColor: "transparent",
+                        borderWidth: 1,
+                        borderStyle: "dashed",
+                        borderColor: Colors.deepBlue,
+                        flexDirection: "row",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                      onPress={() => setEditSocialsLinks(true)}
+                    >
+                      <Icon
+                        name="pencil"
+                        strokeColor={Colors.deepBlue}
+                        fillColor="transparent"
+                      />
+                    </Pressable>
                   </View>
+                </>
+              ) : (
+                <>
+                  <AppText>
+                    Aucun réseaux social enregistré pour le moment.
+                  </AppText>
                   <Pressable
                     style={{
                       width: 64,
@@ -440,48 +563,192 @@ export default function ProfileScreen() {
                       fillColor="transparent"
                     />
                   </Pressable>
-                </View>
-              </>
-            ) : (
-              <>
-                <AppText>
-                  Aucun réseaux social enregistré pour le moment.
-                </AppText>
-                <Pressable
-                  style={{
-                    width: 64,
-                    height: 64,
-                    borderRadius: 16,
-                    backgroundColor: "transparent",
-                    borderWidth: 1,
-                    borderStyle: "dashed",
-                    borderColor: Colors.deepBlue,
-                    flexDirection: "row",
-                    alignItems: "center",
-                    justifyContent: "center",
+                </>
+              )}
+              <AppText>{completeUser.user.description}</AppText>
+              <View
+                style={{ flexDirection: "row", justifyContent: "flex-end" }}
+              >
+                <AppButton
+                  type="primary"
+                  title="Modifier"
+                  iconName="pencil"
+                  onPress={() => {
+                    setEditUserCardPopupVisible(true);
                   }}
-                  onPress={() => setEditSocialsLinks(true)}
-                >
-                  <Icon
-                    name="pencil"
-                    strokeColor={Colors.deepBlue}
-                    fillColor="transparent"
-                  />
-                </Pressable>
-              </>
-            )}
-            <AppText>{completeUser.user.description}</AppText>
-            <View style={{ flexDirection: "row", justifyContent: "flex-end" }}>
-              <AppButton
-                type="primary"
-                title="Modifier"
-                iconName="pencil"
-                onPress={() => {
-                  setEditUserCardPopupVisible(true);
-                }}
-              />
+                />
+              </View>
             </View>
-          </View>
+            {user.profileCategory === ProfileCategory.SPORTSMAN && (
+              <View style={{ flexDirection: "column", gap: 24, marginTop: 24 }}>
+                <View style={{ flexDirection: "column", gap: 16 }}>
+                  <AppText style={GlobalStyles.h2}>
+                    TESTS SPORTIFS & BILANS
+                  </AppText>
+                  <View style={{ flexDirection: "column", gap: 8 }}>
+                    {userFiles.length > 0 ? (
+                      userFiles.map((file) => (
+                        <ItemFile
+                          key={file.id}
+                          file={file}
+                          displayControllers={
+                            user.profileCategory === "admin" ||
+                            user.profileCategory === "coach"
+                          }
+                          token={token!}
+                          uploadToASpecificId={user.id}
+                        />
+                      ))
+                    ) : (
+                      <AppText>Aucun tests sportifs ou bilans</AppText>
+                    )}
+                  </View>
+                </View>
+                <View style={{ flexDirection: "column", gap: 16 }}>
+                  <AppText style={GlobalStyles.h2}>
+                    COMPTES RENDUS MEDICAUX
+                  </AppText>
+                  <View style={{ flexDirection: "column", gap: 8 }}>
+                    {medicFiles.length > 0 ? (
+                      medicFiles.map((file) => (
+                        <ItemFile
+                          key={file.id}
+                          file={file}
+                          displayControllers={
+                            user.profileCategory === "admin" ||
+                            user.profileCategory === "medic"
+                          }
+                          token={token!}
+                          uploadToASpecificId={user.id}
+                        />
+                      ))
+                    ) : (
+                      <AppText>Aucun compte rendu médical</AppText>
+                    )}
+                  </View>
+                </View>
+                <View style={{ flexDirection: "column", gap: 16 }}>
+                  <AppText style={GlobalStyles.h2}>
+                    PRESTATION & ECHEANCES
+                  </AppText>
+                  {objectives.filter((obj) => obj.isActive).length > 0 ? (
+                    objectives
+                      .filter((obj) => obj.isActive)
+                      .map((objective) => (
+                        <Objective
+                          key={objective.id}
+                          duration={getMonthsBetween(
+                            objective.startDate,
+                            objective.endDate
+                          )}
+                          onGoingNumber={getOngoingMonth(
+                            objective.startDate,
+                            objective.endDate
+                          )}
+                          label={objective.label}
+                        />
+                      ))
+                  ) : (
+                    <AppText>Aucun objectif défini</AppText>
+                  )}
+                </View>
+                <View style={{ flexDirection: "column", gap: 16 }}>
+                  <AppText style={GlobalStyles.h2}>FACTURATION</AppText>
+                  {billingGroups.length > 0 ? (
+                    billingGroups.map(({ objective, billings }) => {
+                      if (!billings.length) return null;
+
+                      // Group billings by isMonthly
+                      const isMonthly = billings[0].isMonthly;
+
+                      // For monthly, sort by date descending (optional)
+                      const sortedBillings = [...billings].sort(
+                        (a, b) =>
+                          new Date(a.date).getTime() -
+                          new Date(b.date).getTime()
+                      );
+
+                      return (
+                        <BillingGroup
+                          key={objective.id}
+                          label={objective.label}
+                          proFirstName={objective.responsible.firstName}
+                          proLastName={objective.responsible.lastName}
+                          sportsmanFirstName={objective.sportsman.firstName}
+                          sportsmanLastName={objective.sportsman.lastName}
+                          billingStartDate={new Date(objective.startDate)}
+                          billingEndDate={new Date(objective.endDate)}
+                          globalAmount={billings[0].globalAmount}
+                          billingLines={
+                            isMonthly
+                              ? sortedBillings.map((billing) => (
+                                  <BillingLine
+                                    key={billing.billingId}
+                                    amount={billing.monthlyAmount}
+                                    state={
+                                      billing.paymentReceived
+                                        ? "received"
+                                        : "pending"
+                                    }
+                                    startDate={new Date(billing.date)}
+                                    // set endate to startDate + 1 month
+                                    endDate={
+                                      new Date(
+                                        new Date(billing.date).setMonth(
+                                          new Date(billing.date).getMonth() + 1
+                                        )
+                                      )
+                                    }
+                                    onBtnChangeStatePress={() => {
+                                      if (token)
+                                        try {
+                                          billingService.updateBilling(
+                                            billing.billingId,
+                                            {
+                                              paymentReceived: true,
+                                            },
+                                            token
+                                          );
+                                          notify({
+                                            title:
+                                              "Facture marquée comme payée",
+                                            type: "success",
+                                          });
+                                        } catch (error) {
+                                          notify({
+                                            title:
+                                              "Erreur lors de la mise à jour de la facture",
+                                            type: "error",
+                                          });
+                                          console.log(error);
+                                        }
+                                    }}
+                                  />
+                                ))
+                              : [
+                                  <BillingLine
+                                    key={billings[0].billingId}
+                                    amount={billings[0].globalAmount}
+                                    state={
+                                      billings[0].paymentReceived
+                                        ? "received"
+                                        : "pending"
+                                    }
+                                    startDate={new Date(objective.startDate)}
+                                    endDate={new Date(objective.endDate)}
+                                  />,
+                                ]
+                          }
+                        />
+                      );
+                    })
+                  ) : (
+                    <AppText>Aucune facturation trouvée</AppText>
+                  )}
+                </View>
+              </View>
+            )}
+          </>
         )}
         {editUserCardPopUpVisible && (
           <Modal
