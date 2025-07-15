@@ -1,10 +1,14 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { StyleSheet, View, Image } from "react-native";
 import GlobalStyles, { Colors, shadowStyles } from "../styles/styles";
 import Icon, { IconName } from "./Icon";
 import { ProfileCategory, User } from "../models/user";
 import { Company } from "../models/company";
 import AppText from "./AppText";
+import { useAnyUserProfileImage } from "../hooks/useImageProfilePicture";
+import { fileService } from "../services/api/file-service";
+import { useAuth } from "../hooks/useAuth";
+import { File } from "../models/file";
 
 interface Props {
   isCompany: boolean;
@@ -19,23 +23,35 @@ export default function ItemUser({
   company,
   iconName = "send",
 }: Props) {
-  function getImageSource(imageUrl?: string): any {
-    if (!imageUrl) {
-      // fallback
-      return require("../assets/images/react-logo.png");
-    }
+  const { token } = useAuth();
 
-    if (imageUrl.startsWith("http") || imageUrl.startsWith("https")) {
-      return { uri: imageUrl };
-    }
+  const [userFile, setUserFile] = useState<File | undefined>();
 
-    // Mapping of konwn local images
-    const localImages: Record<string, any> = {
-      "users/companies/nutrisport-logo": require("../assets/images/users/companies/nutrisport-logo.png"),
+  // Récupérer le fichier d'abord
+  useEffect(() => {
+    const fetchUserFile = async () => {
+      if (token && user.filePictureId && !isNaN(Number(user.filePictureId))) {
+        try {
+          const file = await fileService.getFileById(
+            Number(user.filePictureId),
+            token
+          );
+          setUserFile(file);
+        } catch (e) {
+          console.log(
+            "Impossible de récupérer le fichier de la photo de profil"
+          );
+        }
+      } else {
+        setUserFile(undefined);
+      }
     };
 
-    return localImages[imageUrl] || require("../assets/images/react-logo.png");
-  }
+    fetchUserFile();
+  }, [user.filePictureId, token]);
+
+  // Utiliser le hook avec le fichier récupéré
+  const { profilePicture, isUserPPLoading } = useAnyUserProfileImage(userFile);
 
   function getSports(user: User): string {
     // Check if user is a sportsman or coach and has a sportCategory with a label
@@ -68,8 +84,8 @@ export default function ItemUser({
   return (
     <View style={[styles.header, shadowStyles.small]}>
       <Image
-        source={getImageSource(user.filePicture ? user.filePicture.url : "")}
-        style={styles.profilePicture}
+        source={{ uri: profilePicture }}
+        style={[styles.profilePicture, isUserPPLoading && { opacity: 0.5 }]}
       />
       <View style={styles.separator} />
       <View style={styles.userInfos}>

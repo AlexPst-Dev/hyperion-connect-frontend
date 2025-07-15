@@ -1,5 +1,5 @@
 import * as DocumentPicker from "expo-document-picker";
-import { FileCategory } from "../models/file";
+import { FileCategory, File } from "../models/file";
 import env from "@/env";
 
 export interface UploadFileParams {
@@ -124,3 +124,55 @@ export class FileUploadService {
     }
   }
 }
+
+export const getImageAsBase64 = async (
+  filePicture: File,
+  token: string,
+  endpoint: "image" | "companyImage",
+  entityId?: number
+): Promise<string> => {
+  if (!filePicture || filePicture.fileCategory !== FileCategory.IMAGE) {
+    return "";
+  }
+
+  if (!token) {
+    console.error("Token manquant !");
+    return "";
+  }
+
+  // Construction de l'URL selon le type d'endpoint
+  let fullUrl: string;
+  if (endpoint === "companyImage" && entityId) {
+    fullUrl = `${env.API_URL}/files/companyImage/${entityId}`;
+  } else {
+    fullUrl = `${env.API_URL}/files/image/${filePicture.id}`;
+  }
+
+  try {
+    const response = await fetch(fullUrl, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const blob = await response.blob();
+
+    // Convertir en base64 pour React Native
+    const reader = new FileReader();
+    return new Promise((resolve) => {
+      reader.onload = () => {
+        const base64String = reader.result as string;
+        resolve(base64String);
+      };
+      reader.readAsDataURL(blob);
+    });
+  } catch (error) {
+    console.error("Erreur lors de la récupération de l'image:", error);
+    return "";
+  }
+};

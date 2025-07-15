@@ -17,10 +17,7 @@ import { useAuth } from "../hooks/useAuth";
 import MemberCard from "./MemberCard";
 import { ProfileCategory } from "../models/user";
 import { getImageSource } from "../utils/imgSrcHandler";
-
-interface Props {
-  profilePictureUrl?: string;
-}
+import { useUserProfileImage } from "../hooks/useImageProfilePicture";
 
 const styles = StyleSheet.create<{
   container: ViewStyle;
@@ -65,11 +62,13 @@ const styles = StyleSheet.create<{
   },
 });
 
-export default function HeaderNav({ profilePictureUrl }: Props) {
+export default function HeaderNav() {
   const [menuVisible, setMenuVisible] = useState(false);
   const [memberCard, setMemberCard] = useState(false);
   const navigation = useNavigation();
   const { user, logout } = useAuth();
+
+  const { profilePicture, isPpLoading } = useUserProfileImage();
 
   const handleLogout = async () => {
     setMenuVisible(false);
@@ -110,12 +109,8 @@ export default function HeaderNav({ profilePictureUrl }: Props) {
 
           <Pressable onPress={() => setMenuVisible(true)}>
             <Image
-              source={
-                profilePictureUrl
-                  ? { uri: profilePictureUrl }
-                  : { uri: "https://reactnative.dev/img/tiny_logo.png" }
-              }
-              style={styles.profilePicture}
+              source={{ uri: profilePicture }}
+              style={[styles.profilePicture, isPpLoading && { opacity: 0.5 }]}
             />
           </Pressable>
         </Pressable>
