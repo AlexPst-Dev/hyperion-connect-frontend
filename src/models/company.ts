@@ -32,6 +32,7 @@ export interface CreateCompanyPayload {
   city: string;
   postalCode: string;
   street: string;
+  fileImageCompany?: File;
   linkWebsite?: string;
   linkFacebook?: string;
   linkInstagram?: string;

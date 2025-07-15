@@ -58,7 +58,9 @@ const styles = StyleSheet.create({
     width: 92,
     height: 92,
     borderRadius: 8,
-    backgroundColor: Colors.grey,
+    borderWidth: 0.5,
+    borderColor: Colors.grey,
+    backgroundColor: "white",
   },
   separator: {
     width: 1,

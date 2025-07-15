@@ -19,7 +19,11 @@ import { useAuth } from "../hooks/useAuth";
 import PopUp from "../components/PopUp";
 import Input from "../components/Input";
 import Icon from "../components/Icon";
+import { File, FileCategory } from "@/src/models/file";
 import { notify } from "../components/NotificationContainer";
+import env from "@/env";
+import { FileUploadButton } from "../components/FileUploadButton";
+import { fileService } from "../services/api/file-service";
 
 export default function Companycreen() {
   const { user, token } = useAuth();
@@ -29,22 +33,33 @@ export default function Companycreen() {
   const [editCompanyPopupVisible, setEditCompanyPopupVisible] = useState(false);
   const [editSocialsLinks, setEditSocialsLinks] = useState(false);
 
-  useEffect(() => {
-    async function fetchCompanyConnected() {
-      if (!token || !user) return;
-      try {
-        const allCompanies = await CompanyService.getAllCompanies(token);
-        const companyConnected = allCompanies.filter(
-          (c) => c.responsibleId === user.id
-        )[0];
-        setConnectedCompany(companyConnected);
-      } catch (e) {
-        console.log(
-          "Error while fetching companies and the connected company : ",
-          e
+  const [profilePicture, setProfilePicture] = useState("");
+
+  async function fetchCompanyConnected() {
+    if (!token || !user) return;
+    try {
+      const allCompanies = await CompanyService.getAllCompanies(token);
+      const companyConnected = allCompanies.filter(
+        (c) => c.responsibleId === user.id
+      )[0];
+
+      setConnectedCompany(companyConnected);
+
+      if (companyConnected.fileImageCompany) {
+        const imageOfCompany = await fileService.getFileById(
+          companyConnected.fileImageCompany.id,
+          token
         );
+        getImageUrl(imageOfCompany, companyConnected.id);
       }
+    } catch (e) {
+      console.log(
+        "Error while fetching companies and the connected company : ",
+        e
+      );
     }
+  }
+  useEffect(() => {
     fetchCompanyConnected();
   }, [user, token]);
 
@@ -54,7 +69,6 @@ export default function Companycreen() {
     city: "",
     postalCode: "",
     street: "",
-    filePictureUrl: "",
     linkWebsite: "",
     linkFacebook: "",
     linkInstagram: "",
@@ -64,36 +78,32 @@ export default function Companycreen() {
   });
 
   // Pre-fill form when opening the modal
+  const fillFormWithCompanyData = (company: Company) => {
+    setForm({
+      name: company.name || "",
+      description: company.description || "",
+      city: company.city || "",
+      postalCode: company.postalCode || "",
+      street: company.street || "",
+      linkWebsite: company.linkWebsite || "",
+      linkFacebook: company.linkFacebook || "",
+      linkInstagram: company.linkInstagram || "",
+      linkLinkedin: company.linkLinkedin || "",
+      linkTiktok: company.linkTiktok || "",
+      linkYoutube: company.linkYoutube || "",
+    });
+  };
+
+  // Puis dans tes useEffect :
   useEffect(() => {
     if (editCompanyPopupVisible && connectedCompany) {
-      setForm({
-        name: connectedCompany.name || "",
-        description: connectedCompany.description || "",
-        city: connectedCompany.city || "",
-        postalCode: connectedCompany.postalCode || "",
-        street: connectedCompany.street || "",
-        filePictureUrl: connectedCompany.fileImageCompany
-          ? connectedCompany.fileImageCompany.url
-          : "",
-        linkWebsite: connectedCompany.linkWebsite || "",
-        linkFacebook: connectedCompany.linkFacebook || "",
-        linkInstagram: connectedCompany.linkInstagram || "",
-        linkLinkedin: connectedCompany.linkLinkedin || "",
-        linkTiktok: connectedCompany.linkTiktok || "",
-        linkYoutube: connectedCompany.linkYoutube || "",
-      });
+      fillFormWithCompanyData(connectedCompany);
     }
   }, [editCompanyPopupVisible, connectedCompany]);
+
   useEffect(() => {
     if (editSocialsLinks && connectedCompany) {
-      setForm((prev) => ({
-        ...prev,
-        linkFacebook: connectedCompany.linkFacebook || "",
-        linkInstagram: connectedCompany.linkInstagram || "",
-        linkLinkedin: connectedCompany.linkLinkedin || "",
-        linkTiktok: connectedCompany.linkTiktok || "",
-        linkYoutube: connectedCompany.linkYoutube || "",
-      }));
+      fillFormWithCompanyData(connectedCompany);
     }
   }, [editSocialsLinks, connectedCompany]);
 
@@ -104,14 +114,26 @@ export default function Companycreen() {
 
   // Handle submit
   const handleSubmit = async () => {
-    if (!connectedCompany || !token) return;
+    if (!token || !user) return;
     try {
-      await CompanyService.updateCompany(connectedCompany.id, form, token);
+      let updatedCompany;
+      if (connectedCompany) {
+        await CompanyService.updateCompany(connectedCompany.id, form, token);
+        updatedCompany = await CompanyService.getCompanyById(
+          connectedCompany.id,
+          token
+        );
+      } else {
+        const res = await CompanyService.createCompany(
+          { ...form, responsibleId: user.id },
+          token
+        );
+        updatedCompany = await CompanyService.getCompanyById(
+          res.company.id,
+          token
+        );
+      }
       // Optionally refetch company info
-      const updatedCompany = await CompanyService.getCompanyById(
-        connectedCompany.id,
-        token
-      );
       setConnectedCompany(updatedCompany);
       setEditCompanyPopupVisible(false);
       setEditSocialsLinks(false);
@@ -129,6 +151,51 @@ export default function Companycreen() {
     }
   };
 
+  const getImageUrl = async (filePicture: File, fileId: number) => {
+    if (!filePicture || filePicture.fileCategory !== FileCategory.IMAGE) {
+      return "";
+    }
+
+    if (!token) {
+      console.error("Token manquant !");
+      return "";
+    }
+
+    const fullUrl = `${env.API_URL}/files/companyImage/${fileId}`;
+
+    try {
+      const response = await fetch(fullUrl, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const blob = await response.blob();
+
+      // Convertir en base64 pour React Native
+      const reader = new FileReader();
+      return new Promise((resolve) => {
+        reader.onload = () => {
+          const base64String = reader.result as string;
+          setProfilePicture(base64String);
+          resolve(base64String);
+        };
+        reader.readAsDataURL(blob);
+      });
+    } catch (error) {
+      console.error("Erreur lors de la récupération de l'image:", error);
+      return "";
+    }
+  };
+
+  if (!user || !token)
+    return <AppText>Impossible de récupérer le profil</AppText>;
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -145,11 +212,22 @@ export default function Companycreen() {
               companyName={connectedCompany.name}
               companyAdress={`${connectedCompany.street}, ${connectedCompany.city} ${connectedCompany.postalCode}`}
               profilePictureUrl={
-                connectedCompany.fileImageCompany
-                  ? connectedCompany.fileImageCompany.url
-                  : ""
+                connectedCompany.fileImageCompany ? profilePicture : ""
               }
               companyLink={connectedCompany.linkWebsite}
+            />
+            <FileUploadButton
+              fileCategory={FileCategory.IMAGE}
+              label="Changer la photo de l'entreprise"
+              authToken={token}
+              authUser={user}
+              companyId={connectedCompany.id}
+              onUploadSuccess={(file) => {
+                fetchCompanyConnected();
+              }}
+              onUploadError={(error) => {
+                console.error("Erreur:", error);
+              }}
             />
             <AppText>Réseaux sociaux</AppText>
             {connectedCompany.linkFacebook ||
@@ -294,22 +372,14 @@ export default function Companycreen() {
               </>
             )}
             <AppText>{connectedCompany.description}</AppText>
-            <AppText>
-              Adhésion valide jusqu'au{" "}
-              {new Date(
-                connectedCompany.dateEndMembership ?? ""
-              ).toLocaleDateString("fr-FR")}
-            </AppText>
-            <View style={{ flexDirection: "row", justifyContent: "flex-end" }}>
-              <AppButton
-                type="primary"
-                title="Modifier"
-                iconName="pencil"
-                onPress={() => {
-                  setEditCompanyPopupVisible(true);
-                }}
-              />
-            </View>
+            {connectedCompany.dateEndMembership && (
+              <AppText>
+                Adhésion valide jusqu'au{" "}
+                {new Date(
+                  connectedCompany.dateEndMembership
+                ).toLocaleDateString("fr-FR")}
+              </AppText>
+            )}
           </View>
         ) : (
           <View>
@@ -318,6 +388,16 @@ export default function Companycreen() {
             </AppText>
           </View>
         )}
+        <View style={{ flexDirection: "row", justifyContent: "flex-end" }}>
+          <AppButton
+            type="primary"
+            title="Modifier"
+            iconName="pencil"
+            onPress={() => {
+              setEditCompanyPopupVisible(true);
+            }}
+          />
+        </View>
         {editCompanyPopupVisible && (
           <Modal
             visible={editCompanyPopupVisible}
@@ -390,13 +470,6 @@ export default function Companycreen() {
                       placeholder="https://"
                       value={form.linkWebsite}
                       onChangeText={(v) => handleChange("linkWebsite", v)}
-                    />
-                    <Input
-                      type="text"
-                      label="Image de l'entreprise"
-                      placeholder="https://"
-                      value={form.filePictureUrl}
-                      onChangeText={(v) => handleChange("filePictureUrl", v)}
                     />
                   </>
                 }

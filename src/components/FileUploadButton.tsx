@@ -17,6 +17,7 @@ import { LoggedUser } from "../models/auth";
 import { UserService } from "../services/api/user-service";
 import { fileService } from "../services/api/file-service";
 import { ProfileCategory, SportsmanProfile } from "../models/user";
+import { CompanyService } from "../services/api/company-service";
 
 interface FileUploadButtonProps {
   fileCategory: FileCategory;
@@ -26,6 +27,7 @@ interface FileUploadButtonProps {
   authToken: string;
   authUser: LoggedUser;
   uploadToUserId?: number;
+  companyId?: number;
   styleAddButton?: boolean;
 }
 
@@ -37,6 +39,7 @@ export const FileUploadButton: React.FC<FileUploadButtonProps> = ({
   authToken,
   authUser,
   uploadToUserId,
+  companyId,
   styleAddButton = false,
 }) => {
   const [uploading, setUploading] = useState(false);
@@ -74,6 +77,7 @@ export const FileUploadButton: React.FC<FileUploadButtonProps> = ({
         fileCategory,
         authToken,
         uploadToASpecificId: uploadToUserId ? uploadToUserId : undefined,
+        companyId: companyId ? companyId : undefined,
       });
 
       if (result.success) {
@@ -111,23 +115,44 @@ export const FileUploadButton: React.FC<FileUploadButtonProps> = ({
           }
         } else if (fileCategory === FileCategory.IMAGE) {
           try {
-            const userToUpdate = await UserService.getUserById(
-              authUser.id,
-              authToken
-            );
-            const updatedUser = UserService.updateUserById(
-              authUser.id,
-              {
-                filePicture: result.data,
-                filePictureId: result.data.id,
-              },
-              authToken
-            );
-            if (userToUpdate.filePicture) {
-              await fileService.deleteFile(
-                userToUpdate.filePicture.id,
+            if (companyId) {
+              console.log(companyId);
+              const companyToUpdate = await CompanyService.getCompanyById(
+                companyId,
                 authToken
               );
+              const updatedCompany = await CompanyService.updateCompany(
+                companyId,
+                {
+                  fileImageCompany: result.data,
+                },
+                authToken
+              );
+              if (companyToUpdate.fileImageCompany) {
+                await fileService.deleteFile(
+                  companyToUpdate.fileImageCompany.id,
+                  authToken
+                );
+              }
+            } else {
+              const userToUpdate = await UserService.getUserById(
+                authUser.id,
+                authToken
+              );
+              const updatedUser = UserService.updateUserById(
+                authUser.id,
+                {
+                  filePicture: result.data,
+                  filePictureId: result.data.id,
+                },
+                authToken
+              );
+              if (userToUpdate.filePicture) {
+                await fileService.deleteFile(
+                  userToUpdate.filePicture.id,
+                  authToken
+                );
+              }
             }
             onUploadSuccess?.(result.data);
           } catch (e) {

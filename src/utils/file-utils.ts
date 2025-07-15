@@ -7,6 +7,7 @@ export interface UploadFileParams {
   fileCategory: FileCategory;
   authToken: string;
   uploadToASpecificId?: number;
+  companyId?: number;
 }
 
 export interface UploadResult {
@@ -68,7 +69,13 @@ export class FileUploadService {
       formData.append("label", params.label);
       formData.append("fileCategory", params.fileCategory);
       if (params.uploadToASpecificId) {
-        formData.append("uploadToASpecificId", params.uploadToASpecificId.toString());
+        formData.append(
+          "uploadToASpecificId",
+          params.uploadToASpecificId.toString()
+        );
+      }
+      if (params.companyId) {
+        formData.append("companyId", params.companyId.toString());
       }
 
       // Configuration de la requête avec timeout
