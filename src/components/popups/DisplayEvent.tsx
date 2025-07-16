@@ -25,7 +25,6 @@ import {
   parseIds,
   SportingActivityEvent,
 } from "@/src/models/event";
-import { getImageSource } from "@/src/utils/imgSrcHandler";
 import EditEvent from "./EditEvent";
 import { eventService } from "@/src/services/api/event-service";
 import { notify } from "../NotificationContainer";

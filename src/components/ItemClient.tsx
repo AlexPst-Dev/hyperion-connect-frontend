@@ -1,9 +1,12 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { StyleSheet, View, Image } from "react-native";
 import GlobalStyles, { Colors, shadowStyles } from "../styles/styles";
 import { User } from "../models/user";
 import AppText from "./AppText";
-import Objective from "./Objective";
+import { useAuth } from "../hooks/useAuth";
+import { File } from "../models/file";
+import { useAnyUserProfileImage } from "../hooks/useImageProfilePicture";
+import { fileService } from "../services/api/file-service";
 
 interface Props {
   user: User;
@@ -11,31 +14,30 @@ interface Props {
 }
 
 export default function ItemClient({ user, objectives }: Props) {
-  function getImageSource(): any {
-    if (!user.filePicture) {
-      // fallback
-      return require("../assets/images/react-logo.png");
+  const { token } = useAuth();
+
+  const [userFile, setUserFile] = useState<File | undefined>();
+
+  const fetchFileOfUser = async () => {
+    if (token && user.filePictureId && !isNaN(Number(user.filePictureId))) {
+      const filePictureOfUser = await fileService.getFileById(
+        Number(user.filePictureId),
+        token
+      );
+      setUserFile(filePictureOfUser);
     }
+  };
 
-    if (user.filePicture.url.startsWith("http")) {
-      return { uri: user.filePicture.url };
-    }
+  useEffect(() => {
+    fetchFileOfUser();
+  }, [token]);
 
-    // Mapping of konwn local images
-    const localImages: Record<string, any> = {
-      "users/img-profil-1": require("../assets/images/users/profilePicture/img-profil-1.png"),
-    };
-
-    return (
-      localImages[user.filePicture.url] ||
-      require("../assets/images/react-logo.png")
-    );
-  }
+  const { profilePicture, isUserPPLoading } = useAnyUserProfileImage(userFile);
 
   return (
     <View style={[styles.container, shadowStyles.small]}>
       <View style={styles.user}>
-        <Image source={getImageSource()} style={styles.profilePicture} />
+        <Image source={{ uri: profilePicture }} style={styles.profilePicture} />
         <View style={styles.separator} />
         <View style={styles.userInfos}>
           <AppText style={{ fontWeight: "bold", color: Colors.deepBlue }}>
@@ -66,6 +68,7 @@ const styles = StyleSheet.create({
   user: {
     flexDirection: "row",
     gap: 8,
+    alignItems: "center",
   },
   userInfos: {
     flexDirection: "column",
