@@ -27,6 +27,7 @@ import ContactDetailScreen from "../screens/ContactDetailScreen";
 import PartnersListScreen from "../screens/PartnersListScreen";
 import ClientDetailScreen from "../screens/ClientDetailScreen";
 import OffersHistoryScreen from "../screens/OffersHistoryScreen";
+import SessionHistoryScreen from "../screens/SessionHistoryScreen";
 
 const Stack = createStackNavigator<RootStackParamList>();
 
@@ -131,6 +132,13 @@ export default function AppNavigator() {
                   component={PartnersListScreen}
                   options={({ route, navigation }) =>
                     mainOptions(route, navigation, user, "NOS PARTENAIRES")
+                  }
+                />
+                <Stack.Screen
+                  name="SessionHistory"
+                  component={SessionHistoryScreen}
+                  options={({ route, navigation }) =>
+                    mainOptions(route, navigation, user, "HISTORIQUE")
                   }
                 />
               </>

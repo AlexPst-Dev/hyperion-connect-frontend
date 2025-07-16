@@ -31,4 +31,5 @@ export type RootStackParamList = {
   OffersHistory: {
     companyId: number;
   };
+  SessionHistory: undefined;
 };

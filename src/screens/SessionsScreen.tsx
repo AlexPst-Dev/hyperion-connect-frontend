@@ -278,7 +278,7 @@ export default function SessionsScreen() {
       const [submitLoading, setSubmitLoading] = useState(false);
 
       const [allSportsmanSessions, setAllSporstmanSessions] = useState<
-        SessionModel[]
+        SessionWithFile[]
       >([]);
       const [allInactivesSportsmanSessions, setAllInactivesSporstmanSessions] =
         useState<SessionModel[]>([]);
@@ -385,10 +385,7 @@ export default function SessionsScreen() {
               token
             );
             if (completeSessions.session.isActive) {
-              setAllSporstmanSessions((prev) => [
-                ...prev,
-                completeSessions.session,
-              ]);
+              setAllSporstmanSessions((prev) => [...prev, completeSessions]);
             } else {
               setAllInactivesSporstmanSessions((prev) => [
                 ...prev,
@@ -517,14 +514,19 @@ export default function SessionsScreen() {
 
           // Séparer les sessions avec et sans exercices
           const sessionsWithExercises = allSportsmanSessions.filter(
-            (s) => s.listExercises && s.listExercises.trim() !== ""
+            (s) =>
+              s.session.listExercises && s.session.listExercises.trim() !== ""
           );
           const sessionsWithoutExercises = allSportsmanSessions.filter(
-            (s) => !s.listExercises || s.listExercises.trim() === ""
+            (s) =>
+              !s.session.listExercises || s.session.listExercises.trim() === ""
           );
 
           // Stocker les sessions sans exercices
-          if (isMounted) setSessionsWithoutExercises(sessionsWithoutExercises);
+          if (isMounted)
+            setSessionsWithoutExercises(
+              sessionsWithoutExercises.map((s) => s.session)
+            );
 
           // Traiter les sessions avec exercices
           const muscleGroupsResult: {
@@ -537,10 +539,10 @@ export default function SessionsScreen() {
             durationTime: number;
           }[] = [];
 
-          for (const session of sessionsWithExercises) {
+          for (const completeSession of sessionsWithExercises) {
             // Get exercises for this session
             const exercisesResp = await SessionService.getExercisesBySessionId(
-              session.id,
+              completeSession.session.id,
               token
             );
             const exercises = exercisesResp.exercises || [];
@@ -563,14 +565,17 @@ export default function SessionsScreen() {
             );
 
             muscleGroupsResult.push({
-              session,
+              session: completeSession.session,
               muscleGroups: uniqueMuscleGroups,
             });
 
             // Calculer les stats pour cette session
-            const stats = await getSessionExercisesAndStats(session, token);
+            const stats = await getSessionExercisesAndStats(
+              completeSession.session,
+              token
+            );
             statsResult.push({
-              session,
+              session: completeSession.session,
               nbExercises: stats.nbExercises,
               durationTime: stats.durationTime,
             });
@@ -628,21 +633,29 @@ export default function SessionsScreen() {
       };
 
       const renderAllSessions = () => {
-        return allSportsmanSessions.map((session) => {
+        return allSportsmanSessions.map((completeSession) => {
           const hasExercises =
-            session.listExercises && session.listExercises.trim() !== "";
+            completeSession.session.listExercises &&
+            completeSession.session.listExercises.trim() !== "";
 
           if (hasExercises) {
             // Session avec exercices - afficher avec stats et groupes musculaires
-            const stats = getStatsForSession(session.id);
-            const muscleGroups = getMuscleGroupsForSession(session.id);
+            const stats = getStatsForSession(completeSession.session.id);
+            const muscleGroups = getMuscleGroupsForSession(
+              completeSession.session.id
+            );
 
             return (
               <Session
-                key={session.id}
-                title={session.label}
+                key={completeSession.session.id}
+                title={completeSession.session.label}
                 nbExercises={
                   stats?.nbExercises === 0 ? undefined : stats?.nbExercises
+                }
+                imageUrl={
+                  completeSession.filePicture
+                    ? completeSession.filePicture.url
+                    : ""
                 }
                 durationTime={
                   stats && !isNaN(stats.durationTime)
@@ -650,7 +663,9 @@ export default function SessionsScreen() {
                     : undefined
                 }
                 onPress={() =>
-                  navigation.navigate("SessionDetail", { session })
+                  navigation.navigate("SessionDetail", {
+                    session: completeSession.session,
+                  })
                 }
                 labels={
                   muscleGroups.length > 0
@@ -671,10 +686,12 @@ export default function SessionsScreen() {
             // Session sans exercices - afficher simplement
             return (
               <Session
-                key={session.id}
-                title={session.label}
+                key={completeSession.session.id}
+                title={completeSession.session.label}
                 onPress={() =>
-                  navigation.navigate("SessionDetail", { session })
+                  navigation.navigate("SessionDetail", {
+                    session: completeSession.session,
+                  })
                 }
                 // Pas de nbExercises, durationTime, ni labels
               />
@@ -754,6 +771,13 @@ export default function SessionsScreen() {
 
         // Tab 1 : Mes séances
         <View key="seances" style={{ flexDirection: "column", gap: 24 }}>
+          <AppButton
+            type="linkSmall"
+            title="Voir l'hsitorique"
+            iconName="eye"
+            onPress={() => navigation.navigate("SessionHistory")}
+            buttonStyle={{ alignSelf: "flex-end" }}
+          />
           <View style={{ flexDirection: "column", gap: 16, paddingBottom: 32 }}>
             {renderAllSessions()}
           </View>
