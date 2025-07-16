@@ -5,7 +5,10 @@ import Icon, { IconName } from "./Icon";
 import { ProfileCategory, User } from "../models/user";
 import { Company } from "../models/company";
 import AppText from "./AppText";
-import { useAnyUserProfileImage } from "../hooks/useImageProfilePicture";
+import {
+  useAnyUserProfileImage,
+  useCompanyImage,
+} from "../hooks/useImageProfilePicture";
 import { fileService } from "../services/api/file-service";
 import { useAuth } from "../hooks/useAuth";
 import { File } from "../models/file";
@@ -26,11 +29,17 @@ export default function ItemUser({
   const { token } = useAuth();
 
   const [userFile, setUserFile] = useState<File | undefined>();
+  const [companyFile, setCompanyFile] = useState<File | undefined>();
 
-  // Récupérer le fichier d'abord
+  // Récupérer le fichier utilisateur
   useEffect(() => {
     const fetchUserFile = async () => {
-      if (token && user.filePictureId && !isNaN(Number(user.filePictureId))) {
+      if (
+        !isCompany &&
+        token &&
+        user.filePictureId &&
+        !isNaN(Number(user.filePictureId))
+      ) {
         try {
           const file = await fileService.getFileById(
             Number(user.filePictureId),
@@ -39,8 +48,9 @@ export default function ItemUser({
           setUserFile(file);
         } catch (e) {
           console.log(
-            "Impossible de récupérer le fichier de la photo de profil"
+            "Impossible de récupérer le fichier de la photo de profil utilisateur"
           );
+          setUserFile(undefined);
         }
       } else {
         setUserFile(undefined);
@@ -48,10 +58,46 @@ export default function ItemUser({
     };
 
     fetchUserFile();
-  }, [user.filePictureId, token]);
+  }, [user.filePictureId, token, isCompany]);
 
-  // Utiliser le hook avec le fichier récupéré
-  const { profilePicture, isUserPPLoading } = useAnyUserProfileImage(userFile);
+  // Récupérer le fichier entreprise
+  useEffect(() => {
+    const fetchCompanyFile = async () => {
+      if (
+        isCompany &&
+        token &&
+        company &&
+        company.fileImageCompany &&
+        !isNaN(Number(company.fileImageCompany.id))
+      ) {
+        try {
+          const file = await fileService.getFileById(
+            Number(company.fileImageCompany.id),
+            token
+          );
+          setCompanyFile(file);
+        } catch (e) {
+          console.log(
+            "Impossible de récupérer le fichier de la photo de profil entreprise"
+          );
+          setCompanyFile(undefined);
+        }
+      } else {
+        setCompanyFile(undefined);
+      }
+    };
+
+    fetchCompanyFile();
+  }, [company?.fileImageCompany, token, isCompany]);
+
+  // Utiliser les hooks conditionnellement
+  const { profilePicture, isUserPPLoading } = useAnyUserProfileImage(
+    !isCompany ? userFile : undefined
+  );
+  const { companyImage, isCppLoading } = useCompanyImage(
+    isCompany ? company?.id : undefined,
+    isCompany ? companyFile : undefined
+  );
 
   function getSports(user: User): string {
     // Check if user is a sportsman or coach and has a sportCategory with a label
@@ -67,6 +113,7 @@ export default function ItemUser({
     }
     return "";
   }
+
   function getMedicCategory(user: User): string {
     // Check if user is a medic and has a medicCategory with a label
     if (
@@ -81,11 +128,15 @@ export default function ItemUser({
     return "";
   }
 
+  // Déterminer l'image et l'état de chargement
+  const imageSource = isCompany ? companyImage : profilePicture;
+  const isLoading = isCompany ? isCppLoading : isUserPPLoading;
+
   return (
     <View style={[styles.header, shadowStyles.small]}>
       <Image
-        source={{ uri: profilePicture }}
-        style={[styles.profilePicture, isUserPPLoading && { opacity: 0.5 }]}
+        source={{ uri: imageSource }}
+        style={[styles.profilePicture, isLoading && { opacity: 0.5 }]}
       />
       <View style={styles.separator} />
       <View style={styles.userInfos}>
@@ -167,7 +218,7 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 8,
-    backgroundColor: Colors.grey,
+    backgroundColor: "#CDCDCD",
   },
   separator: {
     width: 1,

@@ -58,8 +58,9 @@ export default function PartnersListScreen() {
         >
           <View style={{ flexDirection: "column", gap: 16 }}>
             {completeUser?.user &&
-              companies.map((c) => (
+              companies.map((c, index) => (
                 <ItemUser
+                  key={index}
                   isCompany={true}
                   user={completeUser?.user}
                   company={c}
