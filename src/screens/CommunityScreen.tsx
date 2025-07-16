@@ -224,7 +224,7 @@ export default function CommunityScreen() {
       const [eventDetailsPopUpVisible, setEventDetailsPopUpVisible] =
         useState(false);
 
-      const [responsibleUsers, setResponsibleUsers] = useState<User[]>([]);
+      const [responsibleUsers, setResponsibleUsers] = useState<UserResponse[]>([]);
 
       const fetchUsersByIds = async (ids: number[], token: string) => {
         const users = await Promise.all(
@@ -233,7 +233,7 @@ export default function CommunityScreen() {
         // Filter out failed fetches
         return users
           .filter((u): u is UserResponse => u !== null)
-          .map((u) => u.user);
+          .map((u) => u);
       };
       const handleOpenEvent = async (event: EventModel) => {
         setEventSelected(event);

@@ -1,12 +1,5 @@
 import React, { JSX, useEffect, useMemo, useState } from "react";
-import {
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  Pressable,
-  ScrollView,
-  View,
-} from "react-native";
+import { KeyboardAvoidingView, Platform, ScrollView, View } from "react-native";
 import GlobalStyles from "../styles/styles";
 import AppText from "../components/AppText";
 import Event from "../components/Event";
@@ -104,24 +97,36 @@ export default function PlanningScreen() {
         return allIds.join("; ");
       }, [eventsByCategory]);
 
-      const { users: allUsers } = useEventPersons(allPersonIds, token!);
+      const { users: allUsers, loading: allUsersLoading } = useEventPersons(
+        allPersonIds,
+        token!
+      );
 
       const usersMap = useMemo(() => {
-        const map = new Map();
-        allUsers.forEach((user) => {
-          map.set(user.id.toString(), user);
+        const map = new Map<number, UserResponse>();
+        allUsers.forEach((completeUser) => {
+          map.set(completeUser.user.id, completeUser);
         });
         return map;
       }, [allUsers]);
 
-      const getUsersForEvent = (ids: string | null) => {
+      const getUsersForEvent = (ids: string | null): UserResponse[] => {
         if (!ids) return [];
+
         return ids
           .split(/[;,]/)
           .map((id) => id.trim())
           .filter(Boolean)
-          .map((id) => usersMap.get(id))
-          .filter(Boolean);
+          .map((id) => {
+            const numericId = parseInt(id);
+            if (isNaN(numericId)) {
+              console.warn(`ID invalide: ${id}`);
+              return null;
+            }
+            const user = usersMap.get(numericId);
+            return user;
+          })
+          .filter(Boolean) as UserResponse[];
       };
 
       async function fetchEventsByCategory(category: EventCategory) {
@@ -205,7 +210,7 @@ export default function PlanningScreen() {
               .filter(
                 (e) =>
                   (e.responsibleIds || "")
-                    .split("; ")
+                    .split(/[;,]/)
                     .map((id) => id.trim())
                     .includes(user.id.toString()) &&
                   (!e.date ||
@@ -219,7 +224,7 @@ export default function PlanningScreen() {
                   <Event
                     key={e.id}
                     title={e.title ? e.title : "Séance"}
-                    personsInvolved={personsInvolved}
+                    personsInvolved={personsInvolved.map((u) => u.user)}
                     location={e.location || ""}
                     date={new Date(e.date || "")}
                     hour={e.time || ""}
@@ -266,7 +271,7 @@ export default function PlanningScreen() {
                   <Event
                     key={e.id}
                     title={e.title ? e.title : "Evénement"}
-                    personsInvolved={personsInvolved}
+                    personsInvolved={personsInvolved.map((u) => u.user)}
                     location={e.location || ""}
                     date={new Date(e.date || "")}
                     hour={e.time || ""}
@@ -305,7 +310,7 @@ export default function PlanningScreen() {
                       <Event
                         key={e.id}
                         title={e.title ? e.title : "Evénement"}
-                        personsInvolved={personsInvolved}
+                        personsInvolved={personsInvolved.map((u) => u.user)}
                         location={e.location || ""}
                         date={new Date(e.date || "")}
                         hour={e.time || ""}
@@ -429,24 +434,36 @@ export default function PlanningScreen() {
         return allIds.join("; ");
       }, [eventsByCategory]);
 
-      const { users: allUsers } = useEventPersons(allPersonIds, token!);
+      const { users: allUsers, loading: allUsersLoading } = useEventPersons(
+        allPersonIds,
+        token!
+      );
 
       const usersMap = useMemo(() => {
-        const map = new Map();
-        allUsers.forEach((user) => {
-          map.set(user.id.toString(), user);
+        const map = new Map<number, UserResponse>();
+        allUsers.forEach((completeUser) => {
+          map.set(completeUser.user.id, completeUser);
         });
         return map;
       }, [allUsers]);
 
-      const getUsersForEvent = (ids: string | null) => {
+      const getUsersForEvent = (ids: string | null): UserResponse[] => {
         if (!ids) return [];
+
         return ids
           .split(/[;,]/)
           .map((id) => id.trim())
           .filter(Boolean)
-          .map((id) => usersMap.get(id))
-          .filter(Boolean);
+          .map((id) => {
+            const numericId = parseInt(id);
+            if (isNaN(numericId)) {
+              console.warn(`ID invalide: ${id}`);
+              return null;
+            }
+            const user = usersMap.get(numericId);
+            return user;
+          })
+          .filter(Boolean) as UserResponse[];
       };
 
       async function fetchEventsByCategory(category: EventCategory) {
@@ -530,7 +547,7 @@ export default function PlanningScreen() {
               .filter(
                 (e) =>
                   (e.responsibleIds || "")
-                    .split("; ")
+                    .split(/[;,]/)
                     .map((id) => id.trim())
                     .includes(user.id.toString()) &&
                   (!e.date ||
@@ -544,7 +561,7 @@ export default function PlanningScreen() {
                   <Event
                     key={e.id}
                     title={e.title ? e.title : "Séance"}
-                    personsInvolved={personsInvolved}
+                    personsInvolved={personsInvolved.map((u) => u.user)}
                     location={e.location || ""}
                     date={new Date(e.date || "")}
                     hour={e.time || ""}
@@ -591,7 +608,7 @@ export default function PlanningScreen() {
                   <Event
                     key={e.id}
                     title={e.title ? e.title : "Evénement"}
-                    personsInvolved={personsInvolved}
+                    personsInvolved={personsInvolved.map((u) => u.user)}
                     location={e.location || ""}
                     date={new Date(e.date || "")}
                     hour={e.time || ""}
@@ -630,7 +647,7 @@ export default function PlanningScreen() {
                       <Event
                         key={e.id}
                         title={e.title ? e.title : "Evénement"}
-                        personsInvolved={personsInvolved}
+                        personsInvolved={personsInvolved.map((u) => u.user)}
                         location={e.location || ""}
                         date={new Date(e.date || "")}
                         hour={e.time || ""}
@@ -904,7 +921,7 @@ export default function PlanningScreen() {
       >(undefined);
 
       const [eventDetailPersonsInvolved, setEventDetailPersonsInvolved] =
-        useState<User[]>([]);
+        useState<UserResponse[]>([]);
 
       const handleEditEventModal = () =>
         setEditEventPopUpVisible(!editEventPopUpVisible);
@@ -997,24 +1014,36 @@ export default function PlanningScreen() {
         return allIds.join("; ");
       }, [eventsByCategory]);
 
-      const { users: allUsers } = useEventPersons(allPersonIds, token!);
+      const { users: allUsers, loading: allUsersLoading } = useEventPersons(
+        allPersonIds,
+        token!
+      );
 
       const usersMap = useMemo(() => {
-        const map = new Map();
-        allUsers.forEach((user) => {
-          map.set(user.id.toString(), user);
+        const map = new Map<number, UserResponse>();
+        allUsers.forEach((completeUser) => {
+          map.set(completeUser.user.id, completeUser);
         });
         return map;
       }, [allUsers]);
 
-      const getUsersForEvent = (ids: string | null) => {
+      const getUsersForEvent = (ids: string | null): UserResponse[] => {
         if (!ids) return [];
+
         return ids
           .split(/[;,]/)
           .map((id) => id.trim())
           .filter(Boolean)
-          .map((id) => usersMap.get(id))
-          .filter(Boolean);
+          .map((id) => {
+            const numericId = parseInt(id);
+            if (isNaN(numericId)) {
+              console.warn(`ID invalide: ${id}`);
+              return null;
+            }
+            const user = usersMap.get(numericId);
+            return user;
+          })
+          .filter(Boolean) as UserResponse[];
       };
 
       return (
@@ -1034,7 +1063,7 @@ export default function PlanningScreen() {
                         key={hyperlinkEvent.id}
                         title={hyperlinkEvent.title || "Evénement Hyperlink"}
                         type={EventCategory.HYPERLINK}
-                        personsInvolved={personsInvolved}
+                        personsInvolved={personsInvolved.map((u) => u.user)}
                         location={
                           hyperlinkEvent.location || "Lieu non spécifié"
                         }
@@ -1093,7 +1122,7 @@ export default function PlanningScreen() {
                         key={hyperionEvent.id}
                         title={hyperionEvent.title || "Evénement Hyperlink"}
                         type={EventCategory.HYPERION}
-                        personsInvolved={personsInvolved}
+                        personsInvolved={personsInvolved.map((u) => u.user)}
                         location={hyperionEvent.location || "Lieu non spécifié"}
                         date={new Date(hyperionEvent.date || "")}
                         hour={hyperionEvent.time || "Heure non spécifiée"}
@@ -1147,7 +1176,7 @@ export default function PlanningScreen() {
                           sportingActivityEvent.title || "Activité sportive"
                         }
                         type={EventCategory.SPORTING_ACTIVITY}
-                        personsInvolved={personsInvolved}
+                        personsInvolved={personsInvolved.map((u) => u.user)}
                         location={
                           sportingActivityEvent.location || "Lieu non spécifié"
                         }

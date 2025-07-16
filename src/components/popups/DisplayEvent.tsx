@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   StyleSheet,
   View,
@@ -6,11 +6,10 @@ import {
   Modal,
   Image,
   Linking,
+  ActivityIndicator,
 } from "react-native";
 import PopUp from "../PopUp";
-import Input from "../Input";
 import { User, UserResponse } from "@/src/models/user";
-import { ScrollView } from "react-native-gesture-handler";
 import AppButton from "../AppButton";
 import AppText from "../AppText";
 import Icon from "../Icon";
@@ -36,6 +35,7 @@ import { UserService } from "@/src/services/api/user-service";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "@/src/navigation/types";
+import { useMultipleUserProfileImages } from "@/src/hooks/useImageProfilePicture";
 
 interface Props {
   visible: boolean;
@@ -46,12 +46,47 @@ interface Props {
   coachingProps?: CoachingEventResponse;
   medicalProps?: MedicalEventResponse;
   userConnected: LoggedUser;
-  listOfUser: User[];
+  listOfUser: UserResponse[];
   onClose: () => void;
   onSubmit?: () => void;
   onRefused?: () => void;
   token?: string;
 }
+
+const ProfilePictureWithLoading: React.FC<{
+  user: User;
+  style: any;
+  imageBase64: string;
+  isLoading: boolean;
+  onPress?: () => void;
+}> = ({ user, style, imageBase64, isLoading, onPress }) => {
+  const content = (
+    <View style={[style, { position: "relative" }]}>
+      {isLoading ? (
+        <View
+          style={[
+            style,
+            {
+              justifyContent: "center",
+              alignItems: "center",
+              backgroundColor: "#f0f0f0",
+            },
+          ]}
+        >
+          <ActivityIndicator size="small" color="#666" />
+        </View>
+      ) : (
+        <Image
+          source={imageBase64 ? { uri: imageBase64 } : undefined}
+          style={style}
+          alt={user.email}
+        />
+      )}
+    </View>
+  );
+
+  return onPress ? <Pressable onPress={onPress}>{content}</Pressable> : content;
+};
 
 export default function DisplayEvent({
   visible,
@@ -118,10 +153,6 @@ export default function DisplayEvent({
     } finally {
       setSportingActivityValidationLoading(false);
     }
-  };
-
-  const handleSubmit = () => {
-    onClose();
   };
 
   if (!event) return null;
@@ -277,6 +308,24 @@ export default function DisplayEvent({
     fetchSportsmansOfSportingEvent();
   }, [token]);
 
+  // Combiner tous les utilisateurs dont on a besoin des images
+  const allUsers = useMemo(() => {
+    const users = [...listOfUser];
+    if (listParticipants) {
+      users.push(...listParticipants.map((p) => p));
+    }
+    // Dédupliquer par ID
+    const uniqueUsers = users.filter(
+      (uniqueUser, index, self) =>
+        index === self.findIndex((u) => u.user.id === uniqueUser.user.id)
+    );
+    return uniqueUsers;
+  }, [listOfUser, listParticipants]);
+
+  // Utiliser le hook pour charger toutes les images
+  const { getImageForUser, isUserImageLoading } =
+    useMultipleUserProfileImages(allUsers);
+
   return (
     <>
       <Modal
@@ -306,19 +355,19 @@ export default function DisplayEvent({
                       </AppText>
                       <View style={styles.userList}>
                         {listOfUser.length > 0 ? (
-                          listOfUser.map((user, index) => {
-                            return (
-                              <Image
-                                key={index}
-                                source={getImageSource(
-                                  user.filePicture ? user.filePicture.url : ""
-                                )}
-                                style={styles.profilePicture}
-                                id={index.toString()}
-                                alt={user.email}
-                              />
-                            );
-                          })
+                          listOfUser.map((completeUser, index) => (
+                            <ProfilePictureWithLoading
+                              key={index}
+                              user={completeUser.user}
+                              style={styles.profilePicture}
+                              imageBase64={getImageForUser(
+                                completeUser.user.id
+                              )}
+                              isLoading={isUserImageLoading(
+                                completeUser.user.id
+                              )}
+                            />
+                          ))
                         ) : (
                           <AppText>Aucun utilisateur trouvé.</AppText>
                         )}
@@ -327,31 +376,25 @@ export default function DisplayEvent({
                         <View style={{ flexDirection: "column", gap: 8 }}>
                           <AppText>{`Participants (${currentParticipantsCount}/${maxParticipants})`}</AppText>
                           <View style={styles.participantList}>
-                            {listParticipants.map((participant, index) => {
-                              return (
-                                <Pressable
-                                  onPress={() => {
-                                    navigation.navigate("ContactDetail", {
-                                      contact: participant.user,
-                                    });
-                                    onClose();
-                                  }}
-                                  key={index}
-                                >
-                                  <Image
-                                    key={index}
-                                    source={getImageSource(
-                                      participant.user.filePicture
-                                        ? participant.user.filePicture.url
-                                        : ""
-                                    )}
-                                    style={styles.participantProfilePicture}
-                                    id={index.toString()}
-                                    alt={participant.user.email}
-                                  />
-                                </Pressable>
-                              );
-                            })}
+                            {listParticipants.map((participant, index) => (
+                              <ProfilePictureWithLoading
+                                key={participant.user.id}
+                                user={participant.user}
+                                style={styles.participantProfilePicture}
+                                imageBase64={getImageForUser(
+                                  participant.user.id
+                                )}
+                                isLoading={isUserImageLoading(
+                                  participant.user.id
+                                )}
+                                onPress={() => {
+                                  navigation.navigate("ContactDetail", {
+                                    contact: participant.user,
+                                  });
+                                  onClose();
+                                }}
+                              />
+                            ))}
                           </View>
                         </View>
                       )}

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { EventCategory, EventCompleteResponse } from "../models/event";
 import { eventService } from "../services/api/event-service";
-import { ProfileCategory, User } from "../models/user";
+import { ProfileCategory, User, UserResponse } from "../models/user";
 import { UserService } from "../services/api/user-service";
 import { useAuth } from "./useAuth";
 
@@ -69,7 +69,7 @@ export function useEventPersons(
   personOngoingIds: string | null,
   token: string | undefined
 ) {
-  const [users, setUsers] = useState<User[]>([]);
+  const [users, setUsers] = useState<UserResponse[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -79,15 +79,17 @@ export function useEventPersons(
     }
     setLoading(true);
     const ids = personOngoingIds
-      .split(";")
+      .split(/[;,]/)
       .map((id) => parseInt(id.trim()))
       .filter((id) => !isNaN(id));
     Promise.all(
-      ids.map((id) =>
-        UserService.getUserById(id, token).then((res) => res.user)
-      )
+      ids.map((id) => UserService.getUserById(id, token).then((res) => res))
     )
       .then(setUsers)
+      .catch((error) => {
+        console.error("Erreur lors du chargement des utilisateurs:", error);
+        setUsers([]);
+      })
       .finally(() => setLoading(false));
   }, [personOngoingIds, token]);
 

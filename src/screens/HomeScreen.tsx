@@ -22,7 +22,7 @@ import Session from "../components/Session";
 import Kpi from "../components/Kpi";
 import ItemClient from "../components/ItemClient";
 import Objective from "../components/Objective";
-import { ProfileCategory, User } from "../models/user";
+import { ProfileCategory, User, UserResponse } from "../models/user";
 import {
   getNotificationsByCategory,
   updateNotification,
@@ -81,7 +81,7 @@ export default function HomeScreen() {
   const [userEvents, setUserEvents] = useState<EventCompleteResponse[]>([]);
   const [closestEvent, setClosestEvent] =
     useState<EventCompleteResponse | null>(null);
-  const [eventUsers, setEventUsers] = useState<User[]>([]);
+  const [eventUsers, setEventUsers] = useState<UserResponse[]>([]);
   const [eventPopupVisible, setEventPopupVisible] = useState(false);
 
   const { user, token } = useAuth();
@@ -206,11 +206,11 @@ export default function HomeScreen() {
             if (!Array.isArray(ids)) {
               ids = [ids];
             }
-            let users: User[] = [];
+            let users: UserResponse[] = [];
             if (ids.length > 0) {
               users = await Promise.all(
                 ids.map((id) =>
-                  UserService.getUserById(id, token).then((res) => res.user)
+                  UserService.getUserById(id, token).then((res) => res)
                 )
               );
             }
@@ -290,9 +290,9 @@ export default function HomeScreen() {
   }
 
   // For partner profile, fetch all the HYPERION and HYPERLINK events
-  const [eventUsersById, setEventUsersById] = useState<Record<number, User[]>>(
-    {}
-  );
+  const [eventUsersById, setEventUsersById] = useState<
+    Record<number, UserResponse[]>
+  >({});
 
   const allEvents = useMemo(() => {
     // Get HYPERION events where partner is in personOngoingIds
@@ -329,14 +329,14 @@ export default function HomeScreen() {
   useEffect(() => {
     let isMounted = true;
     async function fetchUsers() {
-      const newEventUsersById: Record<number, User[]> = {};
+      const newEventUsersById: Record<number, UserResponse[]> = {};
       for (const event of allEvents) {
         if (event.responsibleIds) {
           const ids = parseIds(event.responsibleIds);
           if (ids.length > 0) {
             const users = await Promise.all(
               ids.map((id) =>
-                UserService.getUserById(id, token!).then((res) => res.user)
+                UserService.getUserById(id, token!).then((res) => res)
               )
             );
             newEventUsersById[event.id] = users;
@@ -471,7 +471,7 @@ export default function HomeScreen() {
                 <Event
                   title={closestEvent.title || "Événement"}
                   type={closestEvent.eventCategory as EventCategory}
-                  personsInvolved={eventUsers}
+                  personsInvolved={eventUsers.map((u) => u.user)}
                   location={closestEvent.location || ""}
                   date={
                     closestEvent.date ? new Date(closestEvent.date) : new Date()
@@ -615,7 +615,7 @@ export default function HomeScreen() {
                 <Event
                   title={closestEvent.title || "Événement"}
                   type={closestEvent.eventCategory as EventCategory}
-                  personsInvolved={eventUsers}
+                  personsInvolved={eventUsers.map((u) => u.user)}
                   location={closestEvent.location || ""}
                   date={
                     closestEvent.date ? new Date(closestEvent.date) : new Date()
@@ -754,7 +754,7 @@ export default function HomeScreen() {
                 <Event
                   title={closestEvent.title || "Événement"}
                   type={closestEvent.eventCategory as EventCategory}
-                  personsInvolved={eventUsers}
+                  personsInvolved={eventUsers.map((u) => u.user)}
                   location={closestEvent.location || ""}
                   date={
                     closestEvent.date ? new Date(closestEvent.date) : new Date()
@@ -956,7 +956,7 @@ export default function HomeScreen() {
                     <Event
                       key={e.id}
                       title={e.title ? e.title : "Evénement"}
-                      personsInvolved={eventUsersById[e.id] || []}
+                      personsInvolved={eventUsersById[e.id].map((u) => u.user) || []}
                       location={e.location || ""}
                       date={new Date(e.date || "")}
                       hour={e.time || ""}
@@ -1024,7 +1024,7 @@ export default function HomeScreen() {
                 <Event
                   title={closestEvent.title || "Événement"}
                   type={closestEvent.eventCategory as EventCategory}
-                  personsInvolved={eventUsers}
+                  personsInvolved={eventUsers.map((u) => u.user)}
                   location={closestEvent.location || ""}
                   date={
                     closestEvent.date ? new Date(closestEvent.date) : new Date()

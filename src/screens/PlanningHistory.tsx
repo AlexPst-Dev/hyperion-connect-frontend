@@ -9,7 +9,7 @@ import {
 import GlobalStyles from "../styles/styles";
 import AppText from "../components/AppText";
 import Event from "../components/Event";
-import { ProfileCategory, User } from "../models/user";
+import { ProfileCategory, User, UserResponse } from "../models/user";
 import { RouteProp, useRoute } from "@react-navigation/native";
 import { RootStackParamList } from "../navigation/types";
 import { Event as EventModel, EventCategory } from "../models/event";
@@ -64,24 +64,36 @@ export default function PlanningHistoryScreen() {
     return allIds;
   }, [eventsByCategory]);
 
-  const { users: allUsers } = useEventPersons(allPersonIds, token!);
+  const { users: allUsers, loading: allUsersLoading } = useEventPersons(
+    allPersonIds,
+    token!
+  );
 
   const usersMap = useMemo(() => {
-    const map = new Map();
-    allUsers.forEach((user) => {
-      map.set(user.id.toString(), user);
+    const map = new Map<number, UserResponse>();
+    allUsers.forEach((completeUser) => {
+      map.set(completeUser.user.id, completeUser);
     });
     return map;
   }, [allUsers]);
 
-  const getUsersForEvent = (ids: string | null) => {
+  const getUsersForEvent = (ids: string | null): UserResponse[] => {
     if (!ids) return [];
 
     return ids
-      .split("; ")
+      .split(/[;,]/)
+      .map((id) => id.trim())
       .filter(Boolean)
-      .map((id) => usersMap.get(id))
-      .filter(Boolean);
+      .map((id) => {
+        const numericId = parseInt(id);
+        if (isNaN(numericId)) {
+          console.warn(`ID invalide: ${id}`);
+          return null;
+        }
+        const user = usersMap.get(numericId);
+        return user;
+      })
+      .filter(Boolean) as UserResponse[];
   };
 
   return (
@@ -148,7 +160,7 @@ export default function PlanningHistoryScreen() {
                         <Event
                           key={e.id}
                           title={e.title ? e.title : "Séance"}
-                          personsInvolved={personsInvolved}
+                          personsInvolved={personsInvolved.map((u) => u.user)}
                           location={e.location || ""}
                           date={new Date(e.date || "")}
                           hour={e.time || ""}
