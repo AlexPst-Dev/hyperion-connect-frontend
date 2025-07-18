@@ -79,6 +79,7 @@ import { CoachingEvent, EventCategory, isCoachingEvent } from "../models/event";
 import { clientService } from "../services/api/client-service";
 import { FileUploadButton } from "../components/FileUploadButton";
 import ItemFile from "../components/ItemFile";
+import { useAnyUserProfileImage } from "../hooks/useImageProfilePicture";
 
 type ClientDetailRouteProp = RouteProp<RootStackParamList, "ClientDetail">;
 
@@ -108,6 +109,9 @@ export default function ClientDetailScreen() {
 
   const [userFiles, setUserFiles] = useState<File[]>([]);
   const [medicFiles, setMedicFiles] = useState<File[]>([]);
+  const [profilePictureFile, setProfilePictureFile] = useState<File | null>(
+    null
+  );
 
   const [objectives, setObjectives] = useState<ObjectiveModel[]>([]);
 
@@ -224,6 +228,24 @@ export default function ClientDetailScreen() {
     }
   }
 
+  async function fetchProfilePictureFile() {
+    if (client.filePictureId && token && !isNaN(Number(client.filePictureId))) {
+      try {
+        const file = await fileService.getFileById(
+          Number(client.filePictureId),
+          token
+        );
+        setProfilePictureFile(file);
+      } catch (error) {
+        console.error(
+          "Erreur lors de la récupération de l'image de profil :",
+          error
+        );
+        setProfilePictureFile(null);
+      }
+    }
+  }
+
   async function fetchAllClientData() {
     // Optionally: set a loading state here
     try {
@@ -318,6 +340,7 @@ export default function ClientDetailScreen() {
         }
 
         fetchListOfUserFiles(token);
+        fetchProfilePictureFile();
 
         // Medic files
         if ((client.profile as SportsmanProfile)?.listMedicFiles) {
@@ -953,6 +976,10 @@ export default function ClientDetailScreen() {
     setMedicFiles((prev) => prev.filter((file) => file.id !== deletedFileId));
   };
 
+  const { profilePicture, isUserPPLoading } = useAnyUserProfileImage(
+    profilePictureFile ? profilePictureFile : undefined
+  );
+
   const clientInformationsContent: JSX.Element = (
     <>
       <View style={{ flexDirection: "column", gap: 24 }}>
@@ -971,9 +998,7 @@ export default function ClientDetailScreen() {
           phone={client.phone || ""}
           sport={getCategoryLabel()}
           age={getAge(client.birthDate)}
-          profilePictureUrl={
-            client.filePicture?.url || "users/profilePicture/img-profile-1"
-          }
+          profilePictureUrl={profilePicture}
         />
         {(client.facebookLink ||
           client.instagramLink ||
@@ -1821,10 +1846,18 @@ export default function ClientDetailScreen() {
                           justifyContent: "flex-end",
                         }}
                       >
-                        <AppButton
-                          type="secondary"
-                          title="Sélectionner le fichier"
-                          iconName="download"
+                        <FileUploadButton
+                          fileCategory={FileCategory.SUBSCRIPTION}
+                          label="Sélectionner un fichier"
+                          authToken={token!}
+                          authUser={user}
+                          uploadToUserId={client.id}
+                          onUploadSuccess={(file) => {
+                            setEditSubscriptionEditPopUpVisible(false);
+                          }}
+                          onUploadError={(error) => {
+                            console.error("Erreur:", error);
+                          }}
                         />
                       </View>
                     }

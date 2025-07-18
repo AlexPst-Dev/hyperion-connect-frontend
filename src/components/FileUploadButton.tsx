@@ -18,6 +18,7 @@ import { UserService } from "../services/api/user-service";
 import { fileService } from "../services/api/file-service";
 import { ProfileCategory, SportsmanProfile } from "../models/user";
 import { CompanyService } from "../services/api/company-service";
+import { SubscriptionService } from "../services/api/subscription-service";
 
 interface FileUploadButtonProps {
   fileCategory: FileCategory;
@@ -59,7 +60,10 @@ export const FileUploadButton: React.FC<FileUploadButtonProps> = ({
       let fileType = "*/*";
       if (fileCategory === FileCategory.IMAGE) {
         fileType = "image/*";
-      } else if (fileCategory === FileCategory.SESSION_IMPORTED) {
+      } else if (
+        fileCategory === FileCategory.SESSION_IMPORTED ||
+        fileCategory === FileCategory.SUBSCRIPTION
+      ) {
         fileType = "application/pdf";
       }
 
@@ -203,6 +207,48 @@ export const FileUploadButton: React.FC<FileUploadButtonProps> = ({
               e
             );
           }
+        } else if (fileCategory === FileCategory.USER_FILE && uploadToUserId) {
+          try {
+            const userToUpdate = await UserService.getUserById(
+              uploadToUserId,
+              authToken
+            );
+            if (
+              userToUpdate.user.profileCategory === ProfileCategory.SPORTSMAN &&
+              userToUpdate.profile
+            ) {
+              const currentList =
+                (userToUpdate.profile as SportsmanProfile)?.listUserFiles || "";
+              const currentIds = currentList
+                ? currentList
+                    .split(";")
+                    .map((id) => parseInt(id.trim(), 10))
+                    .filter((id) => !isNaN(id))
+                : [];
+
+              // Get new medic IDs from selection
+              const newId = result.data.id;
+
+              // Merge and deduplicate
+              const mergedIds = Array.from(new Set([...currentIds, newId]));
+
+              // Build new list string
+              const updatedList = mergedIds.join("; ");
+              const updatedUser = UserService.updateSportsman(
+                uploadToUserId,
+                {
+                  listUserFiles: updatedList,
+                },
+                authToken
+              );
+              onUploadSuccess?.(result.data, updatedUser);
+            }
+          } catch (e) {
+            console.log(
+              "Error while fetching for user and uploading user file : ",
+              e
+            );
+          }
         } else if (
           fileCategory === FileCategory.MEDICAL_FILE &&
           uploadToUserId
@@ -238,6 +284,47 @@ export const FileUploadButton: React.FC<FileUploadButtonProps> = ({
                 uploadToUserId,
                 {
                   listMedicFiles: updatedList,
+                },
+                authToken
+              );
+              onUploadSuccess?.(result.data, updatedUser);
+            }
+          } catch (e) {
+            console.log(
+              "Error while fetching for user and uploading user file : ",
+              e
+            );
+          }
+        } else if (
+          fileCategory === FileCategory.SUBSCRIPTION &&
+          uploadToUserId
+        ) {
+          try {
+            const userToUpdate = await UserService.getUserById(
+              uploadToUserId,
+              authToken
+            );
+            if (
+              userToUpdate.user.profileCategory === ProfileCategory.SPORTSMAN &&
+              userToUpdate.profile
+            ) {
+              const newId = result.data.id;
+
+              const suscriptionService = new SubscriptionService();
+              const newSubscription =
+                await suscriptionService.createSubscription(
+                  {
+                    labelDiagnostic: "Diagnostic",
+                    labelPerformancePlan: "Plan de performance",
+                    subscriptionFileId: newId,
+                  },
+                  authToken
+                );
+
+              const updatedUser = UserService.updateSportsman(
+                uploadToUserId,
+                {
+                  subscriptionId: newSubscription.id,
                 },
                 authToken
               );
