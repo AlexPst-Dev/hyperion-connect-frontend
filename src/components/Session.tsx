@@ -62,13 +62,17 @@ export default function Session({
     );
   }
 
+  function isYoutubeUrl(url: string) {
+    return url.includes("youtube.com") || url.includes("youtu.be");
+  }
+
   return (
     <Pressable onPress={onPress} style={[styles.container, shadowStyles.small]}>
       <View style={styles.content}>
         <View
           style={[
             styles.img,
-            isImportedFile || !imageUrl
+            isImportedFile || !imageUrl || isYoutubeUrl(imageUrl)
               ? {
                   borderWidth: 1,
                   borderColor: "rgb(172, 172, 172)",
@@ -79,7 +83,7 @@ export default function Session({
               : "",
           ]}
         >
-          {imageUrl && (
+          {imageUrl && !isYoutubeUrl(imageUrl) && (
             <Image
               source={getImageSource(imageUrl)}
               style={{ width: "100%", height: "100%", borderRadius: 8 }}
@@ -94,15 +98,16 @@ export default function Session({
               fillColor="transparent"
             />
           )}
-          {!imageUrl && !isImportedFile && (
-            <Icon
-              name="eye"
-              width={32}
-              height={32}
-              strokeColor="black"
-              fillColor="transparent"
-            />
-          )}
+          {(!imageUrl && !isImportedFile) ||
+            (imageUrl && isYoutubeUrl(imageUrl) && (
+              <Icon
+                name="eye"
+                width={32}
+                height={32}
+                strokeColor="black"
+                fillColor="transparent"
+              />
+            ))}
         </View>
         <View style={styles.separator} />
         <View style={styles.infos}>

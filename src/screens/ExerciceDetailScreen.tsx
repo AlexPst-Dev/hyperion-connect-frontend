@@ -30,6 +30,7 @@ import { fileService } from "../services/api/file-service";
 import { UpdateExerciseRequest } from "../models/exercise";
 import { getMinutesFromDuration } from "../services/api/session-service";
 import { FileCategory, File as FileModel } from "../models/file";
+import { WebView } from "react-native-webview";
 
 type ExerciceDetailRouteProp = RouteProp<RootStackParamList, "ExerciceDetail">;
 
@@ -210,6 +211,17 @@ export default function ExerciceDetailScreen() {
 
   const screenWidth = Dimensions.get("window").width;
 
+  function isYoutubeUrl(url: string) {
+    return url.includes("youtube.com") || url.includes("youtu.be");
+  }
+  function getYoutubeEmbedUrl(url: string) {
+    // Gère les deux formats : youtube.com/watch?v=... et youtu.be/...
+    const match = url.match(
+      /(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]+)/
+    );
+    return match ? `https://www.youtube.com/embed/${match[1]}` : url;
+  }
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -234,10 +246,32 @@ export default function ExerciceDetailScreen() {
                 borderRadius: 8,
               }}
             >
-              <Image
-                source={getImageSource(currentExercise.filePicture.url)}
-                style={{ borderRadius: 8, height: "100%", width: "100%" }}
-              />
+              {isYoutubeUrl(currentExercise.filePicture.url) ? (
+                Platform.OS === "web" ? (
+                  <iframe
+                    width="100%"
+                    height="100%"
+                    src={getYoutubeEmbedUrl(currentExercise.filePicture.url)}
+                    title="YouTube video"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    style={{ borderRadius: 8 }}
+                  />
+                ) : (
+                  <WebView
+                    source={{
+                      uri: getYoutubeEmbedUrl(currentExercise.filePicture.url),
+                    }}
+                    style={{ borderRadius: 8, height: "100%", width: "100%" }}
+                    allowsFullscreenVideo
+                  />
+                )
+              ) : (
+                <Image
+                  source={getImageSource(currentExercise.filePicture.url)}
+                  style={{ borderRadius: 8, height: "100%", width: "100%" }}
+                />
+              )}
             </View>
           )}
           <View

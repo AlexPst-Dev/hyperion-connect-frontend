@@ -2024,7 +2024,7 @@ export default function SessionsScreen() {
               {loading ? (
                 <ActivityIndicator size="large" />
               ) : (
-                <ScrollView style={{ maxHeight: 350 }}>
+                <ScrollView style={{ maxHeight: 250 }}>
                   {filteredSessions.length === 0 ? (
                     <AppText>Aucune séance trouvée.</AppText>
                   ) : (
@@ -2159,12 +2159,12 @@ export default function SessionsScreen() {
       keyboardVerticalOffset={80}
       style={GlobalStyles.pageStyle}
     >
-      <ScrollView
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
+      <View
+      // keyboardShouldPersistTaps="handled"
+      // showsVerticalScrollIndicator={false}
       >
         {RenderProfileComponents ? RenderProfileComponents(user) : null}
-      </ScrollView>
+      </View>
     </KeyboardAvoidingView>
   );
 }
