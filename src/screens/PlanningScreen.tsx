@@ -712,29 +712,136 @@ export default function PlanningScreen() {
       );
     },
     free: (user) => {
+      const [eventSelected, setEventSelected] = useState<EventModel>();
+      const [personOnGoingOfSelectedEvent, setPersonOnGoingOfSelectedEvent] =
+        useState<any[]>([]);
+      const [eventDetailsPopUpVisible, setEventDetailsPopUpVisible] =
+        useState(false);
+
+      const [events, setEvents] = useState<EventCompleteResponse[] | null>(
+        null
+      );
+      const { eventsByCategory, eventsByCategoriesLoading, error } =
+        useEventsByCategories([EventCategory.HYPERION], token!);
+
+      const allPersonIds = useMemo(() => {
+        const hyperionEvents = eventsByCategory[EventCategory.HYPERION] || [];
+
+        // Récupère tous les IDs selon le type d'événement
+        const allIds = [
+          // IDs des événements hyperion (responsibleIds)
+          ...hyperionEvents
+            .map((event) => event.responsibleIds)
+            .filter(Boolean),
+        ];
+
+        return allIds.join("; ");
+      }, [eventsByCategory]);
+
+      const { users: allUsers, loading: allUsersLoading } = useEventPersons(
+        allPersonIds,
+        token!
+      );
+
+      const usersMap = useMemo(() => {
+        const map = new Map<number, UserResponse>();
+        allUsers.forEach((completeUser) => {
+          map.set(completeUser.user.id, completeUser);
+        });
+        return map;
+      }, [allUsers]);
+
+      const getUsersForEvent = (ids: string | null): UserResponse[] => {
+        if (!ids) return [];
+
+        return ids
+          .split(/[;,]/)
+          .map((id) => id.trim())
+          .filter(Boolean)
+          .map((id) => {
+            const numericId = parseInt(id);
+            if (isNaN(numericId)) {
+              console.warn(`ID invalide: ${id}`);
+              return null;
+            }
+            const user = usersMap.get(numericId);
+            return user;
+          })
+          .filter(Boolean) as UserResponse[];
+      };
+
+      async function fetchEventsByCategory() {
+        if (token) {
+          setEvents([
+            ...(eventsByCategory[EventCategory.HYPERION].filter(
+              (e) =>
+                !e.date ||
+                new Date(e.date).setHours(0, 0, 0, 0) >=
+                  new Date().setHours(0, 0, 0, 0)
+            ) || []),
+          ]);
+        }
+      }
+
+      useEffect(() => {
+        fetchEventsByCategory();
+      }, [token]);
+
       return (
         <>
           <View style={{ flexDirection: "column", gap: 32 }}>
             <View style={{ flexDirection: "column", gap: 24 }}>
               <AppText style={GlobalStyles.h2}>EVENEMENTS HYPERION</AppText>
               <View style={{ flexDirection: "column", gap: 16 }}>
-                <Event
-                  title="Evénement Hyperion Vannes"
-                  type={EventCategory.HYPERION}
-                  personsInvolved={[]}
-                  location="Parc de Vannes"
-                  date={new Date("2025-10-10")}
-                  hour="14h00"
-                />
-                <Event
-                  title="Evénement Hyperion Vannes"
-                  type={EventCategory.HYPERION}
-                  personsInvolved={[]}
-                  location="Parc de Vannes"
-                  date={new Date("2025-10-10")}
-                  hour="14h00"
-                />
+                {eventsByCategoriesLoading ? (
+                  <AppText>Chargement...</AppText>
+                ) : eventsByCategory[EventCategory.HYPERION] &&
+                  eventsByCategory[EventCategory.HYPERION].length > 0 ? (
+                  eventsByCategory[EventCategory.HYPERION]
+                    .filter(
+                      (e) =>
+                        !e.date ||
+                        new Date(e.date).setHours(0, 0, 0, 0) >=
+                          new Date().setHours(0, 0, 0, 0)
+                    )
+                    .map((e) => {
+                      const personsInvolved = getUsersForEvent(
+                        e.responsibleIds
+                      );
+
+                      return (
+                        <Event
+                          key={e.id}
+                          title={e.title ? e.title : "Evénement"}
+                          personsInvolved={personsInvolved.map((u) => u.user)}
+                          location={e.location || ""}
+                          date={new Date(e.date || "")}
+                          hour={e.time || ""}
+                          type={EventCategory.HYPERION}
+                          onPress={() => {
+                            setEventSelected(e);
+                            setPersonOnGoingOfSelectedEvent(personsInvolved);
+                            setEventDetailsPopUpVisible(true);
+                          }}
+                        />
+                      );
+                    })
+                ) : (
+                  <AppText>Aucun événement n'est prévu actuellement</AppText>
+                )}
               </View>
+              {eventDetailsPopUpVisible && eventSelected && (
+                <DisplayEvent
+                  visible={eventDetailsPopUpVisible}
+                  event={eventSelected}
+                  userConnected={user}
+                  listOfUser={personOnGoingOfSelectedEvent}
+                  onClose={() => {
+                    setEventDetailsPopUpVisible(false);
+                  }}
+                  token={token!}
+                />
+              )}
             </View>
           </View>
         </>
