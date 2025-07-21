@@ -1428,7 +1428,17 @@ export default function ClientDetailScreen() {
                   durationTime={getMinutesFromDuration(
                     sessionWithFile.session.durationTime
                   )}
+                  imageUrl={
+                    sessionWithFile.filePicture
+                      ? sessionWithFile.filePicture.url
+                      : undefined
+                  }
                   labels={[]}
+                  onPress={() =>
+                    navigation.navigate("SessionDetail", {
+                      session: sessionWithFile.session,
+                    })
+                  }
                 />
               ))
             ) : (

@@ -95,25 +95,6 @@ export default function UserCard({
   companyLink,
   token,
 }: Props) {
-  function getImageSource(imageUrl?: string): any {
-    if (!imageUrl) {
-      // fallback
-      return require("../assets/images/react-logo.png");
-    }
-
-    if (imageUrl.startsWith("http") || imageUrl.startsWith("https")) {
-      return { uri: imageUrl };
-    }
-
-    // Mapping of konwn local images
-    const localImages: Record<string, any> = {
-      "users/profilePicture/img-profile-1": require("../assets/images/users/profilePicture/img-profil-1.png"),
-      "users/companies/nutrisport-logo": require("../assets/images/users/companies/nutrisport-logo.png"),
-    };
-
-    return localImages[imageUrl] || require("../assets/images/react-logo.png");
-  }
-
   return (
     <View style={[styles.container, shadowStyles.small]}>
       <View style={styles.header}>

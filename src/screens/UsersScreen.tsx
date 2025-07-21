@@ -256,27 +256,36 @@ export default function UsersScreen() {
           );
           if (clientsList.clientIds.length > 0) {
             for (const clientId of clientsList.clientIds) {
-              let newUser = await UserService.getUserById(clientId, token);
-              if (newUser.profile) {
-                // Attach the correct sportCategory object if needed
-                if (
-                  (newUser.profile as any).sportCategoryId &&
-                  sportCategories.length > 0
-                ) {
-                  const sportCategoryId = (newUser.profile as any)
-                    .sportCategoryId;
-                  const cat = sportCategories.find(
-                    (c) => c.id === sportCategoryId
-                  );
-                  // Mutate the profile object to add the category
-                  (newUser.profile as any).sportCategory = cat;
+              try {
+                let newUser = await UserService.getUserById(clientId, token);
+                if (newUser && newUser.profile) {
+                  // Attach the correct sportCategory object if needed
+                  if (
+                    (newUser.profile as any).sportCategoryId &&
+                    sportCategories.length > 0
+                  ) {
+                    const sportCategoryId = (newUser.profile as any)
+                      .sportCategoryId;
+                    const cat = sportCategories.find(
+                      (c) => c.id === sportCategoryId
+                    );
+                    (newUser.profile as any).sportCategory = cat;
+                  }
+                  tabClients.push({
+                    ...newUser.user,
+                    profile: newUser.profile,
+                  });
+                } else if (newUser && newUser.user) {
+                  tabClients.push(newUser.user);
                 }
-                tabClients.push({
-                  ...newUser.user,
-                  profile: newUser.profile,
-                });
-              } else {
-                tabClients.push(newUser.user);
+                // Si newUser est null ou undefined, on ne fait rien
+              } catch (err) {
+                // Ignore l'utilisateur si une erreur survient
+                console.warn(
+                  `Impossible de récupérer l'utilisateur ${clientId}:`,
+                  err
+                );
+                continue;
               }
             }
           }
@@ -860,7 +869,7 @@ export default function UsersScreen() {
       "Plans d'entraînements",
       "Disponibilités",
       "Soignants à affecter",
-      "Offre d'abonnement",
+      "Validation",
     ];
     return titles[step] || "Étape inconnue";
   };
@@ -1484,38 +1493,37 @@ export default function UsersScreen() {
                   </View>
                 )}
 
-              {/* Étape 5: Offre d'abonnement (sportifs uniquement) */}
+              {/* Étape 5: Vérification avant validation */}
               {stepNewUserView === 5 &&
                 newUserType === ProfileCategory.SPORTSMAN && (
                   <View style={{ flexDirection: "column", gap: 16 }}>
                     <AppText style={{ fontWeight: "bold" }}>
-                      Offre d'abonnement
+                      Récapitulatif des informations
                     </AppText>
-
-                    <Input
-                      type="selector"
-                      label="Sélectionnez le libellé de l'offre d'abonnement"
-                      options={[
-                        { label: "Abonnement Gold", value: "gold" },
-                        { label: "Abonnement Silver", value: "silver" },
-                        { label: "Abonnement Bronze", value: "bronze" },
-                      ]}
-                      value={formData.subscriptionLabel || ""}
-                      onChangeText={(v) =>
-                        handleInputChange("subscriptionLabel", v)
-                      }
-                    />
-
-                    <View>
-                      <AppText style={{ marginBottom: 8 }}>
-                        Contrat d'abonnement
+                    <View
+                      style={{
+                        padding: 12,
+                        borderRadius: 8,
+                        backgroundColor: "#F3F4F6",
+                      }}
+                    >
+                      <AppText>Nom : {formData.lastName}</AppText>
+                      <AppText>Prénom : {formData.firstName}</AppText>
+                      <AppText>
+                        Téléphone : {formData.phone || "Non renseigné"}
                       </AppText>
-                      <AppButton
-                        type="secondary"
-                        title="Sélectionner le fichier"
-                        iconName="download"
-                      />
+                      <AppText>Email : {formData.email}</AppText>
+                      <AppText>
+                        Sport sélectionné :{" "}
+                        {sportCategories.find(
+                          (cat) => cat.id === formData.sportCategoryId
+                        )?.label || "Non renseigné"}
+                      </AppText>
                     </View>
+                    <AppText style={{ color: Colors.grey }}>
+                      Vérifiez les informations avant de valider la création du
+                      sportif.
+                    </AppText>
                   </View>
                 )}
 

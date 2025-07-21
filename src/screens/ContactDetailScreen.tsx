@@ -24,6 +24,9 @@ import {
 import { UserService } from "../services/api/user-service";
 import { useAuth } from "../hooks/useAuth";
 import { categoryService } from "../services/api/category-service";
+import { fileService } from "../services/api/file-service";
+import { File } from "../models/file";
+import { useAnyUserProfileImage } from "../hooks/useImageProfilePicture";
 
 type ContactDetailRouteProp = RouteProp<RootStackParamList, "ContactDetail">;
 
@@ -37,6 +40,7 @@ export default function ContactDetailScreen() {
 
   const [userLoading, setUserLoading] = useState(false);
   const [completeUser, setCompleteUser] = useState<UserResponse | null>(null);
+  const [profileFile, setProfileFile] = useState<File | undefined>(undefined);
 
   const [sportLabel, setSportLabel] = useState<string>("");
 
@@ -85,6 +89,27 @@ export default function ContactDetailScreen() {
     }
     fetchCompleteUserProfile();
   }, [contact, token]);
+  useEffect(() => {
+    async function fetchProfileFile() {
+      if (contact.filePictureId && token) {
+        try {
+          const file = await fileService.getFileById(
+            Number(contact.filePictureId),
+            token
+          );
+          setProfileFile(file);
+        } catch (e) {
+          setProfileFile(undefined);
+        }
+      } else {
+        setProfileFile(undefined);
+      }
+    }
+    fetchProfileFile();
+  }, [contact.filePictureId, token]);
+
+  const { profilePicture, isUserPPLoading } =
+    useAnyUserProfileImage(profileFile);
 
   return (
     <KeyboardAvoidingView
@@ -114,9 +139,7 @@ export default function ContactDetailScreen() {
               phone={contact.phone}
               sport={sportLabel}
               age={UserService.getUserAge(contact)?.toString()}
-              profilePictureUrl={
-                contact.filePicture ? contact.filePicture.url : ""
-              }
+              profilePictureUrl={profilePicture}
             />
             {(contact.facebookLink ||
               contact.instagramLink ||
