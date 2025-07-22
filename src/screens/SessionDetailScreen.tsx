@@ -783,21 +783,19 @@ export default function SessionDetailScreen() {
                 ) : (
                   <AppText>Aucun exercises dans ce plan d'entrainement</AppText>
                 )}
-                {isEditable && (
-                  <View
-                    style={{ flexDirection: "row", justifyContent: "center" }}
-                  >
-                    <AppButton
-                      iconName="plus"
-                      type="add"
-                      onPress={() => setModalStep("selector")}
-                    />
-                  </View>
-                )}
               </View>
             </>
           ) : (
             <AppText>Aucun exercises dans ce plan d'entrainement</AppText>
+          )}
+          {isEditable && (
+            <View style={{ flexDirection: "row", justifyContent: "center" }}>
+              <AppButton
+                iconName="plus"
+                type="add"
+                onPress={() => setModalStep("selector")}
+              />
+            </View>
           )}
 
           {currentSession.filePicture &&

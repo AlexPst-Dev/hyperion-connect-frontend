@@ -778,7 +778,13 @@ export default function SessionsScreen() {
             onPress={() => navigation.navigate("SessionHistory")}
             buttonStyle={{ alignSelf: "flex-end" }}
           />
-          <View style={{ flexDirection: "column", gap: 16, paddingBottom: 32 }}>
+          <View
+            style={{
+              flexDirection: "column",
+              gap: 16,
+              paddingBottom: 32,
+            }}
+          >
             {renderAllSessions()}
           </View>
         </View>,
@@ -1274,36 +1280,46 @@ export default function SessionsScreen() {
             <View style={{ flexDirection: "column", gap: 16 }}>
               {loading ? (
                 <ActivityIndicator size="large" color={Colors.deepBlue} />
-              ) : sessionsComplete.length > 0 ? (
-                sessionsComplete
-                  .filter((s) => s.session.isActive)
-                  .map((completeSession) => (
-                    <Session
-                      key={completeSession.session.id}
-                      title={completeSession.session.label}
-                      imageUrl={
-                        completeSession.filePicture &&
-                        completeSession.filePicture.fileCategory ===
-                          FileCategory.IMAGE
-                          ? completeSession.filePicture.url
-                          : undefined
-                      }
-                      isImportedFile={
-                        completeSession.filePicture &&
-                        completeSession.filePicture.fileCategory ===
-                          FileCategory.SESSION_IMPORTED
-                          ? true
-                          : false
-                      }
-                      onPress={() => {
-                        navigation.navigate("SessionDetail", {
-                          session: completeSession.session,
-                        });
-                      }}
-                    />
-                  ))
               ) : (
-                <AppText>Aucune séance trouvée.</AppText>
+                <ScrollView
+                  style={{
+                    maxHeight: Platform.OS === "web" ? 325 : 250,
+                  }}
+                >
+                  {sessionsComplete.length > 0 ? (
+                    sessionsComplete
+                      .filter((s) => s.session.isActive)
+                      .map((completeSession, index) => (
+                        <View key={index} style={{ marginTop: 16 }}>
+                          <Session
+                            key={completeSession.session.id}
+                            title={completeSession.session.label}
+                            imageUrl={
+                              completeSession.filePicture &&
+                              completeSession.filePicture.fileCategory ===
+                                FileCategory.IMAGE
+                                ? completeSession.filePicture.url
+                                : undefined
+                            }
+                            isImportedFile={
+                              completeSession.filePicture &&
+                              completeSession.filePicture.fileCategory ===
+                                FileCategory.SESSION_IMPORTED
+                                ? true
+                                : false
+                            }
+                            onPress={() => {
+                              navigation.navigate("SessionDetail", {
+                                session: completeSession.session,
+                              });
+                            }}
+                          />
+                        </View>
+                      ))
+                  ) : (
+                    <AppText>Aucune séance trouvée.</AppText>
+                  )}
+                </ScrollView>
               )}
               <View style={{ flexDirection: "row", justifyContent: "center" }}>
                 <AppButton
@@ -1624,36 +1640,46 @@ export default function SessionsScreen() {
             <View style={{ flexDirection: "column", gap: 16 }}>
               {loading ? (
                 <ActivityIndicator size="large" color={Colors.deepBlue} />
-              ) : sessionsComplete.length > 0 ? (
-                sessionsComplete
-                  .filter((s) => s.session.isActive)
-                  .map((completeSession) => (
-                    <Session
-                      key={completeSession.session.id}
-                      title={completeSession.session.label}
-                      imageUrl={
-                        completeSession.filePicture &&
-                        completeSession.filePicture.fileCategory ===
-                          FileCategory.IMAGE
-                          ? completeSession.filePicture.url
-                          : undefined
-                      }
-                      isImportedFile={
-                        completeSession.filePicture &&
-                        completeSession.filePicture.fileCategory ===
-                          FileCategory.SESSION_IMPORTED
-                          ? true
-                          : false
-                      }
-                      onPress={() => {
-                        navigation.navigate("SessionDetail", {
-                          session: completeSession.session,
-                        });
-                      }}
-                    />
-                  ))
               ) : (
-                <AppText>Aucune séance trouvée.</AppText>
+                <ScrollView
+                  style={{
+                    maxHeight: Platform.OS === "web" ? 325 : 250,
+                  }}
+                >
+                  {sessionsComplete.length > 0 ? (
+                    sessionsComplete
+                      .filter((s) => s.session.isActive)
+                      .map((completeSession, index) => (
+                        <View key={index} style={{ marginTop: 16 }}>
+                          <Session
+                            key={completeSession.session.id}
+                            title={completeSession.session.label}
+                            imageUrl={
+                              completeSession.filePicture &&
+                              completeSession.filePicture.fileCategory ===
+                                FileCategory.IMAGE
+                                ? completeSession.filePicture.url
+                                : undefined
+                            }
+                            isImportedFile={
+                              completeSession.filePicture &&
+                              completeSession.filePicture.fileCategory ===
+                                FileCategory.SESSION_IMPORTED
+                                ? true
+                                : false
+                            }
+                            onPress={() => {
+                              navigation.navigate("SessionDetail", {
+                                session: completeSession.session,
+                              });
+                            }}
+                          />
+                        </View>
+                      ))
+                  ) : (
+                    <AppText>Aucune séance trouvée.</AppText>
+                  )}
+                </ScrollView>
               )}
               <View style={{ flexDirection: "row", justifyContent: "center" }}>
                 <AppButton
@@ -2159,12 +2185,12 @@ export default function SessionsScreen() {
       keyboardVerticalOffset={80}
       style={GlobalStyles.pageStyle}
     >
-      <View
-      // keyboardShouldPersistTaps="handled"
-      // showsVerticalScrollIndicator={false}
+      <ScrollView
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
         {RenderProfileComponents ? RenderProfileComponents(user) : null}
-      </View>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 }
