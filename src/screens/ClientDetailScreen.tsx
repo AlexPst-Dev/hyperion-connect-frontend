@@ -963,6 +963,37 @@ export default function ClientDetailScreen() {
     }
   };
 
+  const handleDeleteNote = async (noteIdx: number) => {
+    // On retire la note à l'index donné
+    const notesString =
+      (client.profile as SportsmanProfile)?.listMedicNotes || "";
+    const notesArr = getAllNotes(notesString);
+
+    // On retire la note à supprimer
+    const updatedNotesArr = notesArr.filter((_, idx) => idx !== noteIdx);
+
+    // On recompose la string pour l'API
+    const updatedNotesString = updatedNotesArr
+      .map((note) => `{${note.header}, ${note.message}}`)
+      .join(";");
+
+    try {
+      await UserService.updateSportsman(
+        client.id,
+        { listMedicNotes: updatedNotesString },
+        token as string
+      );
+      setSportsmanNotes(updatedNotesArr);
+      notify({ title: "Note supprimée avec succès", type: "success" });
+    } catch (e) {
+      notify({
+        title: "Erreur lors de la suppression de la note",
+        type: "error",
+      });
+      console.error("Erreur lors de la suppression de la note :", e);
+    }
+  };
+
   const handleFileDeletedForUserFilesList = (
     deletedFileId: number,
     newListUserFiles: string
@@ -1158,6 +1189,24 @@ export default function ClientDetailScreen() {
                     {note.header}
                   </AppText>
                   <AppText>{note.message}</AppText>
+                  {user.profileCategory === "admin" && (
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        justifyContent: "flex-end",
+                      }}
+                    >
+                      <AppButton
+                        type="linkSmall"
+                        title="Supprimer"
+                        iconName="trash"
+                        textStyle={{ color: Colors.lightRed }}
+                        borderColor={Colors.lightRed}
+                        iconColor={Colors.lightRed}
+                        onPress={() => handleDeleteNote(idx)}
+                      />
+                    </View>
+                  )}
                 </View>
               ))
             ) : (
