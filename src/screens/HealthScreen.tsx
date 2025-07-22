@@ -34,7 +34,7 @@ export default function HealthScreen() {
     EventCompleteResponse[]
   >([]);
   const [responsiblesMap, setResponsiblesMap] = useState<
-    Record<number, User[]>
+    Record<number, UserResponse[]>
   >({});
   const [sportsmanNotes, setSportsmanNotes] = useState<
     { header: string; message: string }[]
@@ -70,11 +70,11 @@ export default function HealthScreen() {
     // Fetch responsibles for each event
     const responsiblesPromises = completeEvents.events.map(async (event) => {
       const ids = parseIds(event.responsibleIds);
-      const users: User[] = [];
+      const users: UserResponse[] = [];
       for (const id of ids) {
         try {
           const res = await UserService.getUserById(id, token);
-          if (res.user) users.push(res.user);
+          if (res) users.push(res);
         } catch (e) {
           // Optionally handle error
         }
@@ -83,7 +83,7 @@ export default function HealthScreen() {
     });
 
     const responsiblesArray = await Promise.all(responsiblesPromises);
-    const map: Record<number, User[]> = {};
+    const map: Record<number, UserResponse[]> = {};
     responsiblesArray.forEach(({ eventId, users }) => {
       map[eventId] = users;
     });
@@ -191,7 +191,7 @@ export default function HealthScreen() {
           key={me.id}
           type={EventCategory.MEDICAL}
           title={me.title ? me.title : "Rendez-vous"}
-          personsInvolved={responsiblesMap[me.id] || []}
+          personsInvolved={responsiblesMap[me.id]?.map((ur) => ur.user) || []}
           location={me.location ? me.location : "Lieu non renseigné"}
           date={new Date(me.date ?? "")}
           hour={me.time ?? ""}
@@ -207,7 +207,7 @@ export default function HealthScreen() {
           key={me.id}
           type={EventCategory.MEDICAL}
           title={me.title ? me.title : "Rendez-vous"}
-          personsInvolved={responsiblesMap[me.id] || []}
+          personsInvolved={responsiblesMap[me.id]?.map((ur) => ur.user) || []}
           location={me.location ? me.location : "Lieu non renseigné"}
           date={new Date(me.date ?? "")}
           hour={me.time ?? ""}
@@ -226,7 +226,7 @@ export default function HealthScreen() {
       )}
     </View>,
     <View key={"medicNotes"} style={{ flexDirection: "column", gap: 24 }}>
-      <AppText style={{ fontWeight: "bold" }}>Notes médicales</AppText>
+      <AppText style={{ fontWeight: "bold" }}>Suivi santé</AppText>
       <ScrollView
         style={{
           flexDirection: "column",
