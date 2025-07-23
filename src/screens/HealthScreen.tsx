@@ -24,6 +24,7 @@ import { UserService } from "../services/api/user-service";
 import { File } from "../models/file";
 import { fileService } from "../services/api/file-service";
 import DisplayEvent from "../components/popups/DisplayEvent";
+import { SessionService } from "../services/api/session-service";
 
 export default function HealthScreen() {
   const { user, token } = useAuth();
@@ -90,6 +91,50 @@ export default function HealthScreen() {
     setResponsiblesMap(map);
   }
 
+  async function fetchSportsmanAndProsComments(): Promise<
+    { header: string; message: string }[]
+  > {
+    if (!user || !token) return [];
+    const eventsOfUser = await eventService.getEventsByUserId(user.id, token);
+    const coachingEvents = eventsOfUser.events.filter(
+      (e) => e.eventCategory === EventCategory.COACHING
+    );
+
+    const notes: { header: string; message: string }[] = [];
+    for (const e of coachingEvents) {
+      let header: string = "";
+      if (e.specificEvent.sessionId) {
+        const completeSession = await SessionService.getSessionById(
+          e.specificEvent.sessionId,
+          token
+        );
+        header = `Session : ${completeSession.session.label}`;
+
+        // Commentaire du sportif
+        if (e.specificEvent?.sportsmanComment) {
+          notes.push({
+            header,
+            message: `Vous : ${e.specificEvent.sportsmanComment}`,
+          });
+        }
+        // Commentaire du coach
+        if (e.specificEvent?.coachComment) {
+          const coach = completeSession.session.author || null;
+          const coachName = coach
+            ? `${coach.lastName?.toUpperCase() ?? ""} ${
+                coach.firstName ?? ""
+              }`.trim()
+            : "Coach";
+          notes.push({
+            header,
+            message: `${coachName} : ${e.specificEvent.coachComment}`,
+          });
+        }
+      }
+    }
+    return notes;
+  }
+
   async function fetchMedicNotes() {
     if (!user) return;
     const getAllNotes = (notesString?: string) => {
@@ -119,7 +164,9 @@ export default function HealthScreen() {
     const notesString = (completeUser.profile as SportsmanProfile)
       ?.listMedicNotes;
     const allNotes = getAllNotes(notesString);
-    setSportsmanNotes(allNotes);
+    const coachingNotes = await fetchSportsmanAndProsComments();
+
+    setSportsmanNotes([...allNotes, ...coachingNotes]);
   }
 
   async function fetchMedicFiles() {

@@ -281,24 +281,18 @@ export default function ClientDetailScreen() {
         if (!isMounted) return;
         setObjectives(objectives);
 
-        setSportsmanNotes(
-          getAllNotes((client.profile as SportsmanProfile)?.listMedicNotes)
-        );
         if (eventsComplete.events.length > 0) {
           // Filter only coaching events using the type guard
           const coachingEvents = eventsComplete.events.filter(isCoachingEvent);
+          console.log(coachingEvents);
 
-          // Fetch full event details for each coaching event in parallel
-          const coachingEventDetails = await Promise.all(
-            coachingEvents.map(async (e) => {
-              const { event } = await eventService.getEventById(e.id, token);
-              // Return both the parent event id and the coaching event details
-              return {
-                eventId: event.id, // parent event id
-                coachingEvent: event.specificEvent as CoachingEvent,
-              };
-            })
-          );
+          const coachingEventDetails = coachingEvents.map((e) => {
+            return {
+              eventId: e.id,
+              coachingEvent: e.specificEvent as CoachingEvent,
+            };
+          });
+
           if (isMounted) setCurrentCoachingEvents(coachingEventDetails);
         }
 
@@ -312,6 +306,17 @@ export default function ClientDetailScreen() {
               : null,
           }))
         );
+        const notesString = (client.profile as SportsmanProfile)
+          ?.listMedicNotes;
+        const allNotes = getAllNotes(notesString);
+
+        const coachingNotes = await getCoachingCommentsForNotes(
+          client.id,
+          token,
+          sessionsWithFiles
+        );
+        setSportsmanNotes([...allNotes, ...coachingNotes]);
+
         setAllSessions(sessionsWithFiles);
         setAllExercises(exercises as ExerciseWithDetails[]);
 
@@ -509,6 +514,45 @@ export default function ClientDetailScreen() {
       return { header, message };
     });
   };
+
+  async function getCoachingCommentsForNotes(
+    clientId: number,
+    token: string,
+    allSessions: SessionWithFile[]
+  ): Promise<{ header: string; message: string }[]> {
+    const eventsOfUser = await eventService.getEventsByUserId(clientId, token);
+    const coachingEvents = eventsOfUser.events.filter(
+      (e) => e.eventCategory === EventCategory.COACHING
+    );
+
+    const notes: { header: string; message: string }[] = [];
+    for (const e of coachingEvents) {
+      const sessionId = e.specificEvent?.sessionId;
+      let sessionLabel = "";
+      if (sessionId) {
+        // Cherche la session dans allSessions déjà chargées (évite un appel API)
+        const sessionObj = allSessions.find((s) => s.session.id === sessionId);
+        sessionLabel = sessionObj?.session.label || "Session inconnue";
+      }
+      const header = `Session : ${sessionLabel}`;
+
+      // Commentaire du sportif
+      if (e.specificEvent?.sportsmanComment) {
+        notes.push({
+          header,
+          message: `Sportif : ${e.specificEvent.sportsmanComment}`,
+        });
+      }
+      // Commentaire du coach
+      if (e.specificEvent?.coachComment) {
+        notes.push({
+          header,
+          message: `Vous : ${e.specificEvent.coachComment}`,
+        });
+      }
+    }
+    return notes;
+  }
 
   const notesString = (client.profile as SportsmanProfile)?.listMedicNotes;
   const allNotes = getAllNotes(notesString);
@@ -1551,21 +1595,21 @@ export default function ClientDetailScreen() {
               <AppText style={GlobalStyles.h3}>AVANCEMENT</AppText>
               {currentCoachingEvents.length > 0 ? (
                 currentCoachingEvents
-                  .filter(
-                    (e) =>
-                      e.coachingEvent.isDone === false &&
-                      !e.coachingEvent.coachNote
-                  )
+                  .filter((e) => !e.coachingEvent.coachNote)
                   .map(({ eventId, coachingEvent }) => {
-                    if (
-                      coachingEvent.sessionId &&
-                      coachingEvent.session?.label &&
-                      token
-                    ) {
+                    if (coachingEvent.sessionId && token) {
+                      const sessionOfCoachingEvent = allSessions.find(
+                        (s) => s.session.id === coachingEvent.sessionId
+                      );
                       return (
                         <Session
                           key={coachingEvent.id}
-                          title={coachingEvent.session?.label}
+                          title={sessionOfCoachingEvent?.session.label || ""}
+                          imageUrl={
+                            sessionOfCoachingEvent?.filePicture
+                              ? sessionOfCoachingEvent.filePicture.url
+                              : undefined
+                          }
                           isToDo
                           onChangeStateBtnPress={() => {
                             setSelectedCoachingEvent(eventId);
