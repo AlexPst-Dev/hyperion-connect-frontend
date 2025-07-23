@@ -284,7 +284,6 @@ export default function ClientDetailScreen() {
         if (eventsComplete.events.length > 0) {
           // Filter only coaching events using the type guard
           const coachingEvents = eventsComplete.events.filter(isCoachingEvent);
-          console.log(coachingEvents);
 
           const coachingEventDetails = coachingEvents.map((e) => {
             return {
@@ -2391,7 +2390,6 @@ export default function ClientDetailScreen() {
                     onClose={() => setAddMedicToSportsmanPopUpVisible(false)}
                     onSubmit={async (users) => {
                       for (const user of users) {
-                        console.log(user.id, client.id);
                         await addMedicToSportsman(user.id, client.id, token!);
                       }
                       setAddMedicToSportsmanPopUpVisible(false);
