@@ -1926,33 +1926,48 @@ export default function SessionsScreen() {
                 PLAN DE PERFORMANCES A LA UNE
               </AppText>
               <Session
-                title="Séance de Tempo Run"
+                title="Entrainement course à pieds"
                 nbExercises={3}
-                durationTime={50}
-                labels={
-                  <Label
-                    title="Cardio"
-                    textColor="#1E3A8A"
-                    backgroundColor="#D6EBFF"
-                    size="small"
-                  />
-                }
-              />
-              <Session
-                title="Séance de fractionné"
-                nbExercises={5}
-                durationTime={68}
+                durationTime={40}
                 labels={[
                   <Label
-                    key={"cardio"}
-                    title="Cardio"
+                    key={"lower-limbs"}
+                    title="Membres inférieurs"
                     textColor="#1E3A8A"
                     backgroundColor="#D6EBFF"
                     size="small"
                   />,
                   <Label
-                    key={"jambes"}
-                    title="Jambes"
+                    key={"body"}
+                    title="Tronc"
+                    textColor="#1E3A8A"
+                    backgroundColor="#D6EBFF"
+                    size="small"
+                  />,
+                ]}
+              />
+              <Session
+                title="Séance de musculation corps entier maison"
+                nbExercises={5}
+                durationTime={30}
+                labels={[
+                  <Label
+                    key={"lower-limbs"}
+                    title="Membres inférieurs"
+                    textColor="#1E3A8A"
+                    backgroundColor="#D6EBFF"
+                    size="small"
+                  />,
+                  <Label
+                    key={"body"}
+                    title="Tronc"
+                    textColor="#1E3A8A"
+                    backgroundColor="#D6EBFF"
+                    size="small"
+                  />,
+                  <Label
+                    key={"upper-limbs"}
+                    title="Membres supérieurs"
                     textColor="#1E3A8A"
                     backgroundColor="#D6EBFF"
                     size="small"

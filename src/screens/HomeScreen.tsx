@@ -516,7 +516,6 @@ export default function HomeScreen() {
             closestEvent.id,
             token
           );
-          console.log(event);
           setClosestEvent(event); // This will trigger a re-render and update DisplayEvent
         } catch (error) {
           console.error("Error refreshing event:", error);
@@ -656,7 +655,6 @@ export default function HomeScreen() {
             closestEvent.id,
             token
           );
-          console.log(event);
           setClosestEvent(event); // This will trigger a re-render and update DisplayEvent
         } catch (error) {
           console.error("Error refreshing event:", error);
@@ -827,48 +825,53 @@ export default function HomeScreen() {
             style={{ flexDirection: "column", gap: 8, position: "relative" }}
           >
             <Session
-              title="Séance de Tempo Run"
-              durationTime={50}
+              title="Entrainement course à pieds"
               nbExercises={3}
-              labels={
-                <>
-                  <Label
-                    title="Cardio"
-                    textColor="#1E3A8A"
-                    backgroundColor="#D6EBFF"
-                    size="small"
-                  />
-                  <Label
-                    title="Jambes"
-                    textColor="#F97316"
-                    backgroundColor="#FFF9F4"
-                    size="small"
-                  />
-                </>
-              }
-              imageUrl="sessions/img-running"
+              durationTime={40}
+              labels={[
+                <Label
+                  key={"lower-limbs"}
+                  title="Membres inférieurs"
+                  textColor="#1E3A8A"
+                  backgroundColor="#D6EBFF"
+                  size="small"
+                />,
+                <Label
+                  key={"body"}
+                  title="Tronc"
+                  textColor="#1E3A8A"
+                  backgroundColor="#D6EBFF"
+                  size="small"
+                />,
+              ]}
             />
             <Session
-              title="Séance de Tempo Run"
-              durationTime={50}
-              nbExercises={3}
-              labels={
-                <>
-                  <Label
-                    title="Cardio"
-                    textColor="#1E3A8A"
-                    backgroundColor="#D6EBFF"
-                    size="small"
-                  />
-                  <Label
-                    title="Jambes"
-                    textColor="#F97316"
-                    backgroundColor="#FFF9F4"
-                    size="small"
-                  />
-                </>
-              }
-              imageUrl="sessions/img-running"
+              title="Séance de musculation corps entier maison"
+              nbExercises={5}
+              durationTime={30}
+              labels={[
+                <Label
+                  key={"lower-limbs"}
+                  title="Membres inférieurs"
+                  textColor="#1E3A8A"
+                  backgroundColor="#D6EBFF"
+                  size="small"
+                />,
+                <Label
+                  key={"body"}
+                  title="Tronc"
+                  textColor="#1E3A8A"
+                  backgroundColor="#D6EBFF"
+                  size="small"
+                />,
+                <Label
+                  key={"upper-limbs"}
+                  title="Membres supérieurs"
+                  textColor="#1E3A8A"
+                  backgroundColor="#D6EBFF"
+                  size="small"
+                />,
+              ]}
             />
             <BlurredSessionWrapper>
               <Session
@@ -956,7 +959,9 @@ export default function HomeScreen() {
                     <Event
                       key={e.id}
                       title={e.title ? e.title : "Evénement"}
-                      personsInvolved={eventUsersById[e.id].map((u) => u.user) || []}
+                      personsInvolved={
+                        eventUsersById[e.id].map((u) => u.user) || []
+                      }
                       location={e.location || ""}
                       date={new Date(e.date || "")}
                       hour={e.time || ""}
