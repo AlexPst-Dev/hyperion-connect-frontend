@@ -309,7 +309,7 @@ export default function SessionsScreen() {
       const handleEvaluateSessionSubmit = async () => {
         if (!note) {
           notify({
-            title: "Merci de donner une note à la séance.",
+            title: "Merci de donner une note sur l'effort de la séance.",
             type: "error",
           });
           return;
@@ -1046,14 +1046,14 @@ export default function SessionsScreen() {
                         setComment("");
                         setSelectedEventId(null);
                       }}
-                      title="Evaluer la séance"
-                      paragraph="Comment estimeriez-vous votre motivation à cette séance ?"
+                      title="Effort ressenti sur la séance"
+                      paragraph="Comment estimeriez-vous l'effort ressenti à cette séance ? (1 étant très facile, 10 très difficile)"
                       btnText={submitLoading ? "Enregistrement..." : "Valider"}
                       iconName="check"
                       btnType="primary"
                       onSubmit={handleEvaluateSessionSubmit}
                       closeText="Annuler"
-                      inputs={[
+                      inputs={
                         <Input
                           key="note"
                           type="selector"
@@ -1065,11 +1065,16 @@ export default function SessionsScreen() {
                             { label: "3", value: "3" },
                             { label: "4", value: "4" },
                             { label: "5", value: "5" },
+                            { label: "6", value: "6" },
+                            { label: "7", value: "7" },
+                            { label: "8", value: "8" },
+                            { label: "9", value: "5" },
+                            { label: "10", value: "10" },
                           ]}
                           value={note}
                           onChangeText={setNote}
-                        />,
-                      ]}
+                        />
+                      }
                       specificBody={
                         <>
                           <AppText>

@@ -44,7 +44,6 @@ export interface CoachingEvent {
   sportsmanComment: string | null;
   sportsmanNote: string | null;
   coachComment: string | null;
-  coachNote: string | null;
 }
 
 export interface MedicalEvent {
@@ -92,7 +91,6 @@ export interface CreateCoachingEvent {
   sportsmanComment?: string;
   sportsmanNote?: string;
   coachComment?: string;
-  coachNote?: string;
 }
 
 export interface CreateMedicalEvent {
@@ -165,7 +163,6 @@ export interface UpdateCoachingEvent {
   sportsmanComment?: string | null;
   sportsmanNote?: string | null;
   coachComment?: string | null;
-  coachNote?: string | null;
 }
 
 export interface UpdateMedicalEvent {
@@ -210,7 +207,6 @@ export interface CoachingEventResponse {
   sportsmanComment: string | null;
   sportsmanNote: string | null;
   coachComment: string | null;
-  coachNote: string | null;
 }
 
 export interface MedicalEventResponse {
@@ -284,7 +280,6 @@ export const mapCoachingEventResponse = (
   sportsmanComment: response.sportsmanComment,
   sportsmanNote: response.sportsmanNote,
   coachComment: response.coachComment,
-  coachNote: response.coachNote,
 });
 
 export const mapMedicalEventResponse = (

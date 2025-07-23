@@ -192,7 +192,6 @@ export default function ClientDetailScreen() {
     evaluateCoachingEventPopUpVisible,
     setEvaluateCoachingEventPopUpVisible,
   ] = useState(false);
-  const [coachCommentNote, setCoachCommentNote] = useState("");
   const [coachCommentText, setCoachCommentText] = useState("");
   const [selectedCoachingEvent, setSelectedCoachingEvent] = useState(0);
 
@@ -955,7 +954,7 @@ export default function ClientDetailScreen() {
 
   // Handler to add a commentary when set a coaching event at isDone for coach profile
   const handleAddCommentaryToCoachingEventDone = async (eventId: number) => {
-    if (user && token && coachCommentNote) {
+    if (user && token && coachCommentText) {
       const updatedCoachingEvent = await eventService.getEventById(
         eventId,
         token
@@ -965,7 +964,6 @@ export default function ClientDetailScreen() {
         eventService.updateEvent(
           eventId,
           {
-            coachNote: coachCommentNote,
             coachComment: coachCommentText,
             isDone:
               event.sportsmanComment !== null && event.sportsmanNote !== null
@@ -1224,7 +1222,8 @@ export default function ClientDetailScreen() {
         {/* Notes */}
         <View style={{ flexDirection: "column", gap: 16 }}>
           <AppText style={GlobalStyles.h2}>NOTES</AppText>
-          <View>
+          <ScrollView
+            style={{ maxHeight: 300, marginBottom: 16 }}>
             {sportsmanNotes.length > 0 ? (
               sportsmanNotes.map((note, idx) => (
                 <View key={idx} style={{ marginBottom: 12 }}>
@@ -1255,7 +1254,7 @@ export default function ClientDetailScreen() {
             ) : (
               <AppText>Aucune note</AppText>
             )}
-          </View>
+          </ScrollView>
           <View style={{ flexDirection: "row", justifyContent: "flex-end" }}>
             <AppButton
               type="add"
@@ -1594,7 +1593,7 @@ export default function ClientDetailScreen() {
               <AppText style={GlobalStyles.h3}>AVANCEMENT</AppText>
               {currentCoachingEvents.length > 0 ? (
                 currentCoachingEvents
-                  .filter((e) => !e.coachingEvent.coachNote)
+                  .filter((e) => !e.coachingEvent.coachComment)
                   .map(({ eventId, coachingEvent }) => {
                     if (coachingEvent.sessionId && token) {
                       const sessionOfCoachingEvent = allSessions.find(
@@ -1661,46 +1660,13 @@ export default function ClientDetailScreen() {
                       btnType="primary"
                       closeText="Annuler"
                       inputs={
-                        <View style={{ flexDirection: "column", gap: 16 }}>
-                          <Input
-                            type="selector"
-                            label="Note"
-                            options={[
-                              {
-                                label: "1",
-                                value: "1",
-                              },
-                              {
-                                label: "2",
-                                value: "2",
-                              },
-                              {
-                                label: "3",
-                                value: "3",
-                              },
-                              {
-                                label: "4",
-                                value: "4",
-                              },
-                              {
-                                label: "5",
-                                value: "5",
-                              },
-                            ]}
-                            value={coachCommentNote}
-                            onChangeText={(v) => setCoachCommentNote(v)}
-                          />
-                          <AppText>
-                            Souhaitez-vous ajouter un commentaire
-                          </AppText>
-                          <Input
-                            type="text"
-                            label="Commentaire"
-                            placeholder="douleur, fatigue, progression, ..."
-                            value={coachCommentText}
-                            onChangeText={(v) => setCoachCommentText(v)}
-                          />
-                        </View>
+                        <Input
+                          type="textarea"
+                          label="Commentaire"
+                          placeholder="douleur, fatigue, progression, ..."
+                          value={coachCommentText}
+                          onChangeText={(v) => setCoachCommentText(v)}
+                        />
                       }
                     />
                   </Pressable>
