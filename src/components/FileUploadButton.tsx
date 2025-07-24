@@ -6,7 +6,7 @@ import {
   StyleSheet,
   ActivityIndicator,
 } from "react-native";
-import { FileCategory } from "../models/file";
+import { File, FileCategory } from "../models/file";
 import { FileUploadService } from "../utils/file-utils";
 import AppText from "./AppText";
 import GlobalStyles from "../styles/styles";
@@ -18,12 +18,11 @@ import { UserService } from "../services/api/user-service";
 import { fileService } from "../services/api/file-service";
 import { ProfileCategory, SportsmanProfile } from "../models/user";
 import { CompanyService } from "../services/api/company-service";
-import { SubscriptionService } from "../services/api/subscription-service";
 
 interface FileUploadButtonProps {
   fileCategory: FileCategory;
   label?: string;
-  onUploadSuccess?: (file: any, newSession?: any) => void;
+  onUploadSuccess?: (file: File, newSession?: any) => void;
   onUploadError?: (error: string) => void;
   authToken: string;
   authUser: LoggedUser;
@@ -308,27 +307,7 @@ export const FileUploadButton: React.FC<FileUploadButtonProps> = ({
               userToUpdate.user.profileCategory === ProfileCategory.SPORTSMAN &&
               userToUpdate.profile
             ) {
-              const newId = result.data.id;
-
-              const suscriptionService = new SubscriptionService();
-              const newSubscription =
-                await suscriptionService.createSubscription(
-                  {
-                    labelDiagnostic: "Diagnostic",
-                    labelPerformancePlan: "Plan de performance",
-                    subscriptionFileId: newId,
-                  },
-                  authToken
-                );
-
-              const updatedUser = UserService.updateSportsman(
-                uploadToUserId,
-                {
-                  subscriptionId: newSubscription.id,
-                },
-                authToken
-              );
-              onUploadSuccess?.(result.data, updatedUser);
+              onUploadSuccess?.(result.data);
             }
           } catch (e) {
             console.log(

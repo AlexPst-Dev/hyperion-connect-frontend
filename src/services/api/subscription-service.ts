@@ -63,10 +63,19 @@ export class SubscriptionService {
     data: CreateSubscriptionRequest,
     token?: string
   ): Promise<Subscription> {
-    const { labelDiagnostic, labelPerformancePlan, subscriptionFileId } = data;
+    const {
+      isBilanComplete,
+      monthlyMonitoringCategory,
+      startDate,
+      endDate,
+      otherServises,
+      subscriptionFileId,
+    } = data;
 
-    if (!labelDiagnostic || !labelPerformancePlan || !subscriptionFileId) {
-      throw new Error("Tous les champs sont requis.");
+    if (!startDate || !endDate || !subscriptionFileId) {
+      throw new Error(
+        "Les champs startDate, endDate et subscriptionFileId sont requis."
+      );
     }
 
     try {

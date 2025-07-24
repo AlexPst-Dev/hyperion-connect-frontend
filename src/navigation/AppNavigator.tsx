@@ -203,7 +203,14 @@ export default function AppNavigator() {
                   name="ClientDetail"
                   component={ClientDetailScreen}
                   options={({ route, navigation }) =>
-                    mainOptions(route, navigation, user, "CLIENTS")
+                    mainOptions(
+                      route,
+                      navigation,
+                      user,
+                      `${route.params.client.firstName || ""} ${
+                        route.params.client.lastName || ""
+                      }`
+                    )
                   }
                 />
               </>

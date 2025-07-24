@@ -56,6 +56,7 @@ export interface SportsmanProfile {
   graphId?: number;
   subscription?: Subscription;
   subscriptionId?: number;
+  trackingFileUrl?: string;
 }
 
 export interface CoachProfile {

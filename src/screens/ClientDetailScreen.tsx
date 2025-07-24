@@ -29,7 +29,6 @@ import Icon from "../components/Icon";
 import AppButton from "../components/AppButton";
 import Objective from "../components/Objective";
 import Session from "../components/Session";
-import Label from "../components/Label";
 import BillingGroup from "../components/BillingGroup";
 import BillingLine from "../components/BillingLine";
 import ItemUser from "../components/ItemUser";
@@ -80,6 +79,7 @@ import { clientService } from "../services/api/client-service";
 import { FileUploadButton } from "../components/FileUploadButton";
 import ItemFile from "../components/ItemFile";
 import { useAnyUserProfileImage } from "../hooks/useImageProfilePicture";
+import { MonthlyMonitoringEnum, Subscription } from "../models/subscription";
 
 type ClientDetailRouteProp = RouteProp<RootStackParamList, "ClientDetail">;
 
@@ -184,6 +184,8 @@ export default function ClientDetailScreen() {
 
   const [subscriptionFileOfSportsman, setSubscriptionFileOfSportsman] =
     useState<File | null>(null);
+  const [subscriptionOfSportsman, setSubscriptionOfSportsman] =
+    useState<Subscription | null>(null);
 
   const [currentCoachingEvents, setCurrentCoachingEvents] = useState<
     { eventId: number; coachingEvent: CoachingEvent }[]
@@ -203,6 +205,15 @@ export default function ClientDetailScreen() {
     graphTitle: string;
     graphMeasuredValue: string;
   }>();
+
+  const [subscriptionForm, setSubscriptionForm] = useState({
+    startDate: "",
+    endDate: "",
+    isBilanComplete: false,
+    monthlyMonitoringCategory: MonthlyMonitoringEnum.COMPLETE,
+    otherServises: "",
+    subscriptionFile: null, // Stockera le fichier uploadé
+  });
 
   let isMounted = true;
 
@@ -227,6 +238,31 @@ export default function ClientDetailScreen() {
     }
   }
 
+  //Subscription file
+  async function fetchSubscriptionFile(token: string) {
+    if ((client.profile as SportsmanProfile)?.subscriptionId) {
+      const subscriptionId = (client.profile as SportsmanProfile)
+        .subscriptionId;
+      if (subscriptionId) {
+        try {
+          const subscription =
+            await new SubscriptionService().getSubscriptionById(
+              subscriptionId,
+              token
+            );
+          setSubscriptionOfSportsman(subscription);
+          const subFile = await fileService.getFileById(
+            subscription.subscriptionFileId,
+            token
+          );
+          if (isMounted) setSubscriptionFileOfSportsman(subFile);
+        } catch {
+          if (isMounted) setSubscriptionFileOfSportsman(null);
+        }
+      }
+    }
+  }
+
   async function fetchProfilePictureFile() {
     if (client.filePictureId && token && !isNaN(Number(client.filePictureId))) {
       try {
@@ -244,6 +280,68 @@ export default function ClientDetailScreen() {
       }
     }
   }
+
+  const handleSubscriptionFormChange = (field: string, value: any) => {
+    setSubscriptionForm((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+  const formatDateForSQL = (dateStr: string) => {
+    const d = new Date(dateStr);
+    // Ajoute le zéro devant le mois/jour si besoin
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    return `${yyyy}-${mm}-${dd}`;
+  };
+
+  const handleCreateSubscription = async () => {
+    if (
+      !subscriptionForm.startDate ||
+      !subscriptionForm.endDate ||
+      !subscriptionForm.subscriptionFile
+    ) {
+      notify({
+        title:
+          "Veuillez renseigner la date de début, de fin et importer un fichier.",
+        type: "error",
+      });
+      return;
+    }
+    try {
+      const newSubscription =
+        await new SubscriptionService().createSubscription(
+          {
+            startDate: formatDateForSQL(subscriptionForm.startDate),
+            endDate: formatDateForSQL(subscriptionForm.endDate),
+            isBilanComplete: subscriptionForm.isBilanComplete,
+            monthlyMonitoringCategory:
+              subscriptionForm.monthlyMonitoringCategory,
+            otherServises: subscriptionForm.otherServises,
+            subscriptionFileId: (subscriptionForm.subscriptionFile as File).id,
+          },
+          token!
+        );
+      if (newSubscription && token) {
+        await UserService.updateSportsman(
+          client.id,
+          {
+            subscriptionId: newSubscription.id,
+          },
+          token
+        );
+      }
+      notify({ title: "Abonnement créé avec succès", type: "success" });
+      setEditSubscriptionEditPopUpVisible(false);
+    } catch (e) {
+      notify({
+        title: "Erreur lors de la création de l'abonnement",
+        type: "error",
+      });
+      console.error(e);
+    }
+  };
 
   async function fetchAllClientData() {
     // Optionally: set a loading state here
@@ -343,6 +441,7 @@ export default function ClientDetailScreen() {
         }
 
         fetchListOfUserFiles(token);
+        fetchSubscriptionFile(token);
         fetchProfilePictureFile();
 
         // Medic files
@@ -1222,8 +1321,7 @@ export default function ClientDetailScreen() {
         {/* Notes */}
         <View style={{ flexDirection: "column", gap: 16 }}>
           <AppText style={GlobalStyles.h2}>NOTES</AppText>
-          <ScrollView
-            style={{ maxHeight: 300, marginBottom: 16 }}>
+          <ScrollView style={{ maxHeight: 300, marginBottom: 16 }}>
             {sportsmanNotes.length > 0 ? (
               sportsmanNotes.map((note, idx) => (
                 <View key={idx} style={{ marginBottom: 12 }}>
@@ -1678,15 +1776,7 @@ export default function ClientDetailScreen() {
         {/* Formulaire de suivi */}
         <View style={{ flexDirection: "column", gap: 16 }}>
           <AppText style={GlobalStyles.h3}>FORMULAIRE DE SUIVI</AppText>
-          <View>
-            <AppText style={{ fontWeight: "bold" }}>
-              Mis à jour le{" "}
-              {subscriptionFileOfSportsman?.updatedAt
-                ? new Date(
-                    subscriptionFileOfSportsman.updatedAt
-                  ).toLocaleDateString()
-                : "N/A"}
-            </AppText>
+          <View style={{ flexDirection: "column", gap: 16 }}>
             <Pressable
               style={[
                 {
@@ -1701,20 +1791,30 @@ export default function ClientDetailScreen() {
                 GlobalStyles.button_changeState,
               ]}
               onPress={() => {
-                if (subscriptionFileOfSportsman?.url) {
-                  Linking.openURL(subscriptionFileOfSportsman.url);
+                const trackingFileUrl = (client.profile as SportsmanProfile)
+                  .trackingFileUrl;
+                console.log("trackingFileUrl", trackingFileUrl);
+                if (
+                  typeof trackingFileUrl === "string" &&
+                  trackingFileUrl.length > 0
+                ) {
+                  Linking.openURL(trackingFileUrl);
                 }
               }}
             >
               <Icon
-                name="link"
+                name={
+                  (client.profile as SportsmanProfile).trackingFileUrl
+                    ? "link"
+                    : "linkDenied"
+                }
                 fillColor="transparent"
                 strokeColor={Colors.deepBlue}
                 width={20}
                 height={20}
               />
               <AppText style={{ color: Colors.deepBlue }}>
-                {subscriptionFileOfSportsman?.url
+                {(client.profile as SportsmanProfile).trackingFileUrl
                   ? "Voir le document"
                   : "Aucun lien de suivi renseigné."}
               </AppText>
@@ -1728,17 +1828,63 @@ export default function ClientDetailScreen() {
                 />
               </View>
             </Pressable>
+            {user.profileCategory === ProfileCategory.ADMIN && (
+              <View
+                style={{ flexDirection: "row", justifyContent: "flex-end" }}
+              >
+                <AppButton
+                  type="primary"
+                  title="Mettre à jour le lien"
+                  iconName="link"
+                  onPress={() => setChangeTrackingFileLinkPopupVisible(true)}
+                />
+              </View>
+            )}
+            {subscriptionFileOfSportsman && token && (
+              <View style={{ flexDirection: "column", gap: 8 }}>
+                <AppText style={GlobalStyles.h3}>CONTRAT D'ABONNEMENT</AppText>
+                <ItemFile
+                  file={subscriptionFileOfSportsman}
+                  displayControllers={false}
+                  uploadToASpecificId={client.id}
+                  token={token}
+                />
+                <AppText style={{ fontWeight: "bold" }}>Détails :</AppText>
+                <AppText>{`Du ${subscriptionOfSportsman?.startDate} au ${subscriptionOfSportsman?.endDate}`}</AppText>
+                {subscriptionOfSportsman &&
+                  (subscriptionOfSportsman.monthlyMonitoringCategory ||
+                    subscriptionOfSportsman.otherServises) && (
+                    <>
+                      <AppText>
+                        -{" "}
+                        {subscriptionOfSportsman.isBilanComplete
+                          ? "Bilan physiologique général et prophylaxie"
+                          : "Bilan physiologique sans prophylaxie"}
+                      </AppText>
+                      <AppText>
+                        -{" "}
+                        {subscriptionOfSportsman.monthlyMonitoringCategory ===
+                        MonthlyMonitoringEnum.COMPLETE
+                          ? "Suivi complet"
+                          : subscriptionOfSportsman.monthlyMonitoringCategory ===
+                            MonthlyMonitoringEnum.MENTAL_COACHING
+                          ? "Suivi avec coaching mental"
+                          : subscriptionOfSportsman.monthlyMonitoringCategory ===
+                            MonthlyMonitoringEnum.DIETETIC
+                          ? "Suivi avec diététique"
+                          : "Aucun suivi mentionné"}
+                      </AppText>
+                      <AppText>
+                        -{" "}
+                        {subscriptionOfSportsman.otherServises !== ""
+                          ? subscriptionOfSportsman.otherServises
+                          : ""}
+                      </AppText>
+                    </>
+                  )}
+              </View>
+            )}
           </View>
-          {user.profileCategory === ProfileCategory.ADMIN && (
-            <View style={{ flexDirection: "row", justifyContent: "flex-end" }}>
-              <AppButton
-                type="primary"
-                title="Mettre à jour le lien"
-                iconName="link"
-                onPress={() => setChangeTrackingFileLinkPopupVisible(true)}
-              />
-            </View>
-          )}
         </View>
         <Modal
           visible={changeTrackingFileLinkPopupVisible}
@@ -1907,6 +2053,7 @@ export default function ClientDetailScreen() {
                   <PopUp
                     title="Editer l'abonnement"
                     paragraph="Importez le contrat d'offre d'abonnement ici"
+                    onSubmit={handleCreateSubscription}
                     specificBody={
                       <View
                         style={{
@@ -1921,7 +2068,10 @@ export default function ClientDetailScreen() {
                           authUser={user}
                           uploadToUserId={client.id}
                           onUploadSuccess={(file) => {
-                            setEditSubscriptionEditPopUpVisible(false);
+                            handleSubscriptionFormChange(
+                              "subscriptionFile",
+                              file
+                            );
                           }}
                           onUploadError={(error) => {
                             console.error("Erreur:", error);
@@ -1931,19 +2081,85 @@ export default function ClientDetailScreen() {
                     }
                     inputs={
                       <>
+                        <View style={{ flexDirection: "row", gap: 16 }}>
+                          <View style={{ flex: 1 }}>
+                            <Input
+                              type="date"
+                              label="Date de début"
+                              placeholder="XX/XX/XXXX"
+                              value={subscriptionForm.startDate}
+                              onChangeText={(v) =>
+                                handleSubscriptionFormChange("startDate", v)
+                              }
+                            />
+                          </View>
+                          <View style={{ flex: 1 }}>
+                            <Input
+                              type="date"
+                              label="Date de fin"
+                              placeholder="XX/XX/XXXX"
+                              value={subscriptionForm.endDate}
+                              onChangeText={(v) =>
+                                handleSubscriptionFormChange("endDate", v)
+                              }
+                            />
+                          </View>
+                        </View>
                         <Input
                           type="selector"
-                          label="Choix du diagnostic"
+                          label="Choix du bilan"
+                          value={subscriptionForm.isBilanComplete ? "1" : "0"}
                           options={[
                             {
-                              label: "Gold",
-                              value: "gold",
+                              label:
+                                "Bilan physiologique général et prophylaxie",
+                              value: "1",
                             },
                             {
-                              label: "Silver",
-                              value: "silver",
+                              label: "Bilan physiologique sans prophylaxie",
+                              value: "0",
                             },
                           ]}
+                          onChangeText={(v) =>
+                            handleSubscriptionFormChange(
+                              "isBilanComplete",
+                              v === "1"
+                            )
+                          }
+                        />
+                        <Input
+                          type="selector"
+                          label="Choix du suivi mensuel"
+                          value={subscriptionForm.monthlyMonitoringCategory}
+                          options={[
+                            {
+                              label: "Suivi complet",
+                              value: MonthlyMonitoringEnum.COMPLETE,
+                            },
+                            {
+                              label: "Suivi avec diététique",
+                              value: MonthlyMonitoringEnum.DIETETIC,
+                            },
+                            {
+                              label: "Suivi avec coaching mental",
+                              value: MonthlyMonitoringEnum.MENTAL_COACHING,
+                            },
+                          ]}
+                          onChangeText={(v) =>
+                            handleSubscriptionFormChange(
+                              "monthlyMonitoringCategory",
+                              v
+                            )
+                          }
+                        />
+                        <Input
+                          type="textarea"
+                          label="Autres prestations"
+                          placeholder="Renseignez ici les autres services et prestations..."
+                          value={subscriptionForm.otherServises}
+                          onChangeText={(v) =>
+                            handleSubscriptionFormChange("otherServises", v)
+                          }
                         />
                       </>
                     }
@@ -1953,11 +2169,6 @@ export default function ClientDetailScreen() {
                       )
                     }
                     closeText="Annuler"
-                    onSubmit={() =>
-                      setEditSubscriptionEditPopUpVisible(
-                        !editSubscriptionEditPopUpVisible
-                      )
-                    }
                     btnType="primary"
                     btnText="Modifier"
                     iconName="check"
@@ -1991,20 +2202,6 @@ export default function ClientDetailScreen() {
                 <AppText style={{ fontWeight: "bold" }}>
                   Plan de facturation choisi
                 </AppText>
-                <View>
-                  <AppText>
-                    {
-                      (client.profile as SportsmanProfile).subscription
-                        ?.labelDiagnostic
-                    }
-                  </AppText>
-                  <AppText>
-                    {
-                      (client.profile as SportsmanProfile).subscription
-                        ?.labelPerformancePlan
-                    }
-                  </AppText>
-                </View>
               </View>
               {billingGroups.length > 0 ? (
                 billingGroups.map(({ objective, billings }) => {
