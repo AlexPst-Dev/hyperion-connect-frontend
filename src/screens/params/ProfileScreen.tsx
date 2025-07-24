@@ -108,30 +108,33 @@ export default function ProfileScreen() {
         (req.profile as SportsmanProfile)?.sportCategoryId
       ) {
         categoryId = (req.profile as SportsmanProfile).sportCategoryId;
+        if (categoryId && token) {
+          try {
+            const category = await categoryService.getCategoryById(
+              categoryId,
+              token
+            );
+            setSportLabel(category.label);
+          } catch (e) {
+            setSportLabel("");
+          }
+        }
       } else if (
         req.user.profileCategory === ProfileCategory.COACH &&
-        (req.profile as CoachProfile)?.sportCategoryId
+        (req.profile as CoachProfile)?.sportCategories
       ) {
-        categoryId = (req.profile as CoachProfile).sportCategoryId;
+        const catCoach = (req.profile as CoachProfile).sportCategories || [];
+        setSportLabel(
+          catCoach.length > 0 ? catCoach.map((c) => c.label).join(", ") : ""
+        );
       } else if (
         req.user.profileCategory === ProfileCategory.MEDIC &&
-        (req.profile as MedicProfile)?.medicCategoryId
+        (req.profile as MedicProfile)?.sportCategories
       ) {
-        categoryId = (req.profile as MedicProfile).medicCategoryId;
-      }
-
-      if (categoryId && token) {
-        try {
-          const category = await categoryService.getCategoryById(
-            categoryId,
-            token
-          );
-          setSportLabel(category.label);
-        } catch (e) {
-          setSportLabel("");
-        }
-      } else {
-        setSportLabel("");
+        const catMedic = (req.profile as MedicProfile).sportCategories || [];
+        setSportLabel(
+          catMedic.length > 0 ? catMedic.map((c) => c.label).join(", ") : ""
+        );
       }
 
       if (req.user.profileCategory === ProfileCategory.SPORTSMAN) {

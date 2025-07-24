@@ -82,8 +82,11 @@ export default function CommunityScreen() {
         if (reqIds.userId && reqIds.contactIds.length > 0) {
           // Fetch all contacts in parallel
           const contacts = await Promise.all(
-            reqIds.contactIds.map((contactId) =>
-              UserService.getUserById(contactId)
+            reqIds.contactIds.map(
+              (contactId) =>
+                UserService.getUserById(contactId)
+                  .then((res) => res)
+                  .catch(() => null) // Handle any errors in fetching individual users
             )
           );
           // Filter out any null/undefined results
@@ -224,16 +227,16 @@ export default function CommunityScreen() {
       const [eventDetailsPopUpVisible, setEventDetailsPopUpVisible] =
         useState(false);
 
-      const [responsibleUsers, setResponsibleUsers] = useState<UserResponse[]>([]);
+      const [responsibleUsers, setResponsibleUsers] = useState<UserResponse[]>(
+        []
+      );
 
       const fetchUsersByIds = async (ids: number[], token: string) => {
         const users = await Promise.all(
           ids.map((id) => UserService.getUserById(id, token).catch(() => null))
         );
         // Filter out failed fetches
-        return users
-          .filter((u): u is UserResponse => u !== null)
-          .map((u) => u);
+        return users.filter((u): u is UserResponse => u !== null).map((u) => u);
       };
       const handleOpenEvent = async (event: EventModel) => {
         setEventSelected(event);

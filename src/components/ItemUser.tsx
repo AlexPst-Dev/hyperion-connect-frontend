@@ -2,7 +2,13 @@ import React, { useEffect, useState } from "react";
 import { StyleSheet, View, Image } from "react-native";
 import GlobalStyles, { Colors, shadowStyles } from "../styles/styles";
 import Icon, { IconName } from "./Icon";
-import { ProfileCategory, User } from "../models/user";
+import {
+  CoachProfile,
+  MedicProfile,
+  ProfileCategory,
+  SportsmanProfile,
+  User,
+} from "../models/user";
 import { Company } from "../models/company";
 import AppText from "./AppText";
 import {
@@ -12,6 +18,8 @@ import {
 import { fileService } from "../services/api/file-service";
 import { useAuth } from "../hooks/useAuth";
 import { File } from "../models/file";
+import { UserService } from "../services/api/user-service";
+import { categoryService } from "../services/api/category-service";
 
 interface Props {
   isCompany: boolean;
@@ -30,6 +38,7 @@ export default function ItemUser({
 
   const [userFile, setUserFile] = useState<File | undefined>();
   const [companyFile, setCompanyFile] = useState<File | undefined>();
+  const [categoryLabel, setCategoryLabel] = useState<string>("");
 
   // Récupérer le fichier utilisateur
   useEffect(() => {
@@ -56,8 +65,45 @@ export default function ItemUser({
         setUserFile(undefined);
       }
     };
+    const getCategoryLabel = async () => {
+      // Sportsman: une seule catégorie
+      if (user.profileCategory === ProfileCategory.SPORTSMAN && token) {
+        const completeUser = await UserService.getUserById(user.id, token);
+        const sportCategoryId = (completeUser.profile as SportsmanProfile)
+          .sportCategoryId;
+        if (!sportCategoryId || !token) return "";
+        const cat = await categoryService.getCategoryById(
+          sportCategoryId,
+          token
+        );
+        setCategoryLabel(cat ? cat.label : "");
+      }
+
+      // Coach: plusieurs catégories
+      if (user.profileCategory === ProfileCategory.COACH && user.id && token) {
+        const completeUser = await UserService.getUserById(user.id, token);
+        const catCoach =
+          (completeUser.profile as CoachProfile).sportCategories || [];
+        setCategoryLabel(
+          catCoach.length > 0 ? catCoach.map((c) => c.label).join(", ") : ""
+        );
+      }
+
+      // Medic: plusieurs catégories
+      if (user.profileCategory === ProfileCategory.MEDIC && user.id && token) {
+        const completeUser = await UserService.getUserById(user.id, token);
+        const catMedic =
+          (completeUser.profile as MedicProfile).sportCategories || [];
+        setCategoryLabel(
+          catMedic.length > 0 ? catMedic.map((c) => c.label).join(", ") : ""
+        );
+      }
+
+      return "";
+    };
 
     fetchUserFile();
+    getCategoryLabel();
   }, [user.filePictureId, token, isCompany]);
 
   // Récupérer le fichier entreprise
@@ -99,35 +145,6 @@ export default function ItemUser({
     isCompany ? companyFile : undefined
   );
 
-  function getSports(user: User): string {
-    // Check if user is a sportsman or coach and has a sportCategory with a label
-    if (
-      (user.profileCategory === ProfileCategory.SPORTSMAN ||
-        user.profileCategory === ProfileCategory.COACH) &&
-      user.profile &&
-      "sportCategory" in user.profile &&
-      user.profile.sportCategory &&
-      user.profile.sportCategory.label
-    ) {
-      return user.profile.sportCategory.label;
-    }
-    return "";
-  }
-
-  function getMedicCategory(user: User): string {
-    // Check if user is a medic and has a medicCategory with a label
-    if (
-      user.profileCategory === ProfileCategory.MEDIC &&
-      user.profile &&
-      "medicCategory" in user.profile &&
-      user.profile.medicCategory &&
-      user.profile.medicCategory.label
-    ) {
-      return user.profile.medicCategory.label;
-    }
-    return "";
-  }
-
   // Déterminer l'image et l'état de chargement
   const imageSource = isCompany ? companyImage : profilePicture;
   const isLoading = isCompany ? isCppLoading : isUserPPLoading;
@@ -146,11 +163,9 @@ export default function ItemUser({
               {user.firstName} {user.lastName}
             </AppText>
             {(user.profileCategory === ProfileCategory.SPORTSMAN ||
-              user.profileCategory === ProfileCategory.COACH) && (
-              <AppText>{getSports(user)}</AppText>
-            )}
-            {user.profileCategory === ProfileCategory.MEDIC && (
-              <AppText>{getMedicCategory(user)}</AppText>
+              user.profileCategory === ProfileCategory.COACH ||
+              user.profileCategory === ProfileCategory.MEDIC) && (
+              <AppText>{categoryLabel}</AppText>
             )}
             {user.profileCategory === ProfileCategory.PARTNER && (
               <AppText

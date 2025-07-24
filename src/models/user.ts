@@ -62,16 +62,16 @@ export interface SportsmanProfile {
 export interface CoachProfile {
   id: number;
   user: BaseUser;
-  sportCategory?: Category;
-  sportCategoryId?: number;
+  sportCategories?: Category[];
+  sportCategoryIds?: number[];
   canImportSessions: boolean;
 }
 
 export interface MedicProfile {
   id: number;
   user: BaseUser;
-  medicCategory?: Category;
-  medicCategoryId?: number;
+  sportCategories?: Category[];
+  sportCategoryIds?: number[];
   canImportSessions: boolean;
 }
 

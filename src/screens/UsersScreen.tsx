@@ -43,7 +43,8 @@ interface UserFormData {
 
   // Profil data
   sportCategoryId?: number;
-  medicCategoryId?: number;
+  sportCategoryIds?: number[];
+  medicCategoryIds?: number[];
   canImportSessions?: boolean;
   availableDays?: string;
   availableTime?: string;
@@ -387,16 +388,17 @@ export default function UsersScreen() {
         if (!newUserType) errors.profileCategory = "Le rôle est requis";
         if (
           newUserType === ProfileCategory.COACH &&
-          !formData.sportCategoryId
+          (!formData.sportCategoryIds || formData.sportCategoryIds.length === 0)
         ) {
-          errors.sportCategoryId =
-            "La catégorie sport est requise pour un coach";
+          errors.sportCategoryIds =
+            "Au moins un sport doit être sélectionné pour un coach";
         }
         if (
           newUserType === ProfileCategory.MEDIC &&
-          !formData.medicCategoryId
+          (!formData.medicCategoryIds || formData.medicCategoryIds.length === 0)
         ) {
-          errors.medicCategoryId = "La profession est requise pour un soignant";
+          errors.medicCategoryIds =
+            "Au moins une profession doit être sélectionnée pour un soignant";
         }
         if (newUserType === ProfileCategory.PARTNER) {
           if (!formData.companyName?.trim()) {
@@ -529,14 +531,14 @@ export default function UsersScreen() {
 
         case ProfileCategory.COACH:
           profileData = {
-            sportCategoryId: formData.sportCategoryId || null,
+            sportCategoryIds: formData.sportCategoryIds || [],
             canImportSessions: formData.canImportSessions || false,
           };
           break;
 
         case ProfileCategory.MEDIC:
           profileData = {
-            medicCategoryId: formData.medicCategoryId || null,
+            medicCategoryIds: formData.medicCategoryIds || [],
             canImportSessions: formData.canImportSessions || false,
           };
           break;
@@ -1150,22 +1152,27 @@ export default function UsersScreen() {
                   {newUserType === ProfileCategory.MEDIC && (
                     <>
                       <Input
-                        type="selector"
-                        label="Profession"
+                        type="multiSelector"
+                        label="Professions"
                         options={medicCategories.map((cat) => ({
                           label: cat.label,
                           value: cat.id.toString(),
                         }))}
-                        value={formData.medicCategoryId?.toString() || ""}
-                        onChangeText={(v) =>
-                          handleInputChange("medicCategoryId", parseInt(v))
+                        value={formData.medicCategoryIds?.map(String) || []}
+                        onChangeText={(selected: string[] | string) =>
+                          handleInputChange(
+                            "medicCategoryIds",
+                            Array.isArray(selected)
+                              ? selected.map((v) => parseInt(v))
+                              : (selected as string).split(",")
+                          )
                         }
                       />
-                      {formErrors.medicCategoryId && (
+                      {formErrors.medicCategoryIds && (
                         <AppText
                           style={{ color: Colors.lightRed, fontSize: 12 }}
                         >
-                          {formErrors.medicCategoryId}
+                          {formErrors.medicCategoryIds}
                         </AppText>
                       )}
                     </>
@@ -1174,22 +1181,27 @@ export default function UsersScreen() {
                   {newUserType === ProfileCategory.COACH && (
                     <>
                       <Input
-                        type="selector"
-                        label="Sport"
+                        type="multiSelector"
+                        label="Sports"
                         options={sportCategories.map((cat) => ({
                           label: cat.label,
                           value: cat.id.toString(),
                         }))}
-                        value={formData.sportCategoryId?.toString() || ""}
-                        onChangeText={(v) =>
-                          handleInputChange("sportCategoryId", parseInt(v))
+                        value={formData.sportCategoryIds?.map(String) || []}
+                        onChangeText={(selected: string[] | string) =>
+                          handleInputChange(
+                            "sportCategoryIds",
+                            Array.isArray(selected)
+                              ? selected.map((v) => parseInt(v))
+                              : (selected as string).split(",")
+                          )
                         }
                       />
-                      {formErrors.sportCategoryId && (
+                      {formErrors.sportCategoryIds && (
                         <AppText
                           style={{ color: Colors.lightRed, fontSize: 12 }}
                         >
-                          {formErrors.sportCategoryId}
+                          {formErrors.sportCategoryIds}
                         </AppText>
                       )}
                     </>

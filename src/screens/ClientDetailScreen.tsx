@@ -19,10 +19,13 @@ import UserCard from "../components/UserCard";
 import AppText from "../components/AppText";
 import ViewController from "../components/ViewController";
 import {
+  CoachProfile,
   getMonthStartDates,
+  MedicProfile,
   ProfileCategory,
   SportsmanProfile,
   User,
+  UserProfile,
 } from "../models/user";
 import { useAuth } from "../hooks/useAuth";
 import Icon from "../components/Icon";
@@ -214,6 +217,8 @@ export default function ClientDetailScreen() {
     otherServises: "",
     subscriptionFile: null, // Stockera le fichier uploadé
   });
+
+  const [categoryLabel, setCategoryLabel] = useState("");
 
   let isMounted = true;
 
@@ -529,6 +534,47 @@ export default function ClientDetailScreen() {
           }
         }
       }
+
+      // Get sport or medical category label for the client
+      const getCategoryLabel = async () => {
+        // Sportsman: une seule catégorie
+        if (client.profileCategory === ProfileCategory.SPORTSMAN) {
+          const sportCategoryId = (client.profile as any).sportCategoryId;
+          const cat = sportCategories.find((c) => c.id === sportCategoryId);
+          return cat ? cat.label : "";
+        }
+
+        // Coach: plusieurs catégories
+        if (
+          client.profileCategory === ProfileCategory.COACH &&
+          client.id &&
+          token
+        ) {
+          const completeUser = await UserService.getUserById(client.id, token);
+          const catCoach =
+            (completeUser.profile as CoachProfile).sportCategories || [];
+          return catCoach.length > 0
+            ? catCoach.map((c) => c.label).join(", ")
+            : "";
+        }
+
+        // Medic: plusieurs catégories
+        if (
+          client.profileCategory === ProfileCategory.MEDIC &&
+          client.id &&
+          token
+        ) {
+          const completeUser = await UserService.getUserById(client.id, token);
+          const catMedic =
+            (completeUser.profile as MedicProfile).sportCategories || [];
+          return catMedic.length > 0
+            ? catMedic.map((c) => c.label).join(", ")
+            : "";
+        }
+
+        return "";
+      };
+      setCategoryLabel(await getCategoryLabel());
     } catch (e) {
       console.error(
         "Erreur lors de la récupération des données du client :",
@@ -562,32 +608,6 @@ export default function ClientDetailScreen() {
       age--;
     }
     return age.toString();
-  };
-
-  // Get sport or medical category label for the client
-  const getCategoryLabel = () => {
-    if (
-      (client.profileCategory === ProfileCategory.SPORTSMAN ||
-        client.profileCategory === ProfileCategory.COACH) &&
-      typeof (client.profile as any).sportCategoryId !== "undefined" &&
-      (client.profile as any).sportCategoryId &&
-      sportCategories.length > 0
-    ) {
-      const sportCategoryId = (client.profile as any).sportCategoryId;
-      const cat = sportCategories.find((c) => c.id === sportCategoryId);
-      return cat ? cat.label : "";
-    }
-    if (
-      client.profileCategory === ProfileCategory.MEDIC &&
-      typeof (client.profile as any).medicCategoryId !== "undefined" &&
-      (client.profile as any).medicCategoryId &&
-      medicCategories.length > 0
-    ) {
-      const medicCategoryId = (client.profile as any).medicCategoryId;
-      const cat = medicCategories.find((c) => c.id === medicCategoryId);
-      return cat ? cat.label : "";
-    }
-    return "";
   };
 
   // Parse all notes from the notes string
@@ -1167,7 +1187,7 @@ export default function ClientDetailScreen() {
           }
           email={client.email || ""}
           phone={client.phone || ""}
-          sport={getCategoryLabel()}
+          sport={categoryLabel}
           age={getAge(client.birthDate)}
           profilePictureUrl={profilePicture}
         />
@@ -1774,118 +1794,122 @@ export default function ClientDetailScreen() {
           )}
         </View>
         {/* Formulaire de suivi */}
-        <View style={{ flexDirection: "column", gap: 16 }}>
-          <AppText style={GlobalStyles.h3}>FORMULAIRE DE SUIVI</AppText>
+        {client.profileCategory === ProfileCategory.SPORTSMAN && (
           <View style={{ flexDirection: "column", gap: 16 }}>
-            <Pressable
-              style={[
-                {
-                  flexDirection: "row",
-                  gap: 8,
-                  alignItems: "center",
-                  marginTop: 8,
-                  justifyContent: "center",
-                  paddingVertical: 8,
-                  borderRadius: 4,
-                },
-                GlobalStyles.button_changeState,
-              ]}
-              onPress={() => {
-                const trackingFileUrl = (client.profile as SportsmanProfile)
-                  .trackingFileUrl;
-                console.log("trackingFileUrl", trackingFileUrl);
-                if (
-                  typeof trackingFileUrl === "string" &&
-                  trackingFileUrl.length > 0
-                ) {
-                  Linking.openURL(trackingFileUrl);
-                }
-              }}
-            >
-              <Icon
-                name={
-                  (client.profile as SportsmanProfile).trackingFileUrl
-                    ? "link"
-                    : "linkDenied"
-                }
-                fillColor="transparent"
-                strokeColor={Colors.deepBlue}
-                width={20}
-                height={20}
-              />
-              <AppText style={{ color: Colors.deepBlue }}>
-                {(client.profile as SportsmanProfile).trackingFileUrl
-                  ? "Voir le document"
-                  : "Aucun lien de suivi renseigné."}
-              </AppText>
-              <View style={{ marginLeft: 8 }}>
+            <AppText style={GlobalStyles.h3}>FORMULAIRE DE SUIVI</AppText>
+            <View style={{ flexDirection: "column", gap: 16 }}>
+              <Pressable
+                style={[
+                  {
+                    flexDirection: "row",
+                    gap: 8,
+                    alignItems: "center",
+                    marginTop: 8,
+                    justifyContent: "center",
+                    paddingVertical: 8,
+                    borderRadius: 4,
+                  },
+                  GlobalStyles.button_changeState,
+                ]}
+                onPress={() => {
+                  const trackingFileUrl = (client.profile as SportsmanProfile)
+                    .trackingFileUrl;
+                  console.log("trackingFileUrl", trackingFileUrl);
+                  if (
+                    typeof trackingFileUrl === "string" &&
+                    trackingFileUrl.length > 0
+                  ) {
+                    Linking.openURL(trackingFileUrl);
+                  }
+                }}
+              >
                 <Icon
-                  name="chevronRight"
+                  name={
+                    (client.profile as SportsmanProfile).trackingFileUrl
+                      ? "link"
+                      : "linkDenied"
+                  }
                   fillColor="transparent"
                   strokeColor={Colors.deepBlue}
-                  width={24}
-                  height={24}
+                  width={20}
+                  height={20}
                 />
-              </View>
-            </Pressable>
-            {user.profileCategory === ProfileCategory.ADMIN && (
-              <View
-                style={{ flexDirection: "row", justifyContent: "flex-end" }}
-              >
-                <AppButton
-                  type="primary"
-                  title="Mettre à jour le lien"
-                  iconName="link"
-                  onPress={() => setChangeTrackingFileLinkPopupVisible(true)}
-                />
-              </View>
-            )}
-            {subscriptionFileOfSportsman && token && (
-              <View style={{ flexDirection: "column", gap: 8 }}>
-                <AppText style={GlobalStyles.h3}>CONTRAT D'ABONNEMENT</AppText>
-                <ItemFile
-                  file={subscriptionFileOfSportsman}
-                  displayControllers={false}
-                  uploadToASpecificId={client.id}
-                  token={token}
-                />
-                <AppText style={{ fontWeight: "bold" }}>Détails :</AppText>
-                <AppText>{`Du ${subscriptionOfSportsman?.startDate} au ${subscriptionOfSportsman?.endDate}`}</AppText>
-                {subscriptionOfSportsman &&
-                  (subscriptionOfSportsman.monthlyMonitoringCategory ||
-                    subscriptionOfSportsman.otherServises) && (
-                    <>
-                      <AppText>
-                        -{" "}
-                        {subscriptionOfSportsman.isBilanComplete
-                          ? "Bilan physiologique général et prophylaxie"
-                          : "Bilan physiologique sans prophylaxie"}
-                      </AppText>
-                      <AppText>
-                        -{" "}
-                        {subscriptionOfSportsman.monthlyMonitoringCategory ===
-                        MonthlyMonitoringEnum.COMPLETE
-                          ? "Suivi complet"
-                          : subscriptionOfSportsman.monthlyMonitoringCategory ===
-                            MonthlyMonitoringEnum.MENTAL_COACHING
-                          ? "Suivi avec coaching mental"
-                          : subscriptionOfSportsman.monthlyMonitoringCategory ===
-                            MonthlyMonitoringEnum.DIETETIC
-                          ? "Suivi avec diététique"
-                          : "Aucun suivi mentionné"}
-                      </AppText>
-                      <AppText>
-                        -{" "}
-                        {subscriptionOfSportsman.otherServises !== ""
-                          ? subscriptionOfSportsman.otherServises
-                          : ""}
-                      </AppText>
-                    </>
-                  )}
-              </View>
-            )}
+                <AppText style={{ color: Colors.deepBlue }}>
+                  {(client.profile as SportsmanProfile).trackingFileUrl
+                    ? "Voir le document"
+                    : "Aucun lien de suivi renseigné."}
+                </AppText>
+                <View style={{ marginLeft: 8 }}>
+                  <Icon
+                    name="chevronRight"
+                    fillColor="transparent"
+                    strokeColor={Colors.deepBlue}
+                    width={24}
+                    height={24}
+                  />
+                </View>
+              </Pressable>
+              {user.profileCategory === ProfileCategory.ADMIN && (
+                <View
+                  style={{ flexDirection: "row", justifyContent: "flex-end" }}
+                >
+                  <AppButton
+                    type="primary"
+                    title="Mettre à jour le lien"
+                    iconName="link"
+                    onPress={() => setChangeTrackingFileLinkPopupVisible(true)}
+                  />
+                </View>
+              )}
+              {subscriptionFileOfSportsman && token && (
+                <View style={{ flexDirection: "column", gap: 8 }}>
+                  <AppText style={GlobalStyles.h3}>
+                    CONTRAT D'ABONNEMENT
+                  </AppText>
+                  <ItemFile
+                    file={subscriptionFileOfSportsman}
+                    displayControllers={false}
+                    uploadToASpecificId={client.id}
+                    token={token}
+                  />
+                  <AppText style={{ fontWeight: "bold" }}>Détails :</AppText>
+                  <AppText>{`Du ${subscriptionOfSportsman?.startDate} au ${subscriptionOfSportsman?.endDate}`}</AppText>
+                  {subscriptionOfSportsman &&
+                    (subscriptionOfSportsman.monthlyMonitoringCategory ||
+                      subscriptionOfSportsman.otherServises) && (
+                      <>
+                        <AppText>
+                          -{" "}
+                          {subscriptionOfSportsman.isBilanComplete
+                            ? "Bilan physiologique général et prophylaxie"
+                            : "Bilan physiologique sans prophylaxie"}
+                        </AppText>
+                        <AppText>
+                          -{" "}
+                          {subscriptionOfSportsman.monthlyMonitoringCategory ===
+                          MonthlyMonitoringEnum.COMPLETE
+                            ? "Suivi complet"
+                            : subscriptionOfSportsman.monthlyMonitoringCategory ===
+                              MonthlyMonitoringEnum.MENTAL_COACHING
+                            ? "Suivi avec coaching mental"
+                            : subscriptionOfSportsman.monthlyMonitoringCategory ===
+                              MonthlyMonitoringEnum.DIETETIC
+                            ? "Suivi avec diététique"
+                            : "Aucun suivi mentionné"}
+                        </AppText>
+                        <AppText>
+                          -{" "}
+                          {subscriptionOfSportsman.otherServises !== ""
+                            ? subscriptionOfSportsman.otherServises
+                            : ""}
+                        </AppText>
+                      </>
+                    )}
+                </View>
+              )}
+            </View>
           </View>
-        </View>
+        )}
         <Modal
           visible={changeTrackingFileLinkPopupVisible}
           transparent
@@ -2437,7 +2461,7 @@ export default function ClientDetailScreen() {
                   lastName={client.lastName}
                   email={client.email || ""}
                   phone={client.phone || ""}
-                  sport={getCategoryLabel()}
+                  sport={categoryLabel}
                   age={getAge(client.birthDate)}
                   profilePictureUrl={
                     client.filePicture ? client.filePicture.url : ""
@@ -2602,7 +2626,7 @@ export default function ClientDetailScreen() {
                   lastName={client.lastName}
                   email={client.email || ""}
                   phone={client.phone || ""}
-                  sport={getCategoryLabel()}
+                  sport={categoryLabel}
                   age={getAge(client.birthDate)}
                   profilePictureUrl={
                     client.filePicture ? client.filePicture.url : ""

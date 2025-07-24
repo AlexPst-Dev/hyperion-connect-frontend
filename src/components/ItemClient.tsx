@@ -1,12 +1,20 @@
 import React, { useEffect, useState } from "react";
 import { StyleSheet, View, Image } from "react-native";
 import GlobalStyles, { Colors, shadowStyles } from "../styles/styles";
-import { User } from "../models/user";
+import {
+  CoachProfile,
+  MedicProfile,
+  ProfileCategory,
+  SportsmanProfile,
+  User,
+} from "../models/user";
 import AppText from "./AppText";
 import { useAuth } from "../hooks/useAuth";
 import { File } from "../models/file";
 import { useAnyUserProfileImage } from "../hooks/useImageProfilePicture";
 import { fileService } from "../services/api/file-service";
+import { categoryService } from "../services/api/category-service";
+import { UserService } from "../services/api/user-service";
 
 interface Props {
   user: User;
@@ -17,6 +25,7 @@ export default function ItemClient({ user, objectives }: Props) {
   const { token } = useAuth();
 
   const [userFile, setUserFile] = useState<File | undefined>();
+  const [categoryLabel, setCategoryLabel] = useState<string>("");
 
   const fetchFileOfUser = async () => {
     if (token && user.filePictureId && !isNaN(Number(user.filePictureId))) {
@@ -28,8 +37,43 @@ export default function ItemClient({ user, objectives }: Props) {
     }
   };
 
+  const getCategoryLabel = async () => {
+    // Sportsman: une seule catégorie
+    if (user.profileCategory === ProfileCategory.SPORTSMAN && token) {
+      const completeUser = await UserService.getUserById(user.id, token);
+      const sportCategoryId = (completeUser.profile as SportsmanProfile)
+        .sportCategoryId;
+      if (!sportCategoryId || !token) return "";
+      const cat = await categoryService.getCategoryById(sportCategoryId, token);
+      setCategoryLabel(cat ? cat.label : "");
+    }
+
+    // Coach: plusieurs catégories
+    if (user.profileCategory === ProfileCategory.COACH && user.id && token) {
+      const completeUser = await UserService.getUserById(user.id, token);
+      const catCoach =
+        (completeUser.profile as CoachProfile).sportCategories || [];
+      setCategoryLabel(
+        catCoach.length > 0 ? catCoach.map((c) => c.label).join(", ") : ""
+      );
+    }
+
+    // Medic: plusieurs catégories
+    if (user.profileCategory === ProfileCategory.MEDIC && user.id && token) {
+      const completeUser = await UserService.getUserById(user.id, token);
+      const catMedic =
+        (completeUser.profile as MedicProfile).sportCategories || [];
+      setCategoryLabel(
+        catMedic.length > 0 ? catMedic.map((c) => c.label).join(", ") : ""
+      );
+    }
+
+    return "";
+  };
+
   useEffect(() => {
     fetchFileOfUser();
+    getCategoryLabel();
   }, [token]);
 
   const { profilePicture, isUserPPLoading } = useAnyUserProfileImage(userFile);
@@ -43,7 +87,7 @@ export default function ItemClient({ user, objectives }: Props) {
           <AppText style={{ fontWeight: "bold", color: Colors.deepBlue }}>
             {user.firstName} {user.lastName}
           </AppText>
-          <AppText>{user.profileCategory}</AppText>
+          <AppText>{categoryLabel}</AppText>
         </View>
       </View>
       {objectives}
