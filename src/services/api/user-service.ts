@@ -139,7 +139,7 @@ export class UserService {
   }
 
   /**
-   * Create a a user by their ID
+   * Create an user by their ID
    */
   static async createUserProfile(
     payload: any,

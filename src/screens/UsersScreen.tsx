@@ -100,6 +100,9 @@ export default function UsersScreen() {
   const [addCoachPopUpVisible, setAddCoachPopUpVisible] = useState(false);
   const [selectedCoach, setSelectedCoach] = useState<User | null>(null);
 
+  const [selectFreePopUpVisible, setSelectFreePopUpVisible] = useState(false);
+  const [selectedFreeUser, setSelectedFreeUser] = useState<User | null>(null);
+
   const handleAddCoachSubmit = (users: User[]) => {
     setSelectedCoach(users[0] || null); // Only one coach should be selected
     setAddCoachPopUpVisible(false);
@@ -109,7 +112,6 @@ export default function UsersScreen() {
   };
 
   const handleAddContactsSubmit = (selectedUsers: User[]) => {
-    console.log("Selected users:", selectedUsers);
     setSelectedUser(selectedUsers);
     setAddContactPopUpVisible(false);
   };
@@ -502,14 +504,14 @@ export default function UsersScreen() {
         firstName: formData.firstName,
         lastName: formData.lastName,
         email: formData.email,
-        phone: formData.phone || null,
-        street: formData.street || null,
+        phone: formData.phone || undefined,
+        street: formData.street || undefined,
         city: formData.city,
         postalCode: formData.postalCode,
         birthDate: formData.birthDate,
         isActive: true,
         isInHyperlinkNetwork: formData.isInHyperlinkNetwork || false,
-        profileCategory: newUserType,
+        profileCategory: newUserType ? newUserType : undefined,
       };
 
       // Construction des données de profil selon le type
@@ -552,25 +554,40 @@ export default function UsersScreen() {
           break;
       }
 
-      const payload = {
-        ...baseUserData,
-        profile: profileData,
-      };
+      let userIdToUse: number | undefined = undefined;
+      if (selectedFreeUser) {
+        // 1. Supprimer l'utilisateur free
+        await UserService.deleteUserById(selectedFreeUser.id, token);
 
-      console.log("Payload envoyé:", payload);
-
-      // 1. Create user and get the new user ID
-      const userResponse = await UserService.createUserProfile(payload, token);
-      const createdUser = await UserService.getUserById(
-        userResponse.user.id,
-        token
-      );
+        // 2. Créer le nouvel utilisateur sportsman avec les infos du formulaire
+        const payload = {
+          ...baseUserData,
+          profileCategory: ProfileCategory.SPORTSMAN,
+          profile: profileData,
+        };
+        const userResponse = await UserService.createUserProfile(
+          payload,
+          token
+        );
+        userIdToUse = userResponse.user.id;
+      } else {
+        // Création classique
+        const payload = {
+          ...baseUserData,
+          profile: profileData,
+        };
+        const userResponse = await UserService.createUserProfile(
+          payload,
+          token
+        );
+        userIdToUse = userResponse.user.id;
+      }
 
       // 2. Create the objective (if sportsman)
       let createdObjective;
-      if (newUserType === ProfileCategory.SPORTSMAN && createdUser) {
+      if (newUserType === ProfileCategory.SPORTSMAN && userIdToUse) {
         const objectivePayload = {
-          sportsmanId: userResponse.user.id,
+          sportsmanId: userIdToUse,
           label: formData.objectiveLabel || "",
           // Only include responsibleId if a coach is selected
           ...(selectedCoach && { responsibleId: selectedCoach.id }),
@@ -639,14 +656,14 @@ export default function UsersScreen() {
           if (listClientOfSelectedCoach) {
             await clientService.updateClientListByProfessionalId(
               selectedCoach.id,
-              userResponse.user.id,
+              userIdToUse,
               "add",
               token
             );
           } else {
             await clientService.createClientList(
               selectedCoach.id,
-              userResponse.user.id,
+              userIdToUse,
               token
             );
           }
@@ -673,32 +690,34 @@ export default function UsersScreen() {
             if (listClientOfSelectedPro) {
               await clientService.updateClientListByProfessionalId(
                 medic.id,
-                userResponse.user.id,
+                userIdToUse,
                 "add",
                 token
               );
             } else {
               await clientService.createClientList(
                 medic.id,
-                userResponse.user.id,
+                userIdToUse,
                 token
               );
             }
           }
         }
-        // ...existing code...
       }
 
       if (newUserType === ProfileCategory.PARTNER && companyId) {
         await CompanyService.updateCompany(
           companyId,
-          { responsibleId: userResponse.user.id },
+          { responsibleId: userIdToUse },
           token
         );
       }
 
       // Succès - retour à la liste
       setDisplayUsersList(true);
+      setSelectedFreeUser(null);
+      setSelectedCoach(null);
+      setSelectedUser([]);
       resetForm();
 
       // Rafraîchir la liste des utilisateurs
@@ -946,6 +965,18 @@ export default function UsersScreen() {
               {/* Étape 0: Informations personnelles */}
               {stepNewUserView === 0 && (
                 <View style={{ flexDirection: "column", gap: 16 }}>
+                  <Pressable
+                    onPress={() => setSelectFreePopUpVisible(true)}
+                    style={{
+                      padding: 8,
+                      borderRadius: 8,
+                      borderWidth: 1,
+                      borderColor: Colors.deepBlue,
+                      marginBottom: 8,
+                    }}
+                  >
+                    <AppText>Sélectionner un utilisateur Free existant</AppText>
+                  </Pressable>
                   <View
                     style={{
                       flexDirection: "row",
@@ -1628,6 +1659,31 @@ export default function UsersScreen() {
             onClose={handleCoachPopUpVisible}
             onSubmit={handleAddCoachSubmit}
             token={token as string}
+          />
+        )}
+        {selectFreePopUpVisible && (
+          <AddContacts
+            visible={selectFreePopUpVisible}
+            token={token as string}
+            onClose={() => setSelectFreePopUpVisible(false)}
+            onSubmit={(users) => {
+              if (users.length > 0) {
+                const user = users[0];
+                setSelectedFreeUser(user);
+                setFormData({
+                  firstName: user.firstName,
+                  lastName: user.lastName,
+                  email: user.email,
+                  phone: user.phone,
+                  street: user.street,
+                  city: user.city ?? "",
+                  postalCode: user.postalCode ?? "",
+                  birthDate: user.birthDate ?? "",
+                  // ...autres champs si besoin
+                });
+                setSelectFreePopUpVisible(false);
+              }
+            }}
           />
         )}
       </ScrollView>
