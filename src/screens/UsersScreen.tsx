@@ -1671,12 +1671,14 @@ export default function UsersScreen() {
             onClose={handleCoachPopUpVisible}
             onSubmit={handleAddCoachSubmit}
             token={token as string}
+            allowedProfileCategories={[ProfileCategory.COACH]}
           />
         )}
         {selectFreePopUpVisible && (
           <AddContacts
             visible={selectFreePopUpVisible}
             token={token as string}
+            allowedProfileCategories={[ProfileCategory.FREE]}
             onClose={() => setSelectFreePopUpVisible(false)}
             onSubmit={(users) => {
               if (users.length > 0) {

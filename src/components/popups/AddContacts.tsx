@@ -2,7 +2,11 @@ import React, { useState, useEffect } from "react";
 import { StyleSheet, View, Pressable, Modal } from "react-native";
 import PopUp from "../PopUp";
 import Input from "../Input";
-import { User } from "@/src/models/user";
+import {
+  ProfileCategory,
+  profileCategoryLabels,
+  User,
+} from "@/src/models/user";
 import { ScrollView } from "react-native-gesture-handler";
 import ItemUser from "../ItemUser";
 import AppButton from "../AppButton";
@@ -15,6 +19,7 @@ interface Props {
   onClose: () => void;
   onSubmit?: (selectedUsers: User[]) => void;
   initialSelectedUserIds?: number[];
+  allowedProfileCategories?: ProfileCategory[];
 }
 
 export default function AddContacts({
@@ -23,6 +28,7 @@ export default function AddContacts({
   onClose,
   onSubmit,
   initialSelectedUserIds,
+  allowedProfileCategories,
 }: Props) {
   const [selectedUserIds, setSelectedUserIds] = useState<number[]>(
     initialSelectedUserIds ?? []
@@ -47,14 +53,23 @@ export default function AddContacts({
     UserService.getAllUsers(token).then(
       (response: User[] | { users: User[] }) => {
         const users = Array.isArray(response) ? response : response.users;
-        if (isMounted && Array.isArray(users)) setAllUsers(users);
-        else if (isMounted) setAllUsers([]);
+        if (isMounted && Array.isArray(users)) {
+          // Filtrer les utilisateurs selon les profils autorisés
+          const filteredUsers = allowedProfileCategories
+            ? users.filter((user) =>
+                allowedProfileCategories.includes(user.profileCategory)
+              )
+            : users;
+          setAllUsers(filteredUsers);
+        } else if (isMounted) {
+          setAllUsers([]);
+        }
       }
     );
     return () => {
       isMounted = false;
     };
-  }, [token]);
+  }, [token, allowedProfileCategories]);
 
   // Filter and paginate users in-memory
   useEffect(() => {
@@ -76,18 +91,26 @@ export default function AddContacts({
   const filterCategories = Array.from(
     new Set(allUsers.map((user) => user.profileCategory).filter(Boolean))
   );
+
   useEffect(() => {
     if (
       visible &&
       filterCategories.length > 0 &&
       selectedFilters.length === 0
     ) {
-      setSelectedFilters(filterCategories);
+      // Si on a des profils autorisés spécifiques, on les utilise directement
+      // Sinon on utilise tous les profils disponibles
+      const defaultFilters = allowedProfileCategories
+        ? allowedProfileCategories.filter((cat) =>
+            filterCategories.includes(cat)
+          )
+        : filterCategories;
+      setSelectedFilters(defaultFilters);
     }
-  }, [visible, filterCategories]);
+  }, [visible, filterCategories, allowedProfileCategories]);
 
   const filterOptions = filterCategories.map((cat) => ({
-    label: cat.charAt(0).toUpperCase() + cat.slice(1),
+    label: profileCategoryLabels[cat as ProfileCategory] || cat,
     value: cat,
   }));
 
@@ -109,6 +132,9 @@ export default function AddContacts({
     onClose();
   };
 
+  // Masquer le sélecteur de profils si on a des profils spécifiques autorisés
+  const showProfileSelector = !allowedProfileCategories;
+
   return (
     <Modal
       visible={visible}
@@ -125,17 +151,19 @@ export default function AddContacts({
             paragraph="Sélectionnez les contacts que vous souhaitez ajouter"
             inputs={
               <>
-                <Input
-                  type="multiSelector"
-                  label="Filtres"
-                  placeholder="Choisissez des filtres"
-                  value={selectedFilters}
-                  onChangeText={(v) => {
-                    const values = v.split(",");
-                    setSelectedFilters(values);
-                  }}
-                  options={filterOptions}
-                />
+                {showProfileSelector && (
+                  <Input
+                    type="multiSelector"
+                    label="Filtres"
+                    placeholder="Choisissez des filtres"
+                    value={selectedFilters}
+                    onChangeText={(v) => {
+                      const values = v.split(",");
+                      setSelectedFilters(values);
+                    }}
+                    options={filterOptions}
+                  />
+                )}
                 <Input
                   type="text"
                   label="Rechercher"

@@ -14,6 +14,15 @@ export enum ProfileCategory {
   ADMIN = "admin",
 }
 
+export const profileCategoryLabels: Record<ProfileCategory, string> = {
+  [ProfileCategory.SPORTSMAN]: "Sportifs",
+  [ProfileCategory.COACH]: "Coach",
+  [ProfileCategory.MEDIC]: "Soignants",
+  [ProfileCategory.FREE]: "Profils Freemium",
+  [ProfileCategory.PARTNER]: "Partenaire",
+  [ProfileCategory.ADMIN]: "Consultants",
+};
+
 // models/User.ts
 export interface BaseUser {
   id: number;
