@@ -1143,7 +1143,16 @@ export default function ClientDetailScreen() {
         { listMedicNotes: updatedNotesString },
         token as string
       );
-      setSportsmanNotes(updatedNotesArr);
+      const updatedMedicalNotes = getAllNotes(updatedNotesString);
+      const coachingNotes = await getCoachingCommentsForNotes(
+        client.id,
+        token as string,
+        allSessions
+      );
+
+      // Combiner les deux types de notes
+      const allUpdatedNotes = [...updatedMedicalNotes, ...coachingNotes];
+      setSportsmanNotes(allUpdatedNotes);
       notify({ title: "Note supprimée avec succès", type: "success" });
     } catch (e) {
       notify({
@@ -1343,32 +1352,37 @@ export default function ClientDetailScreen() {
           <AppText style={GlobalStyles.h2}>NOTES</AppText>
           <ScrollView style={{ maxHeight: 300, marginBottom: 16 }}>
             {sportsmanNotes.length > 0 ? (
-              sportsmanNotes.map((note, idx) => (
-                <View key={idx} style={{ marginBottom: 12 }}>
-                  <AppText style={{ fontWeight: "bold" }}>
-                    {note.header}
-                  </AppText>
-                  <AppText>{note.message}</AppText>
-                  {user.profileCategory === "admin" && (
-                    <View
-                      style={{
-                        flexDirection: "row",
-                        justifyContent: "flex-end",
-                      }}
-                    >
-                      <AppButton
-                        type="linkSmall"
-                        title="Supprimer"
-                        iconName="trash"
-                        textStyle={{ color: Colors.lightRed }}
-                        borderColor={Colors.lightRed}
-                        iconColor={Colors.lightRed}
-                        onPress={() => handleDeleteNote(idx)}
-                      />
-                    </View>
-                  )}
-                </View>
-              ))
+              sportsmanNotes
+                .slice()
+                .reverse()
+                .map((note, idx) => (
+                  <View key={idx} style={{ marginBottom: 12 }}>
+                    <AppText style={{ fontWeight: "bold" }}>
+                      {note.header}
+                    </AppText>
+                    <AppText>{note.message}</AppText>
+                    {user.profileCategory === "admin" && (
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          justifyContent: "flex-end",
+                        }}
+                      >
+                        <AppButton
+                          type="linkSmall"
+                          title="Supprimer"
+                          iconName="trash"
+                          textStyle={{ color: Colors.lightRed }}
+                          borderColor={Colors.lightRed}
+                          iconColor={Colors.lightRed}
+                          onPress={() =>
+                            handleDeleteNote(sportsmanNotes.length - 1 - idx)
+                          }
+                        />
+                      </View>
+                    )}
+                  </View>
+                ))
             ) : (
               <AppText>Aucune note</AppText>
             )}
