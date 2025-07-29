@@ -299,7 +299,7 @@ export default function EditEvent({
               closeText="Annuler"
               onSubmit={handleSubmit}
               btnType="primary"
-              btnText="Editer"
+              btnText="Enregistrer"
               iconName="pencil"
               inputs={
                 <View style={styles.eventFormContent}>

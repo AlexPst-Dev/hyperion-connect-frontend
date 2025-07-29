@@ -299,7 +299,7 @@ export function useKpis(profileCategory: ProfileCategory, token: string) {
                     title: "Motivation moyenne",
                     iconName: "star",
                     value: averageNote,
-                    unit: "/5",
+                    unit: "/10",
                     fillIcon: true,
                   },
                 ]);

@@ -1140,7 +1140,7 @@ export default function UsersScreen() {
                       />
                       <Input
                         type="checkbox"
-                        label="Fait parti de la communauté Hyperlink"
+                        label="Adhérent Hyperlink"
                         value={formData.isInHyperlinkNetwork || false}
                         onChange={(v) =>
                           handleInputChange("isInHyperlinkNetwork", v)
@@ -1693,7 +1693,6 @@ export default function UsersScreen() {
                   city: user.city ?? "",
                   postalCode: user.postalCode ?? "",
                   birthDate: user.birthDate ?? "",
-                  // ...autres champs si besoin
                 });
                 setSelectFreePopUpVisible(false);
               }
