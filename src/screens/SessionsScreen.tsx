@@ -1294,6 +1294,8 @@ export default function SessionsScreen() {
                   {sessionsComplete.length > 0 ? (
                     sessionsComplete
                       .filter((s) => s.session.isActive)
+                      .slice()
+                      .reverse()
                       .map((completeSession, index) => (
                         <View key={index} style={{ marginTop: 16 }}>
                           <Session
@@ -1653,6 +1655,8 @@ export default function SessionsScreen() {
                 >
                   {sessionsComplete.length > 0 ? (
                     sessionsComplete
+                      .slice()
+                      .reverse()
                       .filter((s) => s.session.isActive)
                       .map((completeSession, index) => (
                         <View key={index} style={{ marginTop: 16 }}>
@@ -2074,30 +2078,33 @@ export default function SessionsScreen() {
                   {filteredSessions.length === 0 ? (
                     <AppText>Aucune séance trouvée.</AppText>
                   ) : (
-                    filteredSessions.map((completeSession) => {
-                      return (
-                        <View
-                          style={{ marginBottom: 8 }}
-                          key={completeSession.session.id}
-                        >
-                          <Session
+                    filteredSessions
+                      .slice()
+                      .reverse()
+                      .map((completeSession) => {
+                        return (
+                          <View
+                            style={{ marginBottom: 8 }}
                             key={completeSession.session.id}
-                            title={completeSession.session.label}
-                            imageUrl={
-                              completeSession.filePicture
-                                ? completeSession.filePicture.url
-                                : undefined
-                            }
-                            labels={[]}
-                            onPress={() => {
-                              navigation.navigate("SessionDetail", {
-                                session: completeSession.session,
-                              });
-                            }}
-                          />
-                        </View>
-                      );
-                    })
+                          >
+                            <Session
+                              key={completeSession.session.id}
+                              title={completeSession.session.label}
+                              imageUrl={
+                                completeSession.filePicture
+                                  ? completeSession.filePicture.url
+                                  : undefined
+                              }
+                              labels={[]}
+                              onPress={() => {
+                                navigation.navigate("SessionDetail", {
+                                  session: completeSession.session,
+                                });
+                              }}
+                            />
+                          </View>
+                        );
+                      })
                   )}
                 </ScrollView>
               )}
@@ -2192,8 +2199,6 @@ export default function SessionsScreen() {
       );
     },
   };
-
-  // const { user } = useAuth();
 
   if (!user) return null;
 
