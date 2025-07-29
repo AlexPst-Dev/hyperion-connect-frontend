@@ -84,8 +84,7 @@ export default function OffersHistoryScreen() {
             offers.map((offer) => (
               <OfferCard
                 key={offer.id}
-                companyName={company.name}
-                companyImgUrl={company.fileImageCompany?.url || ""}
+                company={company}
                 title={offer.title}
                 paragraph={offer.description}
                 conditions={offer.conditions || ""}

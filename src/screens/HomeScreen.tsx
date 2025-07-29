@@ -960,7 +960,9 @@ export default function HomeScreen() {
                       key={e.id}
                       title={e.title ? e.title : "Evénement"}
                       personsInvolved={
-                        eventUsersById[e.id].map((u) => u.user) || []
+                        eventUsersById[e.id]
+                          ? eventUsersById[e.id].map((u) => u.user)
+                          : []
                       }
                       location={e.location || ""}
                       date={new Date(e.date || "")}

@@ -136,7 +136,7 @@ export default function StatisticsScreen() {
             conditions={offerComplete.conditions ?? ""}
             startDate={new Date(offerComplete.startDate)}
             endDate={new Date(offerComplete.endDate)}
-            companyName={connectedCompany.name}
+            company={connectedCompany}
             isSponsorship={
               offerComplete.offerCategory === OfferCategory.SPONSORSHIP
                 ? true
@@ -149,11 +149,6 @@ export default function StatisticsScreen() {
                     -3
                   )}%`
                 : undefined
-            }
-            companyImgUrl={
-              connectedCompany.fileImageCompany
-                ? connectedCompany.fileImageCompany.url
-                : ""
             }
           />
         ))}

@@ -81,7 +81,10 @@ import { CoachingEvent, EventCategory, isCoachingEvent } from "../models/event";
 import { clientService } from "../services/api/client-service";
 import { FileUploadButton } from "../components/FileUploadButton";
 import ItemFile from "../components/ItemFile";
-import { useAnyUserProfileImage } from "../hooks/useImageProfilePicture";
+import {
+  useAnyUserProfileImage,
+  useCompanyImage,
+} from "../hooks/useImageProfilePicture";
 import { MonthlyMonitoringEnum, Subscription } from "../models/subscription";
 
 type ClientDetailRouteProp = RouteProp<RootStackParamList, "ClientDetail">;
@@ -2933,6 +2936,15 @@ export default function ClientDetailScreen() {
           const { offers, companyOffersLoading, errorCompanyOffers } =
             useCompanyOffers(company?.id, token!);
 
+          const { companyImage, isCppLoading } = useCompanyImage(
+            company?.id,
+            company?.fileImageCompany
+          );
+
+          const { profilePicture, isUserPPLoading } = useAnyUserProfileImage(
+            partner?.filePicture
+          );
+
           const [newOfferType, setNewOfferType] = useState<
             OfferCategory.DISCOUNT | OfferCategory.SPONSORSHIP
           >(OfferCategory.DISCOUNT);
@@ -3007,9 +3019,7 @@ export default function ClientDetailScreen() {
                   <UserCard
                     companyName={company.name}
                     companyAdress={`${company.street} ${company.postalCode} ${company.city}`}
-                    profilePictureUrl={
-                      company.fileImageCompany?.url || undefined
-                    }
+                    profilePictureUrl={companyImage}
                     companyLink={company.linkWebsite}
                   />
                   <AppText>
@@ -3130,9 +3140,7 @@ export default function ClientDetailScreen() {
                     email={client.email}
                     phone={client.phone}
                     age={getAge(client.birthDate)}
-                    profilePictureUrl={
-                      client.filePicture ? client.filePicture.url : undefined
-                    }
+                    profilePictureUrl={profilePicture}
                   />
                   {(client.facebookLink ||
                     client.instagramLink ||
@@ -3223,10 +3231,9 @@ export default function ClientDetailScreen() {
                         .map((offer) => (
                           <OfferCard
                             key={offer.id}
-                            companyName={company.name}
+                            company={company}
                             title={offer.title}
                             paragraph={offer.description}
-                            companyImgUrl={company.fileImageCompany?.url || ""}
                             conditions={offer.conditions || ""}
                             startDate={new Date(offer.startDate)}
                             endDate={new Date(offer.endDate)}
