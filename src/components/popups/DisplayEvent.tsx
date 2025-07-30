@@ -35,6 +35,7 @@ import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "@/src/navigation/types";
 import { useMultipleUserProfileImages } from "@/src/hooks/useImageProfilePicture";
+import { ScrollView } from "react-native-gesture-handler";
 
 interface Props {
   visible: boolean;
@@ -352,9 +353,13 @@ export default function DisplayEvent({
                           ? "Sportif(s)"
                           : "Intervenants"}
                       </AppText>
-                      <View style={styles.userList}>
-                        {listOfUser.length > 0 ? (
-                          listOfUser.map((completeUser, index) => (
+                      {listOfUser.length > 4 ? (
+                        <ScrollView
+                          horizontal
+                          showsHorizontalScrollIndicator={false}
+                          contentContainerStyle={styles.longUserList}
+                        >
+                          {listOfUser.map((completeUser, index) => (
                             <ProfilePictureWithLoading
                               key={index}
                               user={completeUser.user}
@@ -366,11 +371,27 @@ export default function DisplayEvent({
                                 completeUser.user.id
                               )}
                             />
-                          ))
-                        ) : (
-                          <AppText>Aucun utilisateur trouvé.</AppText>
-                        )}
-                      </View>
+                          ))}
+                        </ScrollView>
+                      ) : listOfUser.length > 0 ? (
+                        <View style={styles.userList}>
+                          {listOfUser.map((completeUser, index) => (
+                            <ProfilePictureWithLoading
+                              key={index}
+                              user={completeUser.user}
+                              style={styles.profilePicture}
+                              imageBase64={getImageForUser(
+                                completeUser.user.id
+                              )}
+                              isLoading={isUserImageLoading(
+                                completeUser.user.id
+                              )}
+                            />
+                          ))}
+                        </View>
+                      ) : (
+                        <AppText>Aucun utilisateur trouvé.</AppText>
+                      )}
                       {listParticipants && listParticipants.length > 0 && (
                         <View style={{ flexDirection: "column", gap: 8 }}>
                           <AppText>{`Participants (${currentParticipantsCount}/${maxParticipants})`}</AppText>
@@ -667,6 +688,11 @@ const styles = StyleSheet.create({
   userList: {
     flexDirection: "row",
     gap: 16,
+  },
+  longUserList: {
+    flexDirection: "row",
+    gap: 8,
+    maxWidth: "100%",
   },
   participantList: {
     flexDirection: "row",
