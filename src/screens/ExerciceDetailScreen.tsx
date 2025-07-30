@@ -348,7 +348,7 @@ export default function ExerciceDetailScreen() {
                 >
                   <PopUp
                     onClose={() => setEditExercisePopUpVisible(false)}
-                    title="Editer l'exercice"
+                    title="Modifier l'exercice"
                     paragraph="Vous pouvez modifier dans les champs ci-dessous l'exercice."
                     closeText="Annuler"
                     btnText="Modifier"

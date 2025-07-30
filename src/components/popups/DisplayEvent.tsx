@@ -637,7 +637,7 @@ export default function DisplayEvent({
             if (onSubmit) onSubmit();
           }}
           existingEvent={event}
-          title="Editer l'évenement"
+          title="Modifier l'évenement"
           eventType={event.eventCategory}
         />
       )}

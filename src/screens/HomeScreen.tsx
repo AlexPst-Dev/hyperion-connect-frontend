@@ -1143,7 +1143,7 @@ export default function HomeScreen() {
               }}
             >
               <PopUp
-                title="Editer la notification"
+                title="Modifier la notification"
                 onClose={() => setEditNewsVisible(!editNewsVisible)}
                 inputs={
                   <>

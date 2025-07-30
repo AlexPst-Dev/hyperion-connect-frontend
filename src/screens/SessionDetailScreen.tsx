@@ -655,7 +655,7 @@ export default function SessionDetailScreen() {
               >
                 <PopUp
                   onClose={() => setEditSessionPopUpVisible(false)}
-                  title="Editer la session"
+                  title="Modifier la session"
                   paragraph="Vous pouvez modifier dans les champs ci-dessous la session"
                   closeText="Annuler"
                   btnText="Modifier"
@@ -959,8 +959,8 @@ export default function SessionDetailScreen() {
 
               {modalStep === "custom" && (
                 <PopUp
-                  title="Editer un exercice"
-                  btnText="Editer"
+                  title="Modifier un exercice"
+                  btnText="Modifier"
                   iconName="pencil"
                   closeText="Annuler"
                   onSubmit={() => {

@@ -1943,7 +1943,7 @@ export default function ClientDetailScreen() {
           >
             <PopUp
               onClose={() => setChangeTrackingFileLinkPopupVisible(false)}
-              title={"Editer le lien du formulaire de suivi"}
+              title={"Modifier le lien du formulaire de suivi"}
               paragraph="Renseignez ici le lien du formulaire de suivi (google docx - lien public)"
               btnType="primary"
               btnText="Valider"
@@ -2092,7 +2092,7 @@ export default function ClientDetailScreen() {
                   }}
                 >
                   <PopUp
-                    title="Editer l'abonnement"
+                    title="Modifier l'abonnement"
                     paragraph="Importez le contrat d'offre d'abonnement ici"
                     onSubmit={handleCreateSubscription}
                     specificBody={
@@ -3305,7 +3305,7 @@ export default function ClientDetailScreen() {
                     }}
                   >
                     <PopUp
-                      title="Editer une offre partenaire"
+                      title="Modifier une offre partenaire"
                       paragraph="De quelle type d'offre s'agit t'il ? "
                       onClose={() => setEditNewOfferPopUpVisible(false)}
                       closeText="Annuler"

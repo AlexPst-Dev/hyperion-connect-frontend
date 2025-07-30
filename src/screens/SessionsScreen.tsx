@@ -1473,9 +1473,9 @@ export default function SessionsScreen() {
 
                 {modalStep === "custom" && (
                   <PopUp
-                    title="Editer une séance"
+                    title="Modifier une séance"
                     paragraph="Créez une nouvelle séance d'entrainement pour un sportif en remplissant les champs ci-dessous."
-                    btnText="Editer"
+                    btnText="Modifier"
                     iconName="pencil"
                     closeText="Annuler"
                     onSubmit={() => {
@@ -1835,9 +1835,9 @@ export default function SessionsScreen() {
 
                 {modalStep === "custom" && (
                   <PopUp
-                    title="Editer une séance"
+                    title="Modifier une séance"
                     paragraph="Créez une nouvelle séance d'entrainement pour un sportif en remplissant les champs ci-dessous."
-                    btnText="Editer"
+                    btnText="Modifier"
                     iconName="pencil"
                     closeText="Annuler"
                     onSubmit={() => {
@@ -2138,9 +2138,9 @@ export default function SessionsScreen() {
                 style={{ borderRadius: 16, overflow: "hidden" }}
               >
                 <PopUp
-                  title="Editer une séance"
+                  title="Modifier une séance"
                   paragraph="Créez une nouvelle séance d'entrainement pour un sportif en remplissant les champs ci-dessous."
-                  btnText="Editer"
+                  btnText="Modifier"
                   iconName="pencil"
                   closeText="Annuler"
                   onSubmit={() => {

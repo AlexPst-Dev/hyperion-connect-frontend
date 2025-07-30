@@ -1318,7 +1318,7 @@ export default function PlanningScreen() {
               visible={editEventPopUpVisible}
               token={token ? token : ""}
               onClose={() => setEditEventPopUpVisible(false)}
-              title={"Editer un nouvel évenement "}
+              title={"Modifier un nouvel évenement "}
               eventType={eventTypeLabel}
             />
           )}

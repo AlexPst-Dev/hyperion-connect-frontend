@@ -129,7 +129,10 @@ export default function AppHeader({
       setNewsTitle(title);
       setNewsText(text);
       setEditNewsVisible(false);
-      notify({ title: "PopUp d'accueil mise à jour avec succès", type: "success" });
+      notify({
+        title: "PopUp d'accueil mise à jour avec succès",
+        type: "success",
+      });
     } catch (error) {
       notify({
         title: "Une erreur est survenue lors de la mise à jour",
@@ -204,7 +207,7 @@ export default function AppHeader({
                 }}
               >
                 <PopUp
-                  title="Editer la notification"
+                  title="Modifier la notification"
                   onClose={() => setEditNewsVisible(!editNewsVisible)}
                   inputs={
                     <>
