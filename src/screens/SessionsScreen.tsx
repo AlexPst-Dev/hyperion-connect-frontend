@@ -1365,29 +1365,31 @@ export default function SessionsScreen() {
                       <View style={{ flexDirection: "column", gap: 24 }}>
                         <View
                           style={{
-                            flexDirection: "row",
-                            justifyContent: "space-between",
+                            flexDirection: "column",
+                            gap: 16,
                             alignItems: "center",
                           }}
                         >
                           <AppButton
                             type="secondary"
-                            title="Catalogue"
+                            title="Ajouter depuis le catalogue"
                             iconName="plus"
                             onPress={() => setModalStep("catalog")}
+                            buttonStyle={{ margin: "auto" }}
                           />
                           <View
                             style={{
-                              height: 24,
-                              width: 1,
+                              height: 1,
+                              width: 24,
                               backgroundColor: "black",
                             }}
                           />
                           <AppButton
                             type="secondary"
-                            title="Personnalisé"
+                            title="Créer un exercice"
                             iconName="plus"
                             onPress={() => setModalStep("custom")}
+                            buttonStyle={{ margin: "auto" }}
                           />
                         </View>
                         {completeUserProfile?.canImportSessions && (
