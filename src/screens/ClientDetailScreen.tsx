@@ -72,7 +72,7 @@ import { useMedicClients } from "../hooks/useMedicClients";
 import { addMedicToSportsman } from "../utils/sportsman-utils";
 import { usePartnerAndCompany } from "../hooks/usePartnerAndCompany";
 import { useCompanyOffers } from "../hooks/useCompanyOffers";
-import { OfferCategory } from "../models/offer";
+import { OfferCategory, OfferCompleteResponse } from "../models/offer";
 import { handleCreateOffer } from "../utils/offer-utils";
 import { CompanyService } from "../services/api/company-service";
 import { notify } from "../components/NotificationContainer";
@@ -2936,6 +2936,10 @@ export default function ClientDetailScreen() {
           const { offers, companyOffersLoading, errorCompanyOffers } =
             useCompanyOffers(company?.id, token!);
 
+          const [listOffers, setListOffers] = useState<OfferCompleteResponse[]>(
+            []
+          );
+
           const { companyImage, isCppLoading } = useCompanyImage(
             company?.id,
             company?.fileImageCompany
@@ -2965,13 +2969,14 @@ export default function ClientDetailScreen() {
           };
           const handleEditNewOfferPopUp = async () => {
             try {
-              await handleCreateOffer(
+              const newOffer = await handleCreateOffer(
                 company!,
                 token!,
                 newOfferType,
                 offerForm,
                 sportCategories
               );
+              setListOffers((prev) => [...prev, newOffer]);
               setEditNewOfferPopUpVisible(false);
               setOfferForm({
                 title: "",
@@ -2984,10 +2989,17 @@ export default function ClientDetailScreen() {
                 sponsorshipNbPersonMax: "",
                 sponsorshipSportCategory: "",
               });
-              // Optionally refresh offers list here
+              notify({
+                title: "Offre créée avec succès",
+                type: "success",
+              });
             } catch (e) {
               // Show error to user
               console.error(e);
+              notify({
+                title: "Un problème est survenu lors de la création de l'offre",
+                type: "error",
+              });
             }
             setEditNewOfferPopUpVisible(!editNewOfferPopUpVisible);
           };
@@ -3002,8 +3014,9 @@ export default function ClientDetailScreen() {
               setCompanyForm({
                 dateEndMembership: company.dateEndMembership || "",
               });
+              setListOffers(offers);
             }
-          }, [company]);
+          }, [company, offers]);
 
           if (partnerAndCompanyLoading) return <AppText>Chargement...</AppText>;
           if (companyOffersLoading)
@@ -3223,10 +3236,10 @@ export default function ClientDetailScreen() {
                     />
                   </View>
                   <View style={{ flexDirection: "column", gap: 16 }}>
-                    {offers.length === 0 ? (
+                    {listOffers.length === 0 ? (
                       <AppText>Aucune offre pour cette entreprise.</AppText>
                     ) : (
-                      offers
+                      listOffers
                         .filter((o) => o.isActive)
                         .map((offer) => (
                           <OfferCard

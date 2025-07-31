@@ -31,6 +31,7 @@ import { UpdateExerciseRequest } from "../models/exercise";
 import { getMinutesFromDuration } from "../services/api/session-service";
 import { FileCategory, File as FileModel } from "../models/file";
 import { WebView } from "react-native-webview";
+import { notify } from "../components/NotificationContainer";
 
 type ExerciceDetailRouteProp = RouteProp<RootStackParamList, "ExerciceDetail">;
 
@@ -174,9 +175,22 @@ export default function ExerciceDetailScreen() {
     if (token) {
       try {
         await exerciseService.deleteExerciseById(exercise.id, token);
+        notify({
+          title: "Exercice supprimé avec succès",
+          type: "success",
+        });
+        const { onExerciseDeleted } = route.params;
+        if (onExerciseDeleted) {
+          onExerciseDeleted();
+        }
+
         navigation.goBack();
       } catch (error) {
         console.error("Error deleting exercise:", error);
+        notify({
+          title: "L'exercice n'a pas pu être supprimé",
+          type: "error",
+        });
       }
     }
   };

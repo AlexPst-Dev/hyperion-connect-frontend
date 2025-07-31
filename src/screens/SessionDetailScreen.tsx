@@ -572,7 +572,6 @@ export default function SessionDetailScreen() {
       }
     }
     fetchSessionAndRelatedData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session.id, token, user]);
 
   return (
@@ -801,6 +800,9 @@ export default function SessionDetailScreen() {
                             exercise: item.exercise,
                             muscleGroups: item.muscleGroups,
                             isEditable: isEditable,
+                            onExerciseDeleted: () => {
+                              handleFetchExercises(session.id);
+                            },
                           })
                         }
                       />

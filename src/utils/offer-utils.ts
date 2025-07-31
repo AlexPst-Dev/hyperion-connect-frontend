@@ -30,7 +30,7 @@ export async function handleCreateOffer(
   newOfferType: OfferCategory.DISCOUNT | OfferCategory.SPONSORSHIP,
   offerForm: OfferFormData,
   sportCategories: Category[]
-): Promise<void> {
+): Promise<OfferCompleteResponse> {
   if (!company?.id || !token) throw new Error("Missing company or token");
 
   let conditions = offerForm.conditions;
@@ -79,4 +79,5 @@ export async function handleCreateOffer(
   }
 
   await OffersApiService.createOffer(payload, token);
+  return payload;
 }
