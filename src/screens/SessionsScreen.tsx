@@ -1386,7 +1386,7 @@ export default function SessionsScreen() {
                           />
                           <AppButton
                             type="secondary"
-                            title="Créer un exercice"
+                            title="Créer une session"
                             iconName="plus"
                             onPress={() => setModalStep("custom")}
                             buttonStyle={{ margin: "auto" }}
@@ -1480,6 +1480,7 @@ export default function SessionsScreen() {
                     closeText="Annuler"
                     onSubmit={() => {
                       handleEditSessionSubmit();
+                      closeModal();
                       setEditSessionPopUp(false);
                     }}
                     btnType="primary"

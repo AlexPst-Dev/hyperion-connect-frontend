@@ -299,14 +299,14 @@ export default function SessionDetailScreen() {
       };
 
       try {
-        await exerciseService.createExercise(baseData, token).then((res) => {
-          setExercisesOfSession((prev) => [...prev, res.exercice]);
-          handleAddNewExercisesToSession([res.exercice]);
-          notify({ title: "Exercice créé avec succès", type: "success" });
-        });
+        const response = await exerciseService.createExercise(baseData, token);
+
+        await handleAddNewExercisesToSession([response.exercice]);
+
+        notify({ title: "Exercice créé avec succès", type: "success" });
       } catch (error) {
         notify({
-          title: "Erreur lors de la création de la'exercice",
+          title: "Erreur lors de la création de l'exercice",
           type: "error",
         });
         console.log("Error while trying to create exercise : ", error);
@@ -357,20 +357,46 @@ export default function SessionDetailScreen() {
         console.log("No exercises selected to add to the session.");
         return;
       }
-      const newExercises = await SessionService.updateSessionById(
-        session.id,
-        {
-          listExercises: addExercisesToSessionList(
-            session.listExercises,
-            exerciseIds
-          ),
-          numberOfExercises: session.numberOfExercises + exerciseIds.length,
-        },
-        token
-      );
-      await handleFetchExercises(session.id);
+
+      // Utiliser une approche optimiste avec rollback en cas d'erreur
+      const originalExercises = exercisesOfSession;
+
+      // Mettre à jour l'UI immédiatement
+      setExercisesOfSession((prev) => [...prev, ...exercises]);
+
+      try {
+        // Récupérer la session fraîche
+        const currentSession = await SessionService.getSessionById(
+          session.id,
+          token
+        );
+
+        const updatedSession = await SessionService.updateSessionById(
+          session.id,
+          {
+            listExercises: addExercisesToSessionList(
+              currentSession.session.listExercises,
+              exerciseIds
+            ),
+            numberOfExercises:
+              currentSession.session.numberOfExercises + exerciseIds.length,
+          },
+          token
+        );
+
+        // Confirmer avec le serveur
+        await handleFetchExercises(session.id);
+      } catch (updateError) {
+        // Rollback en cas d'erreur
+        setExercisesOfSession(originalExercises);
+        throw updateError;
+      }
     } catch (error) {
       console.error("Error adding exercises to session:", error);
+      notify({
+        title: "Erreur lors de l'ajout des exercices",
+        type: "error",
+      });
     }
   };
 
@@ -951,7 +977,6 @@ export default function SessionDetailScreen() {
                   onClose={closeModal}
                   onSubmit={(exercises) => {
                     handleAddNewExercisesToSession(exercises);
-                    console.log("Sessions sélectionnées :", exercises);
                     closeModal();
                   }}
                 />
