@@ -37,6 +37,7 @@ export default function AddContacts({
   const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
 
   const [allUsers, setAllUsers] = useState<User[]>([]);
+  const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [visibleUsers, setVisibleUsers] = useState<User[]>([]);
   const [limit] = useState(4);
   const [offset, setOffset] = useState(0);
@@ -44,48 +45,106 @@ export default function AddContacts({
   useEffect(() => {
     if (visible) {
       setSelectedUserIds(initialSelectedUserIds ?? []);
+      setOffset(0); // Reset pagination when modal opens
     }
   }, [visible, initialSelectedUserIds]);
 
-  // Fetch all users once for filtering and filter options
+  // Fetch users based on allowed categories or all users
   useEffect(() => {
     let isMounted = true;
-    UserService.getAllUsers(token).then(
-      (response: User[] | { users: User[] }) => {
-        const users = Array.isArray(response) ? response : response.users;
-        if (isMounted && Array.isArray(users)) {
-          // Filtrer les utilisateurs selon les profils autorisés
-          const filteredUsers = allowedProfileCategories
-            ? users.filter((user) =>
-                allowedProfileCategories.includes(user.profileCategory)
-              )
-            : users;
-          setAllUsers(filteredUsers);
-        } else if (isMounted) {
+
+    const fetchUsers = async () => {
+      try {
+        if (allowedProfileCategories && allowedProfileCategories.length === 1) {
+          // Si on a une seule catégorie autorisée, utiliser l'endpoint spécialisé
+          const response = await UserService.getUsersByProfileCategory(
+            allowedProfileCategories[0],
+            token
+          );
+          if (isMounted) {
+            // Transformer la réponse pour correspondre au format User[]
+            const users = response.users.map((userWithProfile) => ({
+              ...userWithProfile.profile?.user,
+              profileCategory: allowedProfileCategories[0],
+            })) as User[];
+            setAllUsers(users);
+          }
+        } else {
+          // Sinon, récupérer tous les utilisateurs par pagination
+          const allUsersList: User[] = [];
+          let offset = 0;
+          const limit = 100; // Récupérer par batch de 100
+          let hasMore = true;
+
+          while (hasMore && isMounted) {
+            const response = await UserService.getUsersPaginated(
+              token,
+              limit,
+              offset
+            );
+            const users = response.users;
+
+            if (users && users.length > 0) {
+              allUsersList.push(...users);
+              offset += limit;
+              hasMore = users.length === limit;
+            } else {
+              hasMore = false;
+            }
+          }
+
+          if (isMounted) {
+            // Filtrer les utilisateurs selon les profils autorisés
+            const filteredUsers = allowedProfileCategories
+              ? allUsersList.filter((user) =>
+                  allowedProfileCategories.includes(user.profileCategory)
+                )
+              : allUsersList;
+            setAllUsers(filteredUsers);
+          }
+        }
+      } catch (error) {
+        console.error(
+          "Erreur lors de la récupération des utilisateurs:",
+          error
+        );
+        if (isMounted) {
           setAllUsers([]);
         }
       }
-    );
+    };
+
+    fetchUsers();
+
     return () => {
       isMounted = false;
     };
   }, [token, allowedProfileCategories]);
 
-  // Filter and paginate users in-memory
+  // Apply filters and search to allUsers
   useEffect(() => {
-    // Apply filters and search to allUsers
     const filtered = allUsers.filter((user) => {
       const matchesSearch =
         searchTerm.length < 3 ||
         user.firstName.toLowerCase().startsWith(searchTerm.toLowerCase()) ||
         user.lastName.toLowerCase().startsWith(searchTerm.toLowerCase()) ||
         user.email?.toLowerCase().startsWith(searchTerm.toLowerCase());
-      const matchesFilter = selectedFilters.includes(user.profileCategory);
+
+      const matchesFilter =
+        selectedFilters.length === 0 ||
+        selectedFilters.includes(user.profileCategory);
+
       return matchesSearch && matchesFilter;
     });
-    // Paginate
-    setVisibleUsers(filtered.slice(offset, offset + limit));
-  }, [allUsers, searchTerm, selectedFilters, offset, limit]);
+
+    setFilteredUsers(filtered);
+    setOffset(0); // Reset pagination when filters change
+  }, [allUsers, searchTerm, selectedFilters]);
+
+  // Paginate the filtered users
+  useEffect(() => {
+    setVisibleUsers(filteredUsers.slice(offset, offset + limit));
+  }, [filteredUsers, offset, limit]);
 
   // Use allUsers for filter options
   const filterCategories = Array.from(
@@ -130,6 +189,12 @@ export default function AddContacts({
       onSubmit(selectedUsers);
     }
     onClose();
+  };
+
+  const loadMoreUsers = () => {
+    if (offset + limit < filteredUsers.length) {
+      setOffset((prev) => prev + limit);
+    }
   };
 
   // Masquer le sélecteur de profils si on a des profils spécifiques autorisés
@@ -177,27 +242,45 @@ export default function AddContacts({
               <>
                 <ScrollView style={styles.userList}>
                   {visibleUsers.length > 0 ? (
-                    visibleUsers.map((user, index) => {
-                      const isSelected = selectedUserIds.includes(user.id);
-                      return (
+                    <>
+                      {visibleUsers.map((user, index) => {
+                        const isSelected = selectedUserIds.includes(user.id);
+                        return (
+                          <Pressable
+                            key={user.id}
+                            onPress={() => toggleSelection(user.id)}
+                            style={{
+                              marginBottom:
+                                index === visibleUsers.length - 1 ? 0 : 12,
+                            }}
+                          >
+                            <ItemUser
+                              isCompany={false}
+                              user={user}
+                              iconName={isSelected ? "circleChecked" : "circle"}
+                            />
+                          </Pressable>
+                        );
+                      })}
+                      {/* Bouton "Voir plus" si il y a plus d'utilisateurs à afficher */}
+                      {offset + limit < filteredUsers.length && (
                         <Pressable
-                          key={user.id}
-                          onPress={() => toggleSelection(user.id)}
-                          style={{
-                            marginBottom:
-                              index === visibleUsers.length - 1 ? 0 : 12,
-                          }}
+                          onPress={loadMoreUsers}
+                          style={styles.loadMoreButton}
                         >
-                          <ItemUser
-                            isCompany={false}
-                            user={user}
-                            iconName={isSelected ? "circleChecked" : "circle"}
-                          />
+                          <AppText style={styles.loadMoreText}>
+                            Voir plus ({filteredUsers.length - offset - limit}{" "}
+                            restants)
+                          </AppText>
                         </Pressable>
-                      );
-                    })
+                      )}
+                    </>
                   ) : (
-                    <AppText>Aucun utilisateur trouvé.</AppText>
+                    <AppText>
+                      {searchTerm.length >= 3
+                        ? "Aucun utilisateur trouvé pour cette recherche."
+                        : "Aucun utilisateur trouvé."}
+                    </AppText>
                   )}
                 </ScrollView>
 
@@ -236,5 +319,16 @@ const styles = StyleSheet.create({
   },
   userList: {
     maxHeight: 240,
+  },
+  loadMoreButton: {
+    paddingVertical: 12,
+    alignItems: "center",
+    borderTopWidth: 1,
+    borderTopColor: "#E5E5E5",
+    marginTop: 12,
+  },
+  loadMoreText: {
+    color: "#007AFF",
+    fontSize: 16,
   },
 });

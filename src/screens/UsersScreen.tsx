@@ -323,6 +323,9 @@ export default function UsersScreen() {
       case 3:
         fetchUsersByCategories(ProfileCategory.PARTNER);
         break;
+      case 4:
+        fetchUsersByCategories(ProfileCategory.FREE);
+        break;
       default:
         break;
     }
@@ -880,6 +883,40 @@ export default function UsersScreen() {
         </ScrollView>
       </View>
     </View>,
+    <View key="free" style={{ flexDirection: "column", gap: 24 }}>
+      <View style={{ flexDirection: "column", gap: 16 }}>
+        <Input
+          type="text"
+          label="Rechercher"
+          placeholder="nom, prénom, email..."
+          value={searchTerm}
+          onChangeText={setSearchTerm}
+        />
+      </View>
+      <View style={{ flex: 1 }}>
+        <ScrollView
+          style={{ height: 300 }}
+          scrollEnabled
+          nestedScrollEnabled={true}
+        >
+          <View style={{ flexDirection: "column" }}>
+            {usersByCategory.map((user, index) => (
+              <Pressable
+                onPress={() => {
+                  navigation.navigate("ClientDetail", { client: user });
+                }}
+                key={user.id}
+                style={{
+                  marginBottom: index === usersByCategory.length - 1 ? 0 : 12,
+                }}
+              >
+                <ItemUser user={user} isCompany={false} iconName="send" />
+              </Pressable>
+            ))}
+          </View>
+        </ScrollView>
+      </View>
+    </View>,
   ];
 
   // Fonction utilitaire pour obtenir le titre de l'étape
@@ -915,7 +952,13 @@ export default function UsersScreen() {
                   { title: "Coachs", icon: "dumbell" },
                   { title: "Soignants", icon: "medic" },
                   ...(user?.profileCategory === "admin"
-                    ? [{ title: "Parternaires", icon: "handshake" as IconName }]
+                    ? [
+                        {
+                          title: "Parternaires",
+                          icon: "handshake" as IconName,
+                        },
+                        { title: "Free", icon: "linkDenied" as IconName },
+                      ]
                     : []),
                 ]}
                 onTabChange={handleTabChange}
@@ -1663,6 +1706,7 @@ export default function UsersScreen() {
             onClose={handleContactPopUpVisible}
             onSubmit={handleAddContactsSubmit}
             token={token as string}
+            allowedProfileCategories={[ProfileCategory.MEDIC]}
           />
         )}
         {addCoachPopUpVisible && (
