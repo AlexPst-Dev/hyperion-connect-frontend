@@ -162,6 +162,10 @@ export class UserService {
     return apiClient.delete<{ message: string }>(`/users/${userId}`, token);
   }
 
+  static async deleteCurrentUser(token: string): Promise<{ message: string }> {
+    return apiClient.delete<{ message: string }>("/users/self", token);
+  }
+
   // Methods specific to user types
 
   /**

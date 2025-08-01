@@ -21,7 +21,14 @@ function formatDateForDb(date: Date): string {
 
   return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}.${ms}`;
 }
+export interface ChangePasswordRequest {
+  oldPassword: string;
+  newPassword: string;
+}
 
+export interface ChangePasswordResponse {
+  message: string;
+}
 class AuthService {
   async login(credentials: LoginCredentials): Promise<LoginResponse> {
     try {
@@ -88,6 +95,18 @@ class AuthService {
       return false;
     }
   }
+
+  async changePassword(
+    data: ChangePasswordRequest,
+    token: string
+  ): Promise<ChangePasswordResponse> {
+    return apiClient.post<ChangePasswordResponse>(
+      '/auth/change-password', 
+      data,
+      token
+    );
+  }
+
 }
 
 export const authService = new AuthService();
