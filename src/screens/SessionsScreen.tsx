@@ -8,6 +8,8 @@ import {
   Pressable,
   StyleSheet,
   ActivityIndicator,
+  ListRenderItem,
+  FlatList,
 } from "react-native";
 import GlobalStyles, { Colors, shadowStyles } from "../styles/styles";
 import AppText from "../components/AppText";
@@ -773,7 +775,7 @@ export default function SessionsScreen() {
         <View key="seances" style={{ flexDirection: "column", gap: 24 }}>
           <AppButton
             type="linkSmall"
-            title="Voir l'hsitorique"
+            title="Voir l'historique"
             iconName="eye"
             onPress={() => navigation.navigate("SessionHistory")}
             buttonStyle={{ alignSelf: "flex-end" }}
@@ -1288,7 +1290,7 @@ export default function SessionsScreen() {
               ) : (
                 <ScrollView
                   style={{
-                    maxHeight: Platform.OS === "web" ? 325 : 250,
+                    maxHeight: 325,
                   }}
                 >
                   {sessionsComplete.length > 0 ? (
@@ -1653,7 +1655,7 @@ export default function SessionsScreen() {
               ) : (
                 <ScrollView
                   style={{
-                    maxHeight: Platform.OS === "web" ? 325 : 250,
+                    maxHeight: 325,
                   }}
                 >
                   {sessionsComplete.length > 0 ? (
@@ -2056,6 +2058,24 @@ export default function SessionsScreen() {
         s.session.label.toLowerCase().includes(filter.toLowerCase())
       );
 
+      const renderFilteredSessionItem: ListRenderItem<SessionWithFile> = ({
+        item,
+      }) => (
+        <View style={{ marginBottom: 8 }}>
+          <Session
+            key={item.session.id}
+            title={item.session.label}
+            imageUrl={item.filePicture ? item.filePicture.url : undefined}
+            labels={[]}
+            onPress={() =>
+              navigation.navigate("SessionDetail", {
+                session: item.session,
+              })
+            }
+          />
+        </View>
+      );
+
       return (
         <>
           <View style={{ flexDirection: "column", gap: 24 }}>
@@ -2077,39 +2097,16 @@ export default function SessionsScreen() {
               {loading ? (
                 <ActivityIndicator size="large" />
               ) : (
-                <ScrollView style={{ maxHeight: 250 }}>
-                  {filteredSessions.length === 0 ? (
-                    <AppText>Aucune séance trouvée.</AppText>
-                  ) : (
-                    filteredSessions
-                      .slice()
-                      .reverse()
-                      .map((completeSession) => {
-                        return (
-                          <View
-                            style={{ marginBottom: 8 }}
-                            key={completeSession.session.id}
-                          >
-                            <Session
-                              key={completeSession.session.id}
-                              title={completeSession.session.label}
-                              imageUrl={
-                                completeSession.filePicture
-                                  ? completeSession.filePicture.url
-                                  : undefined
-                              }
-                              labels={[]}
-                              onPress={() => {
-                                navigation.navigate("SessionDetail", {
-                                  session: completeSession.session,
-                                });
-                              }}
-                            />
-                          </View>
-                        );
-                      })
-                  )}
-                </ScrollView>
+                <FlatList
+                  data={[...filteredSessions].reverse()}
+                  renderItem={renderFilteredSessionItem}
+                  keyExtractor={(item) => item.session.id.toString()}
+                  style={{ maxHeight: 250 }}
+                  scrollEnabled={true}
+                  nestedScrollEnabled={true}
+                  ListEmptyComponent={<AppText>Aucune séance trouvée.</AppText>}
+                  contentContainerStyle={{ paddingBottom: 8 }}
+                />
               )}
               <View style={{ flexDirection: "row", justifyContent: "center" }}>
                 <AppButton
