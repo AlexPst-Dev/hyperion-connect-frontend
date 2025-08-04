@@ -56,16 +56,33 @@ export class UserService {
     limit: number;
     offset: number;
   }> {
-    let url = `/users/category/${category}`;
-    if (limit !== undefined && offset !== undefined) {
-      url += `?limit=${limit}&offset=${offset}`;
+    try {
+      return await apiClient.get<{
+        users: { profile: UserProfile | null }[];
+        total: number;
+        limit: number;
+        offset: number;
+      }>(
+        `/users/category/${category}${
+          limit !== undefined && offset !== undefined
+            ? `?limit=${limit}&offset=${offset}`
+            : ""
+        }`,
+        token
+      );
+    } catch (error: any) {
+      // Si 404 ou aucun utilisateur trouvé, retourner une structure vide
+      if (error.response?.status === 404) {
+        return {
+          users: [],
+          total: 0,
+          limit: limit || 0,
+          offset: offset || 0,
+        };
+      }
+      // Relancer les autres erreurs
+      throw error;
     }
-    return apiClient.get<{
-      users: { profile: UserProfile | null }[];
-      total: number;
-      limit: number;
-      offset: number;
-    }>(url, token);
   }
 
   /**

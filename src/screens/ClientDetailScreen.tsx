@@ -223,6 +223,9 @@ export default function ClientDetailScreen() {
 
   const [categoryLabel, setCategoryLabel] = useState("");
 
+  const [showAllNotes, setShowAllNotes] = useState(false);
+  const maxNotesToShow = Platform.OS === "web" ? 10 : 5;
+
   let isMounted = true;
 
   // User files
@@ -1353,43 +1356,70 @@ export default function ClientDetailScreen() {
         {/* Notes */}
         <View style={{ flexDirection: "column", gap: 16 }}>
           <AppText style={GlobalStyles.h2}>NOTES</AppText>
-          <ScrollView style={{ maxHeight: 300, marginBottom: 16 }}>
+
+          <View style={{ marginBottom: 16 }}>
             {sportsmanNotes.length > 0 ? (
-              sportsmanNotes
-                .slice()
-                .reverse()
-                .map((note, idx) => (
-                  <View key={idx} style={{ marginBottom: 12 }}>
-                    <AppText style={{ fontWeight: "bold" }}>
-                      {note.header}
-                    </AppText>
-                    <AppText>{note.message}</AppText>
-                    {user.profileCategory === "admin" && (
-                      <View
-                        style={{
-                          flexDirection: "row",
-                          justifyContent: "flex-end",
-                        }}
-                      >
-                        <AppButton
-                          type="linkSmall"
-                          title="Supprimer"
-                          iconName="trash"
-                          textStyle={{ color: Colors.lightRed }}
-                          borderColor={Colors.lightRed}
-                          iconColor={Colors.lightRed}
-                          onPress={() =>
-                            handleDeleteNote(sportsmanNotes.length - 1 - idx)
-                          }
-                        />
-                      </View>
-                    )}
+              <>
+                {sportsmanNotes
+                  .slice()
+                  .reverse()
+                  .slice(
+                    0,
+                    showAllNotes ? sportsmanNotes.length : maxNotesToShow
+                  )
+                  .map((note, idx) => (
+                    <View key={idx} style={{ marginBottom: 12 }}>
+                      <AppText style={{ fontWeight: "bold" }}>
+                        {note.header}
+                      </AppText>
+                      <AppText>{note.message}</AppText>
+                      {user.profileCategory === "admin" && (
+                        <View
+                          style={{
+                            flexDirection: "row",
+                            justifyContent: "flex-end",
+                          }}
+                        >
+                          <AppButton
+                            type="linkSmall"
+                            title="Supprimer"
+                            iconName="trash"
+                            textStyle={{ color: Colors.lightRed }}
+                            borderColor={Colors.lightRed}
+                            iconColor={Colors.lightRed}
+                            onPress={() =>
+                              handleDeleteNote(sportsmanNotes.length - 1 - idx)
+                            }
+                          />
+                        </View>
+                      )}
+                    </View>
+                  ))}
+
+                {/* Bouton pour voir plus/moins */}
+                {sportsmanNotes.length > maxNotesToShow && (
+                  <View style={{ alignItems: "center", marginTop: 8 }}>
+                    <AppButton
+                      type="linkNormal"
+                      title={
+                        showAllNotes
+                          ? "Voir moins"
+                          : `Voir ${
+                              sportsmanNotes.length - maxNotesToShow
+                            } notes de plus`
+                      }
+                      iconName={showAllNotes ? "chevronUp" : "chevronDown"}
+                      iconColor={Colors.lightBlue}
+                      onPress={() => setShowAllNotes(!showAllNotes)}
+                    />
                   </View>
-                ))
+                )}
+              </>
             ) : (
               <AppText>Aucune note</AppText>
             )}
-          </ScrollView>
+          </View>
+
           <View style={{ flexDirection: "row", justifyContent: "flex-end" }}>
             <AppButton
               type="add"
