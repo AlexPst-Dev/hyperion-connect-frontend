@@ -211,7 +211,7 @@ export default function UsersScreen() {
       );
       setSelectedFilters(categories);
     } catch (error) {
-      console.error("Erreur lors de la récupération des utilisateurs:", error);
+      // console.error("Erreur lors de la récupération des utilisateurs:", error);
       setAllUsersByCategory([]);
       setUsersByCategory([]);
     }
@@ -764,19 +764,23 @@ export default function UsersScreen() {
           nestedScrollEnabled={true}
         >
           <View style={{ flexDirection: "column" }}>
-            {usersByCategory.map((user, index) => (
-              <Pressable
-                onPress={() => {
-                  navigation.navigate("ClientDetail", { client: user });
-                }}
-                key={user.id}
-                style={{
-                  marginBottom: index === usersByCategory.length - 1 ? 0 : 12,
-                }}
-              >
-                <ItemUser user={user} isCompany={false} iconName="send" />
-              </Pressable>
-            ))}
+            {usersByCategory.length > 0 ? (
+              usersByCategory.map((user, index) => (
+                <Pressable
+                  onPress={() => {
+                    navigation.navigate("ClientDetail", { client: user });
+                  }}
+                  key={user.id}
+                  style={{
+                    marginBottom: index === usersByCategory.length - 1 ? 0 : 12,
+                  }}
+                >
+                  <ItemUser user={user} isCompany={false} iconName="send" />
+                </Pressable>
+              ))
+            ) : (
+              <AppText>Aucun utilisateurs pour cette catégorie</AppText>
+            )}
           </View>
         </ScrollView>
       </View>
@@ -798,19 +802,23 @@ export default function UsersScreen() {
           nestedScrollEnabled={true}
         >
           <View style={{ flexDirection: "column" }}>
-            {usersByCategory.map((user, index) => (
-              <Pressable
-                onPress={() => {
-                  navigation.navigate("ClientDetail", { client: user });
-                }}
-                key={user.id}
-                style={{
-                  marginBottom: index === usersByCategory.length - 1 ? 0 : 12,
-                }}
-              >
-                <ItemUser user={user} isCompany={false} iconName="send" />
-              </Pressable>
-            ))}
+            {usersByCategory.length > 0 ? (
+              usersByCategory.map((user, index) => (
+                <Pressable
+                  onPress={() => {
+                    navigation.navigate("ClientDetail", { client: user });
+                  }}
+                  key={user.id}
+                  style={{
+                    marginBottom: index === usersByCategory.length - 1 ? 0 : 12,
+                  }}
+                >
+                  <ItemUser user={user} isCompany={false} iconName="send" />
+                </Pressable>
+              ))
+            ) : (
+              <AppText>Aucun utilisateurs pour cette catégorie</AppText>
+            )}
           </View>
         </ScrollView>
       </View>
@@ -832,19 +840,23 @@ export default function UsersScreen() {
           nestedScrollEnabled={true}
         >
           <View style={{ flexDirection: "column" }}>
-            {usersByCategory.map((user, index) => (
-              <Pressable
-                onPress={() => {
-                  navigation.navigate("ClientDetail", { client: user });
-                }}
-                key={user.id}
-                style={{
-                  marginBottom: index === usersByCategory.length - 1 ? 0 : 12,
-                }}
-              >
-                <ItemUser user={user} isCompany={false} iconName="send" />
-              </Pressable>
-            ))}
+            {usersByCategory.length > 0 ? (
+              usersByCategory.map((user, index) => (
+                <Pressable
+                  onPress={() => {
+                    navigation.navigate("ClientDetail", { client: user });
+                  }}
+                  key={user.id}
+                  style={{
+                    marginBottom: index === usersByCategory.length - 1 ? 0 : 12,
+                  }}
+                >
+                  <ItemUser user={user} isCompany={false} iconName="send" />
+                </Pressable>
+              ))
+            ) : (
+              <AppText>Aucun utilisateurs pour cette catégorie</AppText>
+            )}
           </View>
         </ScrollView>
       </View>
@@ -866,19 +878,23 @@ export default function UsersScreen() {
           nestedScrollEnabled={true}
         >
           <View style={{ flexDirection: "column" }}>
-            {usersByCategory.map((user, index) => (
-              <Pressable
-                onPress={() => {
-                  navigation.navigate("ClientDetail", { client: user });
-                }}
-                key={user.id}
-                style={{
-                  marginBottom: index === usersByCategory.length - 1 ? 0 : 12,
-                }}
-              >
-                <ItemUser user={user} isCompany={false} iconName="send" />
-              </Pressable>
-            ))}
+            {usersByCategory.length > 0 ? (
+              usersByCategory.map((user, index) => (
+                <Pressable
+                  onPress={() => {
+                    navigation.navigate("ClientDetail", { client: user });
+                  }}
+                  key={user.id}
+                  style={{
+                    marginBottom: index === usersByCategory.length - 1 ? 0 : 12,
+                  }}
+                >
+                  <ItemUser user={user} isCompany={false} iconName="send" />
+                </Pressable>
+              ))
+            ) : (
+              <AppText>Aucun utilisateurs pour cette catégorie</AppText>
+            )}
           </View>
         </ScrollView>
       </View>
@@ -900,19 +916,23 @@ export default function UsersScreen() {
           nestedScrollEnabled={true}
         >
           <View style={{ flexDirection: "column" }}>
-            {usersByCategory.map((user, index) => (
-              <Pressable
-                onPress={() => {
-                  navigation.navigate("ClientDetail", { client: user });
-                }}
-                key={user.id}
-                style={{
-                  marginBottom: index === usersByCategory.length - 1 ? 0 : 12,
-                }}
-              >
-                <ItemUser user={user} isCompany={false} iconName="send" />
-              </Pressable>
-            ))}
+            {usersByCategory.length > 0 ? (
+              usersByCategory.map((user, index) => (
+                <Pressable
+                  onPress={() => {
+                    navigation.navigate("ClientDetail", { client: user });
+                  }}
+                  key={user.id}
+                  style={{
+                    marginBottom: index === usersByCategory.length - 1 ? 0 : 12,
+                  }}
+                >
+                  <ItemUser user={user} isCompany={false} iconName="send" />
+                </Pressable>
+              ))
+            ) : (
+              <AppText>Aucun utilisateurs pour cette catégorie</AppText>
+            )}
           </View>
         </ScrollView>
       </View>
