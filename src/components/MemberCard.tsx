@@ -59,7 +59,6 @@ export default function MemberCard({ onClose, visible }: Props) {
         if (response.ok && data.success) {
           // Format du QR: URL de vérification + token
           const qrData = `${env.API_URL}/verifications/verify-page/${data.qrToken}`;
-          console.log("QR Data:", qrData);
           setQrToken(qrData);
         } else {
           console.error("Failed to generate QR token:", data);
