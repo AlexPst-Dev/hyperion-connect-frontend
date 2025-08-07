@@ -5,10 +5,11 @@ import Label from "./Label";
 import AppButton from "./AppButton";
 import GlobalStyles, { Colors } from "../styles/styles";
 import { IconName } from "./Icon";
+import { useCompanyImage } from "../hooks/useImageProfilePicture";
+import { Company } from "../models/company";
 
 interface Props {
-  companyName: string;
-  companyImgUrl: string;
+  company: Company;
   title: string;
   paragraph: string;
   conditions: string;
@@ -21,8 +22,7 @@ interface Props {
 }
 
 export default function OfferCard({
-  companyName,
-  companyImgUrl,
+  company,
   title,
   paragraph,
   conditions,
@@ -33,41 +33,27 @@ export default function OfferCard({
   iconName,
   onPress,
 }: Props) {
-  function getImageSource(imageUrl?: string): any {
-    if (!imageUrl) {
-      // fallback
-      return require("../assets/images/react-logo.png");
-    }
-
-    if (imageUrl.startsWith("http") || imageUrl.startsWith("https")) {
-      return { uri: imageUrl };
-    }
-
-    // Mapping of konwn local images
-    const localImages: Record<string, any> = {
-      "users/companies/nutrisport-logo": require("../assets/images/users/companies/nutrisport-logo.png"),
-    };
-
-    return localImages[imageUrl] || require("../assets/images/react-logo.png");
-  }
+  const { companyImage, isCppLoading } = useCompanyImage(
+    company.id,
+    company.fileImageCompany
+  );
 
   return (
     <View style={styles.container}>
+      <Label
+        title={isSponsorship ? "Sponsoring" : labelTxt}
+        backgroundColor={isSponsorship ? "#D6EBFF" : "#DEFFD6"}
+        textColor={isSponsorship ? Colors.deepBlue : Colors.green}
+        size="large"
+        labelStyle={{ alignSelf: "flex-end" }}
+      />
       <View style={styles.header}>
         <View style={styles.companyInfos}>
-          <Image
-            source={getImageSource(companyImgUrl)}
-            style={styles.companyImg}
-          />
+          <Image source={{ uri: companyImage }} style={styles.companyImg} />
           <AppText style={[GlobalStyles.h3, { color: Colors.deepBlue }]}>
-            {companyName}
+            {company.name}
           </AppText>
         </View>
-        <Label
-          title={isSponsorship ? "Sponsor" : labelTxt}
-          type={isSponsorship ? "blue" : "green"}
-          size="large"
-        />
       </View>
       <View style={styles.body}>
         <View style={styles.content}>
@@ -102,7 +88,7 @@ export default function OfferCard({
 const styles = StyleSheet.create({
   container: {
     flexDirection: "column",
-    gap: 16,
+    gap: 4,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: "black",

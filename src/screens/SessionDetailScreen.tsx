@@ -1,5 +1,5 @@
 // src/screens/SessionDetailScreen.tsx
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -9,6 +9,7 @@ import {
   Modal,
   Pressable,
   Dimensions,
+  ActivityIndicator,
 } from "react-native";
 import AppText from "@/src/components/AppText";
 import { RouteProp, useRoute } from "@react-navigation/native";
@@ -20,20 +21,46 @@ import Label from "../components/Label";
 import AppButton from "../components/AppButton";
 import Input from "../components/Input";
 import PopUp from "../components/PopUp";
-import AddSessions, {
-  TempInterfaceSession,
-} from "../components/popups/AddSession";
 import * as DocumentPicker from "expo-document-picker";
 import AddContacts from "../components/popups/AddContacts";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useAuth } from "../hooks/useAuth";
+import {
+  addExercisesToSessionList,
+  getMinutesFromDuration,
+  SessionService,
+} from "../services/api/session-service";
+import { fileService } from "../services/api/file-service";
+import { UpdateSessionRequest } from "../models/session";
+import { getImageSource } from "../utils/imgSrcHandler";
+import { exerciseService } from "../services/api/exercise-service";
+import { CreateExerciseRequest, ExerciseWithDetails } from "../models/exercise";
+import { Category, CategoryType } from "../models/category";
+import AddExercises from "../components/popups/AddExercise";
+import {
+  CoachProfile,
+  MedicProfile,
+  ProfileCategory,
+  User,
+} from "../models/user";
+import { UserService } from "../services/api/user-service";
+import { FileCategory, File as FileModel } from "../models/file";
+import { notify } from "../components/NotificationContainer";
+import { categoryService } from "../services/api/category-service";
+import * as FileSystem from "expo-file-system";
+import env from "@/env";
 
 type SessionDetailRouteProp = RouteProp<RootStackParamList, "SessionDetail">;
 
 export default function SessionDetailScreen() {
   const route = useRoute<SessionDetailRouteProp>();
   const { session } = route.params;
+
+  const [currentSession, setCurrentSession] = useState({
+    ...session,
+    filePicture: session.filePicture || null,
+  });
 
   type ModalStep = "selector" | "catalog" | "custom" | "import";
 
@@ -60,6 +87,56 @@ export default function SessionDetailScreen() {
   const handleAddContactPopUpVisible = () => {
     setAddContactPopUpVisible(!addContactPopUpVisible);
   };
+  const handleAddContactSubmit = async (selectedUsers: User[]) => {
+    if (!session || !selectedUsers || selectedUsers.length === 0 || !token)
+      return;
+
+    for (const selectedUser of selectedUsers) {
+      const completeUserProfile = await UserService.getUserById(
+        selectedUser.id,
+        token
+      );
+      if (!completeUserProfile || !completeUserProfile.profile) {
+        console.warn(
+          `User with ID ${selectedUser.id} does not have a complete profile.`
+        );
+        continue;
+      }
+      const linkedSessionsOfSelectedUser =
+        await SessionService.getSessionsByUser(selectedUser.id, token);
+
+      // Ensure correct types for comparison
+      const isDuplicate = linkedSessionsOfSelectedUser.some(
+        (ls) =>
+          Number(ls.sessionId) === Number(session.id) &&
+          Number(ls.userId) === Number(selectedUser.id)
+      );
+
+      if (
+        selectedUser.profileCategory !== ProfileCategory.SPORTSMAN ||
+        isDuplicate
+      ) {
+        console.warn(
+          `User ${selectedUser.firstName} ${selectedUser.lastName} is not a sportsman or already linked to this session.`
+        );
+        continue;
+      }
+
+      try {
+        await SessionService.addSessionToUser(
+          selectedUser.id,
+          session.id,
+          token
+        );
+        console.log(
+          `Session ${session.label} added to sportsman ${selectedUser.firstName} ${selectedUser.lastName}.`
+        );
+      } catch (error) {
+        console.error("Error adding session to sportsman:", error);
+      }
+    }
+    setAddContactPopUpVisible(false);
+  };
 
   type NavigationProp = NativeStackNavigationProp<
     RootStackParamList,
@@ -67,49 +144,435 @@ export default function SessionDetailScreen() {
   >;
   const navigation = useNavigation<NavigationProp>();
 
-  const tempListOfExercises: TempInterfaceSession[] = [
-    {
-      id: 1,
-      title: "Course lente",
-      durationTime: 50,
-      muscleGroups: [
-        {
-          title: "Jambes",
-          color: "blue",
-        },
-        {
-          title: "Cardio",
-          color: "orange",
-        },
-      ],
-    },
-    {
-      id: 2,
-      title: "Course fractionné",
-      durationTime: 68,
-      muscleGroups: [
-        {
-          title: "Jambes",
-          color: "blue",
-        },
-      ],
-    },
-  ];
+  const { user, token } = useAuth();
 
-  const { user } = useAuth();
+  const [completeUserProfile, setCompleteUserProfile] = useState<
+    MedicProfile | CoachProfile
+  >();
 
-  if (!user) return null;
+  if (!user || !token) return null;
 
-  let isExerciceEditable: boolean = false;
-  if (
-    user.profileCategory !== "sportsman" &&
-    user.profileCategory !== "free" &&
-    user.profileCategory !== "partner"
-  ) {
-    isExerciceEditable = true;
+  let isEditable: boolean = false;
+  if (user.profileCategory === "admin" || user.id === session.authorId) {
+    isEditable = true;
   }
 
   const screenWidth = Dimensions.get("window").width;
+
+  const [editSessionPopUpVisible, setEditSessionPopUpVisible] = useState(false);
+  const [sessionEditionLoading, setSessionEditionLoading] = useState(false);
+  const [sessionForm, setSessionForm] = useState({
+    label: "",
+    filePictureUrl: "",
+    recommendations: "",
+    contributions: "",
+  });
+
+  const [exerciseditionLoading, setExerciseEditionLoading] = useState(false);
+  const [exerciseForm, setExerciseForm] = useState({
+    label: "",
+    muscleGroups: [] as Category[],
+    recommendations: "",
+    description: "",
+    filePictureUrl: "",
+    durationTime: "",
+  });
+
+  const [exercisesOfSession, setExercisesOfSession] = useState<
+    ExerciseWithDetails[]
+  >([]);
+  const [allMuscleGroups, setAllMuscleGroups] = useState<Category[]>([]);
+
+  type ExerciseWithMuscleGroups = {
+    exercise: ExerciseWithDetails;
+    muscleGroups: Category[];
+  };
+
+  const [muscleGroupsByExercise, setMuscleGroupsByExercise] = useState<
+    ExerciseWithMuscleGroups[]
+  >([]);
+  const handleSessionFormChange = (field: string, value: any) => {
+    setSessionForm((prev) => ({ ...prev, [field]: value }));
+  };
+  const handleExerciseFormChange = (field: string, value: any) => {
+    setExerciseForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const [isDownloading, setIsDownloading] = useState(false);
+
+  // Fetch and update session after edit
+  const refreshSession = async () => {
+    try {
+      const updated = await SessionService.getSessionById(session.id, token);
+      setCurrentSession({
+        ...updated.session,
+        filePicture: updated.filePicture || updated.session.filePicture,
+      });
+    } catch (e) {
+      console.error("Failed to refresh session:", e);
+    }
+  };
+
+  const handleEditSessionSubmit = async () => {
+    setSessionEditionLoading(true);
+    if (token && sessionForm) {
+      let newSessionImageFile: FileModel | undefined;
+      if (sessionForm.filePictureUrl !== "") {
+        const fileResponse = session.filePictureId
+          ? await fileService.updateFile(
+              session.filePictureId,
+              {
+                url: sessionForm.filePictureUrl,
+              },
+              token
+            )
+          : await fileService.createFile(
+              {
+                label: `${sessionForm.label.toLowerCase().trim()}-image`,
+                url: sessionForm.filePictureUrl,
+                fileCategory: FileCategory.IMAGE,
+              },
+              token
+            );
+        newSessionImageFile =
+          "file" in fileResponse ? fileResponse.file : fileResponse;
+      }
+
+      const baseData: UpdateSessionRequest = {
+        label:
+          sessionForm.label !== session.label
+            ? sessionForm.label
+            : session.label,
+        filePictureId:
+          sessionForm.filePictureUrl !== "" && newSessionImageFile
+            ? newSessionImageFile.id
+            : undefined,
+
+        recommendations:
+          sessionForm.recommendations !== session.recommendations
+            ? sessionForm.recommendations
+            : session.recommendations,
+        contributions:
+          sessionForm.contributions !== session.contributions
+            ? sessionForm.contributions
+            : session.contributions,
+      };
+
+      try {
+        await SessionService.updateSessionById(session.id, baseData, token);
+        await refreshSession();
+      } catch (error) {
+        console.log("Error while trying to updating session : ", error);
+      } finally {
+        setSessionEditionLoading(false);
+        setEditSessionPopUpVisible(false);
+      }
+    }
+  };
+
+  const handleEditExerciseSubmit = async () => {
+    setExerciseEditionLoading(true);
+    if (token && exerciseForm) {
+      const newExerciseImageFile =
+        exerciseForm.filePictureUrl !== ""
+          ? await fileService.createFile(
+              {
+                label: `${exerciseForm.label.toLowerCase().trim()}-image`,
+                url: exerciseForm.filePictureUrl,
+                fileCategory: FileCategory.IMAGE,
+              },
+              token
+            )
+          : { id: undefined };
+
+      const baseData: CreateExerciseRequest = {
+        label: exerciseForm.label,
+        durationTime: `${Math.floor(Number(exerciseForm.durationTime) / 60)}:${
+          Number(exerciseForm.durationTime) % 60
+        }`,
+        filePictureId: newExerciseImageFile.id,
+        recommendations: exerciseForm.recommendations,
+        description: exerciseForm.description,
+        listMuscleGroupIds: exerciseForm.muscleGroups
+          .map((group) => group.id)
+          .join("; "),
+      };
+
+      try {
+        const response = await exerciseService.createExercise(baseData, token);
+
+        await handleAddNewExercisesToSession([response.exercice]);
+
+        notify({ title: "Exercice créé avec succès", type: "success" });
+      } catch (error) {
+        notify({
+          title: "Erreur lors de la création de l'exercice",
+          type: "error",
+        });
+        console.log("Error while trying to create exercise : ", error);
+      } finally {
+        setExerciseEditionLoading(false);
+      }
+    }
+  };
+
+  const handleFetchExercises = async (sessionId: number) => {
+    try {
+      const resExercises = await SessionService.getExercisesBySessionId(
+        sessionId,
+        token
+      );
+      setExercisesOfSession(resExercises.exercises);
+
+      if (resExercises.exercises.length > 0) {
+        const exercisesWithMuscleGroups = await Promise.all(
+          resExercises.exercises.map(async (exercise) => {
+            const resMuscleGroups =
+              await exerciseService.getMuscleGroupsForExercise(
+                exercise.id,
+                token
+              );
+            return {
+              exercise,
+              muscleGroups: resMuscleGroups.muscleGroups,
+            };
+          })
+        );
+
+        setMuscleGroupsByExercise(exercisesWithMuscleGroups);
+      }
+    } catch (e) {
+      console.log("Error while fetching exercises of the session", e);
+    }
+  };
+
+  const handleAddNewExercisesToSession = async (
+    exercises: ExerciseWithDetails[]
+  ) => {
+    if (!token || !session) return;
+
+    try {
+      const exerciseIds = exercises.map((ex) => ex.id);
+      if (exerciseIds.length === 0) {
+        console.log("No exercises selected to add to the session.");
+        return;
+      }
+
+      // Utiliser une approche optimiste avec rollback en cas d'erreur
+      const originalExercises = exercisesOfSession;
+
+      // Mettre à jour l'UI immédiatement
+      setExercisesOfSession((prev) => [...prev, ...exercises]);
+
+      try {
+        // Récupérer la session fraîche
+        const currentSession = await SessionService.getSessionById(
+          session.id,
+          token
+        );
+
+        const updatedSession = await SessionService.updateSessionById(
+          session.id,
+          {
+            listExercises: addExercisesToSessionList(
+              currentSession.session.listExercises,
+              exerciseIds
+            ),
+            numberOfExercises:
+              currentSession.session.numberOfExercises + exerciseIds.length,
+          },
+          token
+        );
+
+        // Confirmer avec le serveur
+        await handleFetchExercises(session.id);
+      } catch (updateError) {
+        // Rollback en cas d'erreur
+        setExercisesOfSession(originalExercises);
+        throw updateError;
+      }
+    } catch (error) {
+      console.error("Error adding exercises to session:", error);
+      notify({
+        title: "Erreur lors de l'ajout des exercices",
+        type: "error",
+      });
+    }
+  };
+
+  const fetchAllMuscleGroups = async () => {
+    try {
+      const resMuscleGroups = await categoryService.getCategoriesByType(
+        CategoryType.MUSCLE_GROUP,
+        token
+      );
+      setAllMuscleGroups(resMuscleGroups);
+    } catch (error) {
+      console.error("Error fetching muscle groups:", error);
+    }
+  };
+
+  const getMinutesOfAllExercises = () => {
+    return muscleGroupsByExercise.reduce((total, item) => {
+      const duration = getMinutesFromDuration(item.exercise.durationTime);
+      return total + duration;
+    }, 0);
+  };
+  const getAllDistinctMuscleGroups = () => {
+    const uniqueMuscleGroups: Category[] = [];
+    const seenMuscleGroupIds = new Set<number>();
+
+    muscleGroupsByExercise.forEach((item) => {
+      item.muscleGroups.forEach((mg) => {
+        if (!seenMuscleGroupIds.has(mg.id)) {
+          seenMuscleGroupIds.add(mg.id);
+          uniqueMuscleGroups.push(mg);
+        }
+      });
+    });
+    return uniqueMuscleGroups.map((mg) => (
+      <Label
+        key={mg.id}
+        title={mg.label}
+        textColor={mg.textColor}
+        backgroundColor={mg.backgroundColor}
+        size="normal"
+      />
+    ));
+  };
+
+  const handleDeleteSession = async () => {
+    if (token) {
+      try {
+        if (
+          user.profileCategory === ProfileCategory.COACH ||
+          user.profileCategory === ProfileCategory.MEDIC
+        ) {
+          await SessionService.removeSessionToUser(user.id, session.id, token);
+        } else if (user.profileCategory === ProfileCategory.ADMIN) {
+          await SessionService.deleteSessionById(session.id, token);
+        }
+        if (session.filePictureId) {
+          await fileService.deleteFile(session.filePictureId, token);
+        }
+        navigation.goBack();
+      } catch (error) {
+        console.error("Error deleting session:", error);
+      }
+    }
+  };
+
+  const handleFileDownload = async (filePicture: FileModel) => {
+    if (!filePicture.url) {
+      notify({
+        title: "URL du fichier non disponible",
+        type: "error",
+      });
+      return;
+    }
+
+    setIsDownloading(true);
+
+    try {
+      const fullUrl = `${env.API_URL}/files/download/${filePicture.id}?targetUserId=${currentSession.authorId}`;
+
+      if (Platform.OS === "web") {
+        // Version web
+        const response = await fetch(fullUrl, {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error(`Erreur HTTP: ${response.status}`);
+        }
+
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = filePicture.label;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      } else {
+        // Version mobile - reste identique
+        const { downloadAsync } = await import("expo-file-system");
+        const { shareAsync, isAvailableAsync } = await import("expo-sharing");
+
+        const headers: Record<string, string> = {};
+        if (token) {
+          headers.Authorization = `Bearer ${token}`;
+        }
+
+        const fileUri = `${FileSystem.documentDirectory}${filePicture.label}`;
+        const downloadResult = await downloadAsync(fullUrl, fileUri, {
+          headers,
+        });
+
+        if (downloadResult.status === 200) {
+          const isSharingAvailable = await isAvailableAsync();
+          if (isSharingAvailable) {
+            await shareAsync(downloadResult.uri, {
+              UTI: "com.adobe.pdf",
+              mimeType: "application/pdf",
+            });
+          }
+        }
+      }
+
+      notify({
+        title: "Fichier téléchargé avec succès",
+        type: "success",
+      });
+    } catch (error) {
+      console.error("Erreur téléchargement:", error);
+      notify({
+        title: "Impossible de télécharger le fichier",
+        type: "error",
+      });
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  useEffect(() => {
+    async function fetchSessionAndRelatedData() {
+      if (!session?.id || !token) return;
+      try {
+        const updated = await SessionService.getSessionById(session.id, token);
+        setCurrentSession({
+          ...updated.session,
+          filePicture: updated.filePicture || updated.session.filePicture,
+        });
+        setSessionForm({
+          label: updated.session.label || "",
+          filePictureUrl: updated.filePicture?.url || "",
+          recommendations: updated.session.recommendations || "",
+          contributions: updated.session.contributions || "",
+        });
+        handleFetchExercises(updated.session.id);
+        fetchAllMuscleGroups();
+        if (user) {
+          const profileConnected = await UserService.getUserById(
+            user.id,
+            token
+          );
+          if (user.profileCategory === ProfileCategory.MEDIC) {
+            setCompleteUserProfile(profileConnected.profile as MedicProfile);
+          } else if (user.profileCategory === ProfileCategory.COACH) {
+            setCompleteUserProfile(profileConnected.profile as CoachProfile);
+          }
+        }
+      } catch (error) {
+        console.error("Erreur lors du chargement de la session :", error);
+      }
+    }
+    fetchSessionAndRelatedData();
+  }, [session.id, token, user]);
 
   return (
     <KeyboardAvoidingView
@@ -127,22 +590,24 @@ export default function SessionDetailScreen() {
         }
       >
         <View style={{ flexDirection: "column", gap: 24 }}>
-          <View
-            style={{
-              height: 192,
-              backgroundColor: Colors.grey,
-              borderRadius: 8,
-            }}
-          >
-            <Image
-              source={require("../assets/images/sessions/img-running.png")}
-              style={{ borderRadius: 8 }}
-            />
-          </View>
+          {currentSession.filePicture && currentSession.filePicture.url ? (
+            <View
+              style={{
+                height: 192,
+                backgroundColor: Colors.grey,
+                borderRadius: 8,
+              }}
+            >
+              <Image
+                source={getImageSource(currentSession.filePicture.url)}
+                style={{ borderRadius: 8, width: "100%", height: "100%" }}
+              />
+            </View>
+          ) : null}
           <View
             style={{ flexDirection: "row", justifyContent: "space-between" }}
           >
-            <AppText style={GlobalStyles.h3}>{session.title}</AppText>
+            <AppText style={GlobalStyles.h3}>{currentSession.label}</AppText>
             <View
               style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
             >
@@ -155,127 +620,233 @@ export default function SessionDetailScreen() {
                 height={12}
               />
               <AppText style={[GlobalStyles.span, { color: Colors.grey }]}>
-                {session.durationTime} min
+                {getMinutesOfAllExercises()} min
               </AppText>
             </View>
           </View>
           <View style={{ flexDirection: "row", gap: 16 }}>
             {/* labels */}
-            <Label title="Jambes" type="blue" size="normal" />
-            <Label title="Cardio" type="blue" size="normal" />
+            {getAllDistinctMuscleGroups()}
           </View>
-          <View>
-            {/* recommandations */}
-            <AppText style={{ fontWeight: "bold" }}>Recommandations</AppText>
-            <AppText>
-              Hydratation : Boire de l'eau régulièrement avant, pendant et après
-              la séance.
-            </AppText>
-            <AppText>
-              Écoute du corps : Adapter l'intensité si nécessaire pour éviter
-              les blessures.
-            </AppText>
-            <AppText>
-              Suivi : Noter les sensations et les performances après la séance
-              pour ajuster les futurs entraînements.
-            </AppText>
-            {session.isEditable && (
-              <View
-                style={{ flexDirection: "row", justifyContent: "flex-end" }}
-              >
-                <AppButton title="Modifier" iconName="pencil" type="primary" />
-              </View>
-            )}
-          </View>
-          <View>
-            {/* interets */}
-            <AppText style={{ fontWeight: "bold" }}>Apports & Interets</AppText>
-            <AppText>
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
-              eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut
-              enim ad minim veniam, quis nostrud exercitation ullamco laboris
-              nisi ut aliquip ex ea commodo consequat.
-            </AppText>
-            {session.isEditable && (
-              <View
-                style={{ flexDirection: "row", justifyContent: "flex-end" }}
-              >
-                <AppButton title="Modifier" iconName="pencil" type="primary" />
-              </View>
-            )}
-          </View>
-
-          <View
-            style={{ flexDirection: "row", justifyContent: "space-between" }}
-          >
-            <AppText style={GlobalStyles.h3}>PROGRAMMES</AppText>
-            <View
-              style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
-            >
-              <Icon
-                name="dumbell"
-                fillColor="transparent"
-                strokeColor={Colors.grey}
-                strokeWidth={1}
-                width={12}
-                height={12}
-              />
-              <AppText style={[GlobalStyles.span, { color: Colors.grey }]}>
-                {session.nbExercises} exercices
-              </AppText>
+          {currentSession.recommendations && (
+            <View style={{ flexDirection: "column", gap: 8 }}>
+              {/* recommandations */}
+              <AppText style={{ fontWeight: "bold" }}>Recommandations</AppText>
+              <AppText>{currentSession.recommendations}</AppText>
             </View>
-          </View>
-          <View style={{ flexDirection: "column", gap: 8 }}>
-            <Session
-              isExercice
-              title="Course lente"
-              durationTime={10}
-              labels={<Label title="Jambes" type="blue" size="small" />}
-              onPress={() =>
-                navigation.navigate("ExerciceDetail", {
-                  exercice: {
-                    title: "Course lente",
-                    durationTime: 10,
-                    isEditable: isExerciceEditable,
-                  },
-                })
-              }
-            />
-            <Session
-              isExercice
-              title="Exercices dynamiques"
-              durationTime={18}
-              labels={<Label title="Cardio" type="blue" size="small" />}
-              onPress={() =>
-                navigation.navigate("ExerciceDetail", {
-                  exercice: {
-                    title: "Exercices dynamiques",
-                    durationTime: 18,
-                    isEditable: isExerciceEditable,
-                  },
-                })
-              }
-            />
-            {session.isEditable && (
-              <View style={{ flexDirection: "row", justifyContent: "center" }}>
+          )}
+          {currentSession.contributions && (
+            <View style={{ flexDirection: "column", gap: 8 }}>
+              {/* interets */}
+              <AppText style={{ fontWeight: "bold" }}>
+                Apports & Interets
+              </AppText>
+              <AppText>{currentSession.contributions}</AppText>
+            </View>
+          )}
+          {currentSession.filePicture &&
+            currentSession.filePicture.fileCategory !==
+              FileCategory.SESSION_IMPORTED &&
+            isEditable && (
+              <View
+                style={{ flexDirection: "row", justifyContent: "flex-end" }}
+              >
                 <AppButton
-                  iconName="plus"
-                  type="add"
-                  onPress={() => setModalStep("selector")}
+                  title="Modifier"
+                  iconName="pencil"
+                  type="primary"
+                  onPress={() => setEditSessionPopUpVisible(true)}
                 />
               </View>
             )}
-          </View>
 
-          {session.isEditable && (
-            <View
+          <Modal
+            transparent
+            visible={editSessionPopUpVisible}
+            onRequestClose={() => setEditSessionPopUpVisible(false)}
+          >
+            <Pressable
+              onPress={() => setEditSessionPopUpVisible(false)}
               style={{
-                flexDirection: "row",
-                justifyContent: "space-between",
-                alignItems: "center",
+                flex: 1,
+                backgroundColor: "rgba(0,0,0,0.5)",
+                justifyContent: "center",
+                padding: 24,
               }}
             >
+              <Pressable
+                onPress={() => {}}
+                style={{ borderRadius: 16, overflow: "hidden" }}
+              >
+                <PopUp
+                  onClose={() => setEditSessionPopUpVisible(false)}
+                  title="Modifier la session"
+                  paragraph="Vous pouvez modifier dans les champs ci-dessous la session"
+                  closeText="Annuler"
+                  btnText="Modifier"
+                  iconName="pencil"
+                  btnType="primary"
+                  onSubmit={handleEditSessionSubmit}
+                  inputs={
+                    sessionEditionLoading ? (
+                      <ActivityIndicator />
+                    ) : (
+                      <>
+                        <Input
+                          type="text"
+                          placeholder={
+                            sessionForm.label || "Nom du plan d'entrainement"
+                          }
+                          label="Label"
+                          value={sessionForm.label}
+                          onChangeText={(v) =>
+                            handleSessionFormChange("label", v)
+                          }
+                        />
+                        <Input
+                          type="text"
+                          placeholder={"https://"}
+                          label="Lien image"
+                          value={sessionForm.filePictureUrl}
+                          onChangeText={(v) =>
+                            handleSessionFormChange("filePictureUrl", v)
+                          }
+                        />
+                        <Input
+                          type="textarea"
+                          placeholder={
+                            sessionForm.recommendations ||
+                            "Conseils, mises en garde..."
+                          }
+                          label="Recommandations"
+                          value={sessionForm.recommendations}
+                          onChangeText={(v) =>
+                            handleSessionFormChange("recommendations", v)
+                          }
+                        />
+                        <Input
+                          type="textarea"
+                          placeholder={
+                            sessionForm.contributions ||
+                            "Apports et intérêts du programme"
+                          }
+                          label="Contributions"
+                          value={sessionForm.contributions}
+                          onChangeText={(v) =>
+                            handleSessionFormChange("contributions", v)
+                          }
+                        />
+                      </>
+                    )
+                  }
+                />
+              </Pressable>
+            </Pressable>
+          </Modal>
+
+          {muscleGroupsByExercise.length > 0 ? (
+            <>
               <View
+                style={{
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                }}
+              >
+                <AppText style={GlobalStyles.h3}>PROGRAMMES</AppText>
+                <View
+                  style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
+                >
+                  <Icon
+                    name="dumbell"
+                    fillColor="transparent"
+                    strokeColor={Colors.grey}
+                    strokeWidth={1}
+                    width={12}
+                    height={12}
+                  />
+                  <AppText style={[GlobalStyles.span, { color: Colors.grey }]}>
+                    {muscleGroupsByExercise.length} exercices
+                  </AppText>
+                </View>
+              </View>
+
+              <View style={{ flexDirection: "column", gap: 8 }}>
+                {muscleGroupsByExercise.length > 0 ? (
+                  muscleGroupsByExercise.map((item) => {
+                    return (
+                      <Session
+                        key={item.exercise.id}
+                        isExercice
+                        title={item.exercise.label}
+                        durationTime={getMinutesFromDuration(
+                          item.exercise.durationTime
+                        )}
+                        imageUrl={
+                          item.exercise.filePicture
+                            ? item.exercise.filePicture.url
+                            : "default-session"
+                        }
+                        labels={item.muscleGroups.map((muscleGroup) => (
+                          <Label
+                            key={muscleGroup.id}
+                            title={muscleGroup.label}
+                            textColor={muscleGroup.textColor}
+                            backgroundColor={muscleGroup.backgroundColor}
+                            size="small"
+                          />
+                        ))}
+                        onPress={() =>
+                          navigation.navigate("ExerciceDetail", {
+                            exercise: item.exercise,
+                            muscleGroups: item.muscleGroups,
+                            isEditable: isEditable,
+                            onExerciseDeleted: () => {
+                              handleFetchExercises(session.id);
+                            },
+                          })
+                        }
+                      />
+                    );
+                  })
+                ) : (
+                  <AppText>Aucun exercises dans ce plan d'entrainement</AppText>
+                )}
+              </View>
+            </>
+          ) : (
+            <AppText>Aucun exercises dans ce plan d'entrainement</AppText>
+          )}
+          {isEditable && (
+            <View style={{ flexDirection: "row", justifyContent: "center" }}>
+              <AppButton
+                iconName="plus"
+                type="add"
+                onPress={() => setModalStep("selector")}
+              />
+            </View>
+          )}
+
+          {currentSession.filePicture &&
+            currentSession.filePicture.fileCategory ===
+              FileCategory.SESSION_IMPORTED && (
+              <AppButton
+                type="secondary"
+                title="Télécharger"
+                iconName="download"
+                onPress={() => handleFileDownload(currentSession.filePicture)}
+              />
+            )}
+
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            {isEditable && (
+              <Pressable
+                onPress={handleDeleteSession}
                 style={{
                   flexDirection: "row",
                   gap: 8,
@@ -291,15 +862,19 @@ export default function SessionDetailScreen() {
                   fillColor="transparent"
                   strokeWidth={1}
                 />
-              </View>
+              </Pressable>
+            )}
+            {(user.profileCategory === ProfileCategory.ADMIN ||
+              user.profileCategory === ProfileCategory.COACH ||
+              user.profileCategory === ProfileCategory.MEDIC) && (
               <AppButton
                 type="secondary"
                 title="Envoyer"
                 iconName="send"
                 onPress={handleAddContactPopUpVisible}
               />
-            </View>
-          )}
+            )}
+          </View>
         </View>
 
         <Modal
@@ -330,47 +905,51 @@ export default function SessionDetailScreen() {
                     <View style={{ flexDirection: "column", gap: 24 }}>
                       <View
                         style={{
-                          flexDirection: "row",
-                          justifyContent: "space-between",
+                          flexDirection: "column",
+                          gap: 16,
                           alignItems: "center",
                         }}
                       >
                         <AppButton
                           type="secondary"
-                          title="Catalogue"
+                          title="Ajouter depuis le catalogue"
                           iconName="plus"
                           onPress={() => setModalStep("catalog")}
+                          buttonStyle={{ margin: "auto" }}
                         />
                         <View
                           style={{
-                            height: 24,
-                            width: 1,
+                            height: 1,
+                            width: 24,
                             backgroundColor: "black",
                           }}
                         />
                         <AppButton
                           type="secondary"
-                          title="Personnalisé"
+                          title="Créer un exercice"
                           iconName="plus"
                           onPress={() => setModalStep("custom")}
+                          buttonStyle={{ margin: "auto" }}
                         />
                       </View>
-                      <View
-                        style={{
-                          flexDirection: "row",
-                          justifyContent: "center",
-                        }}
-                      >
-                        <AppButton
-                          type="secondary"
-                          title="Importer"
-                          iconName="download"
-                          onPress={() => {
-                            setModalStep("import");
-                            handleImport();
+                      {completeUserProfile?.canImportSessions && (
+                        <View
+                          style={{
+                            flexDirection: "row",
+                            justifyContent: "center",
                           }}
-                        />
-                      </View>
+                        >
+                          <AppButton
+                            type="secondary"
+                            title="Importer"
+                            iconName="download"
+                            onPress={() => {
+                              setModalStep("import");
+                              handleImport();
+                            }}
+                          />
+                        </View>
+                      )}
                       <Pressable
                         style={{
                           flexDirection: "row",
@@ -395,76 +974,97 @@ export default function SessionDetailScreen() {
               )}
 
               {modalStep === "catalog" && (
-                <AddSessions
+                <AddExercises
                   visible={true}
-                  listOfSession={tempListOfExercises}
                   onClose={closeModal}
-                  onSubmit={(sessions) => {
-                    console.log("Sessions sélectionnées :", sessions);
+                  onSubmit={(exercises) => {
+                    handleAddNewExercisesToSession(exercises);
                     closeModal();
                   }}
-                  isExercises
                 />
               )}
 
               {modalStep === "custom" && (
                 <PopUp
-                  title="Editer un exercice"
-                  btnText="Editer"
+                  title="Modifier un exercice"
+                  btnText="Modifier"
                   iconName="pencil"
                   closeText="Annuler"
-                  onSubmit={closeModal}
+                  onSubmit={() => {
+                    handleEditExerciseSubmit();
+                    closeModal();
+                  }}
                   btnType="primary"
                   inputs={
                     <>
                       <Input
                         type="text"
-                        placeholder="Libellé"
                         label="Libellé de l'exercice"
+                        placeholder="Libellé"
+                        value={exerciseForm.label}
+                        onChangeText={(v) =>
+                          handleExerciseFormChange("label", v)
+                        }
                       />
                       <Input
                         type="multiSelector"
-                        placeholder="Jambes"
+                        placeholder="Aucune sélection"
                         label="Groupes musculaire"
-                        options={[
-                          {
-                            label: "Fessiers",
-                            value: "fessiers",
-                          },
-                          {
-                            label: "Jambes",
-                            value: "jambes",
-                          },
-                          {
-                            label: "Cardio",
-                            value: "cardio",
-                          },
-                        ]}
+                        value={exerciseForm.muscleGroups.map((mg) =>
+                          String(mg.id)
+                        )}
+                        onChangeText={(idsString: string) => {
+                          // Convert comma-separated string to array of IDs
+                          const ids = idsString.split(",").filter(Boolean);
+                          // Map IDs to Category objects from allMuscleGroups
+                          const selected = allMuscleGroups.filter((mg) =>
+                            ids.includes(String(mg.id))
+                          );
+                          setExerciseForm((prev) => ({
+                            ...prev,
+                            muscleGroups: selected,
+                          }));
+                        }}
+                        options={allMuscleGroups.map((mg) => ({
+                          label: mg.label,
+                          value: String(mg.id),
+                        }))}
                       />
                       <Input
                         type="text"
                         placeholder="https://"
-                        label="Lien image ou vidéo"
+                        label="Lien image"
+                        value={exerciseForm.filePictureUrl}
+                        onChangeText={(v) =>
+                          handleExerciseFormChange("filePictureUrl", v)
+                        }
                       />
                       <Input
                         type="number"
-                        placeholder="XX minutes"
+                        placeholder="XX"
                         label="Durée"
+                        value={exerciseForm.durationTime}
+                        onChangeText={(v) =>
+                          handleExerciseFormChange("durationTime", v)
+                        }
                       />
                       <Input
-                        type="number"
-                        placeholder="XX minutes"
-                        label="Temps de repos"
-                      />
-                      <Input
-                        type="number"
-                        placeholder="4 x 10 répétitions"
-                        label="Nombre de répétitions"
-                      />
-                      <Input
-                        type="text"
+                        type="textarea"
                         label="Description"
                         placeholder="Remplissez une description ici..."
+                        value={exerciseForm.description}
+                        onChangeText={(v) =>
+                          handleExerciseFormChange("description", v)
+                        }
+                      />
+                      <Input
+                        type="textarea"
+                        label="Recommandations"
+                        placeholder="Conseils, recommandations..."
+                        value={exerciseForm.recommendations}
+                        onChangeText={(v) =>
+                          handleExerciseFormChange("recommendations", v)
+                        }
                       />
                     </>
                   }
@@ -478,22 +1078,10 @@ export default function SessionDetailScreen() {
         <AddContacts
           visible={addContactPopUpVisible}
           onClose={handleAddContactPopUpVisible}
-          listOfUser={[
-            {
-              id: 1,
-              firstName: "John",
-              lastName: "Doe",
-              email: "john.doe@exemple.com",
-              profileCategory: "sportsman",
-            },
-            {
-              id: 2,
-              firstName: "Antoine",
-              lastName: "Dupont",
-              email: "a.d@exemple.com",
-              profileCategory: "sportsman",
-            },
-          ]}
+          token={token}
+          onSubmit={(selectedUsers) => {
+            handleAddContactSubmit(selectedUsers);
+          }}
         />
       </ScrollView>
     </KeyboardAvoidingView>

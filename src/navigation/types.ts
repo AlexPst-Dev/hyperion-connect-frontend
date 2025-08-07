@@ -1,4 +1,7 @@
-import { User } from "../context/AuthContext";
+import { Category } from "../models/category";
+import { ExerciseWithDetails } from "../models/exercise";
+import { Session } from "../models/session";
+import { User } from "../models/user";
 
 export type RootStackParamList = {
   Login: undefined;
@@ -10,19 +13,13 @@ export type RootStackParamList = {
   Legals: undefined;
   Settings: undefined;
   SessionDetail: {
-    session: {
-      title: string;
-      nbExercises: number;
-      durationTime: number;
-      isEditable?: boolean;
-    };
+    session: Session;
   };
   ExerciceDetail: {
-    exercice: {
-      title: string;
-      durationTime: number;
-      isEditable?: boolean;
-    };
+    exercise: ExerciseWithDetails;
+    muscleGroups: Category[];
+    isEditable?: boolean;
+    onExerciseDeleted?: () => void;
   };
   PlanningHistory: undefined;
   ContactDetail: {
@@ -32,5 +29,8 @@ export type RootStackParamList = {
     client: User;
   };
   PartnersList: undefined;
-  OffersHistory: undefined;
+  OffersHistory: {
+    companyId: number;
+  };
+  SessionHistory: undefined;
 };

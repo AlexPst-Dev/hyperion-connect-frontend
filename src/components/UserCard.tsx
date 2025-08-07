@@ -1,5 +1,12 @@
 import React from "react";
-import { StyleSheet, View, Text, Image } from "react-native";
+import {
+  StyleSheet,
+  View,
+  Text,
+  Image,
+  Pressable,
+  Linking,
+} from "react-native";
 import GlobalStyles, { Colors, shadowStyles } from "../styles/styles";
 import Icon from "./Icon";
 
@@ -17,6 +24,7 @@ interface Props {
   companyName?: string;
   companyAdress?: string;
   companyLink?: string;
+  token?: string;
 }
 
 const styles = StyleSheet.create({
@@ -50,7 +58,9 @@ const styles = StyleSheet.create({
     width: 92,
     height: 92,
     borderRadius: 8,
-    backgroundColor: Colors.grey,
+    borderWidth: 0.5,
+    borderColor: Colors.grey,
+    backgroundColor: "white",
   },
   separator: {
     width: 1,
@@ -83,31 +93,13 @@ export default function UserCard({
   companyName,
   companyAdress,
   companyLink,
+  token,
 }: Props) {
-  function getImageSource(imageUrl?: string): any {
-    if (!imageUrl) {
-      // fallback
-      return require("../assets/images/react-logo.png");
-    }
-
-    if (imageUrl.startsWith("http") || imageUrl.startsWith("https")) {
-      return { uri: imageUrl };
-    }
-
-    // Mapping of konwn local images
-    const localImages: Record<string, any> = {
-      "users/profilePicture/img-profile-1": require("../assets/images/users/profilePicture/img-profil-1.png"),
-      "users/companies/nutrisport-logo": require("../assets/images/users/companies/nutrisport-logo.png"),
-    };
-
-    return localImages[imageUrl] || require("../assets/images/react-logo.png");
-  }
-
   return (
     <View style={[styles.container, shadowStyles.small]}>
       <View style={styles.header}>
         <Image
-          source={getImageSource(profilePictureUrl)}
+          source={{ uri: profilePictureUrl }}
           style={styles.profilePicture}
         />
         <View style={styles.separator} />
@@ -158,9 +150,12 @@ export default function UserCard({
         </View>
       )}
       {companyLink && (
-        <View style={styles.contactsControllers}>
+        <Pressable
+          style={styles.contactsControllers}
+          onPress={() => Linking.openURL(companyLink)}
+        >
           <Icon name="link" fillColor="transparent" strokeColor="black" />
-        </View>
+        </Pressable>
       )}
     </View>
   );

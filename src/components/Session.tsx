@@ -8,10 +8,11 @@ import AppButton from "./AppButton";
 
 interface Props {
   title: string;
-  durationTime: number;
+  durationTime?: number;
   nbExercises?: number;
   imageUrl?: string;
   isExercice?: boolean;
+  isImportedFile?: boolean;
   labels?: React.ReactElement | React.ReactElement[];
   onPress?: () => void;
   isDone?: boolean;
@@ -23,7 +24,6 @@ interface Props {
   location?: string;
   date?: Date;
   hour?: string;
-  isInPerson?: boolean;
   hideIcon?: boolean;
 }
 
@@ -33,6 +33,7 @@ export default function Session({
   nbExercises,
   imageUrl,
   isExercice = false,
+  isImportedFile = false,
   labels,
   onPress,
   isDone = false,
@@ -44,15 +45,9 @@ export default function Session({
   location,
   date,
   hour,
-  isInPerson,
   hideIcon = false,
 }: Props) {
-  function getImageSource(imageUrl?: string): any {
-    if (!imageUrl) {
-      // fallback
-      return require("../assets/images/default-session.png");
-    }
-
+  function getImageSource(imageUrl: string): any {
     if (imageUrl.startsWith("http") || imageUrl.startsWith("https")) {
       return { uri: imageUrl };
     }
@@ -67,57 +62,102 @@ export default function Session({
     );
   }
 
+  function isYoutubeUrl(url: string) {
+    return url.includes("youtube.com") || url.includes("youtu.be");
+  }
+
   return (
     <Pressable onPress={onPress} style={[styles.container, shadowStyles.small]}>
       <View style={styles.content}>
-        <View style={styles.img}>
-          <Image source={getImageSource(imageUrl)} />
+        <View
+          style={[
+            styles.img,
+            isImportedFile || !imageUrl || isYoutubeUrl(imageUrl)
+              ? {
+                  borderWidth: 1,
+                  borderColor: "rgb(172, 172, 172)",
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }
+              : "",
+          ]}
+        >
+          {imageUrl && !isYoutubeUrl(imageUrl) && (
+            <Image
+              source={getImageSource(imageUrl)}
+              style={{ width: "100%", height: "100%", borderRadius: 8 }}
+            />
+          )}
+          {isImportedFile && (
+            <Icon
+              name="download"
+              width={32}
+              height={32}
+              strokeColor="black"
+              fillColor="transparent"
+            />
+          )}
+          {(!imageUrl && !isImportedFile) ||
+            (imageUrl && isYoutubeUrl(imageUrl) && (
+              <Icon
+                name="eye"
+                width={32}
+                height={32}
+                strokeColor="black"
+                fillColor="transparent"
+              />
+            ))}
         </View>
         <View style={styles.separator} />
         <View style={styles.infos}>
           <AppText style={[GlobalStyles.p, { fontWeight: "bold" }]}>
             {title}
           </AppText>
-          <View style={styles.sessionDetails}>
-            {nbExercises && (
-              <View style={styles.sessionAttribute}>
-                <Icon
-                  name="dumbell"
-                  fillColor="transparent"
-                  strokeColor={Colors.grey}
-                  strokeWidth={1}
-                  width={12}
-                  height={12}
-                />
-                <AppText
-                  style={[
-                    GlobalStyles.span,
-                    { color: Colors.grey, marginLeft: 2 },
-                  ]}
-                >
-                  {nbExercises} exercices
-                </AppText>
-              </View>
-            )}
-            <View style={styles.sessionAttribute}>
-              <Icon
-                name="timer"
-                fillColor="transparent"
-                strokeColor={Colors.grey}
-                strokeWidth={1}
-                width={12}
-                height={12}
-              />
-              <AppText
-                style={[
-                  GlobalStyles.span,
-                  { color: Colors.grey, marginLeft: 2 },
-                ]}
-              >
-                {durationTime}min
-              </AppText>
+          {(nbExercises || durationTime) && (
+            <View style={styles.sessionDetails}>
+              {nbExercises && (
+                <View style={styles.sessionAttribute}>
+                  <Icon
+                    name="dumbell"
+                    fillColor="transparent"
+                    strokeColor={Colors.grey}
+                    strokeWidth={1}
+                    width={12}
+                    height={12}
+                  />
+                  <AppText
+                    style={[
+                      GlobalStyles.span,
+                      { color: Colors.grey, marginLeft: 2 },
+                    ]}
+                  >
+                    {nbExercises} exercices
+                  </AppText>
+                </View>
+              )}
+              {durationTime && (
+                <View style={styles.sessionAttribute}>
+                  <Icon
+                    name="timer"
+                    fillColor="transparent"
+                    strokeColor={Colors.grey}
+                    strokeWidth={1}
+                    width={12}
+                    height={12}
+                  />
+                  <AppText
+                    style={[
+                      GlobalStyles.span,
+                      { color: Colors.grey, marginLeft: 2 },
+                    ]}
+                  >
+                    {durationTime}min
+                  </AppText>
+                </View>
+              )}
             </View>
-          </View>
+          )}
           {coachFirstName && coachLastName && location && date && (
             <View style={styles.coachDetails}>
               <AppText style={[GlobalStyles.span, { color: Colors.grey }]}>
@@ -130,15 +170,29 @@ export default function Session({
                 {date.toLocaleDateString("fr-Fr")} {hour}
               </AppText>
               <AppText style={[GlobalStyles.span, { color: Colors.grey }]}>
-                {isInPerson ? "Présentiel" : "À distance"}
+                {location && location !== "" ? "Présentiel" : "À distance"}
               </AppText>
             </View>
           )}
           <View style={styles.categoryLabels}>{labels && <>{labels}</>}</View>
         </View>
         <View style={styles.rightPart}>
-          {isDone && <Label title="Fait" type="green" size="small" />}
-          {isToDo && <Label title="À faire" type="orange" size="small" />}
+          {isDone && (
+            <Label
+              title="Fait"
+              textColor={Colors.green}
+              backgroundColor="#DEFFD6"
+              size="small"
+            />
+          )}
+          {isToDo && (
+            <Label
+              title="À faire"
+              textColor="#F97316"
+              backgroundColor="#FFF9F4"
+              size="small"
+            />
+          )}
           {isExercice && !isDone && !isToDo && !hideIcon && (
             <Icon
               name="eye"
@@ -199,7 +253,7 @@ const styles = StyleSheet.create({
     width: 92,
     height: 64,
     borderRadius: 8,
-    backgroundColor: Colors.grey,
+    backgroundColor: "white",
   },
   separator: {
     width: 1,
@@ -221,6 +275,7 @@ const styles = StyleSheet.create({
   },
   categoryLabels: {
     flexDirection: "row",
+    flexWrap: "wrap",
     gap: 8,
   },
   rightPart: {

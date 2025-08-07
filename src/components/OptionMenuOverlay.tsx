@@ -1,5 +1,11 @@
 import React from "react";
-import { Text, StyleSheet, Pressable, Dimensions } from "react-native";
+import {
+  Text,
+  StyleSheet,
+  Pressable,
+  Dimensions,
+  Platform,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../hooks/useAuth";
 import GlobalStyles, { Colors } from "../styles/styles";
@@ -110,6 +116,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     paddingHorizontal: 4,
+    paddingBottom: Platform.OS === "web" ? 0 : 32,
   },
   item: {
     flexDirection: "row",

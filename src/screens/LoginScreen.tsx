@@ -1,68 +1,208 @@
-import React, { useState } from "react";
-import { View, ActivityIndicator, Button } from "react-native";
+import React, { useEffect, useRef, useState } from "react";
+import {
+  View,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Dimensions,
+  Image,
+  Animated,
+} from "react-native";
 import { useNavigation } from "@react-navigation/native";
-import { login } from "../services/api";
 import { useAuth } from "../hooks/useAuth";
 import Input from "../components/Input";
 import AppText from "../components/AppText";
+import GlobalStyles, { Colors } from "../styles/styles";
+import AppButton from "../components/AppButton";
+import { getImageSource } from "../utils/imgSrcHandler";
+import { notify } from "../components/NotificationContainer";
 
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [loading, setIsLoading] = useState(false);
   const navigation = useNavigation();
-  const { login: authLogin } = useAuth();
+  const { login, isLoading } = useAuth();
 
   const handleLogin = async () => {
-    setError(null);
-    setIsLoading(true);
+    // Validation basique
+    if (!email.trim() || !password.trim()) {
+      setError("Veuillez remplir tous les champs");
+      return;
+    }
+
+    // Validation email simple
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) {
+      setError("Format d'email invalide");
+      return;
+    }
+
     try {
-      const token = await login(email, password);
-      await authLogin(token);
+      console.log("Tentative de connexion avec:", email.trim());
+      await login({ email: email.trim(), password });
+      console.log("Connexion réussie !");
+      // La navigation sera gérée automatiquement par AppNavigator
     } catch (error: any) {
-      setError(error.message);
-    } finally {
-      setIsLoading(false);
+      console.error("Erreur de connexion : ", error);
+      // Afficher le message d'erreur sur l'interface
+      notify({
+        title: `Erreur de connexion : ${error.message}`,
+        type: "error",
+      });
+      setError(error.message || "Une erreur est survenue lors de la connexion");
     }
   };
 
-  return (
-    <View className="flex-1 justify-center items-center bg-white px-6">
-      <AppText className="text-2xl font-bold mb-6 text-deepBlue">
-        Connexion
-      </AppText>
+  // Animation handler
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 450, // duration in ms
+      useNativeDriver: true,
+    }).start();
+  }, [fadeAnim]);
 
-      <Input
-        placeholder="Email"
-        onChangeText={setEmail}
-        value={email}
-        type="email"
-        label="Email"
-      />
-      <Input
-        placeholder="Mot de passe"
-        secureTextEntry
-        onChangeText={setPassword}
-        value={password}
-        type="password"
-        label="Mot de passe"
-      />
-      {error && <AppText style={{ color: "red" }}>{error}</AppText>}
-      {loading ? (
-        <ActivityIndicator size="large" color="#0A84FF" />
-      ) : (
-        <Button title="Se connecter" onPress={handleLogin} />
-      )}
-      <AppText className="text-sm text-gray-500 mt-4">
-        Pas encore inscrit ?{" "}
-        <AppText
-          style={{ textDecorationLine: "underline", color: "#2563EB" }}
-          onPress={() => navigation.navigate("Register" as never)}
+  const screenWidth = Dimensions.get("window").width;
+
+  return (
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      style={[GlobalStyles.pageStyle, { backgroundColor: Colors.deepBlue }]}
+    >
+      <Animated.View style={{ flex: 1, opacity: fadeAnim, paddingTop: 32 }}>
+        <ScrollView
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          style={Platform.OS === "web" ? { maxHeight: screenWidth + 180 } : {}}
         >
-          Inscrivez-vous ici
-        </AppText>
-      </AppText>
-    </View>
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              marginVertical: 32,
+            }}
+          >
+            <Image
+              source={getImageSource("white-logo")}
+              style={{ width: 92, height: 87 }}
+            />
+            <View style={{ flexDirection: "column" }}>
+              <AppText style={[GlobalStyles.h1, { color: "white" }]}>
+                HYPERION
+              </AppText>
+              <AppText style={[GlobalStyles.h1, { color: "white" }]}>
+                CONNECT
+              </AppText>
+            </View>
+          </View>
+
+          <View
+            style={{
+              backgroundColor: "white",
+              paddingHorizontal: 16,
+              paddingVertical: 32,
+              borderRadius: 16,
+              flexDirection: "column",
+              gap: 24,
+            }}
+          >
+            <View style={{ flexDirection: "column", gap: 8 }}>
+              <AppText style={[GlobalStyles.h2]}>SE CONNECTER</AppText>
+              <AppText>Vous avez déjà un compte ?</AppText>
+            </View>
+
+            <View style={{ flexDirection: "column", gap: 16 }}>
+              <Input
+                placeholder="Email"
+                onChangeText={(text) => {
+                  setEmail(text);
+                  if (error) setError(null);
+                }}
+                value={email}
+                type="email"
+                label="Email"
+              />
+
+              <Input
+                placeholder="Mot de passe"
+                secureTextEntry
+                onChangeText={(text) => {
+                  setPassword(text);
+                  if (error) setError(null);
+                }}
+                value={password}
+                type="password"
+                label="Mot de passe"
+              />
+            </View>
+
+            {/* Message d'erreur affiché sous les champs */}
+            {error && (
+              <View
+                style={{
+                  width: "100%",
+                  marginTop: 10,
+                  marginBottom: 16,
+                  paddingHorizontal: 16,
+                  backgroundColor: "#FEF2F2",
+                  borderRadius: 8,
+                  padding: 12,
+                  borderLeftWidth: 4,
+                  borderLeftColor: "#EF4444",
+                }}
+              >
+                <AppText
+                  style={{
+                    color: "#DC2626",
+                    textAlign: "center",
+                    fontSize: 14,
+                    fontWeight: "500",
+                  }}
+                >
+                  {error}
+                </AppText>
+              </View>
+            )}
+
+            {isLoading ? (
+              <ActivityIndicator
+                size="large"
+                color="#0A84FF"
+                style={{ marginVertical: 20 }}
+              />
+            ) : (
+              <AppButton
+                title="Se connecter"
+                iconName="login"
+                type="primary"
+                buttonStyle={{ alignSelf: "flex-end" }}
+                onPress={handleLogin}
+                disabled={!email.trim() || !password.trim()}
+              />
+            )}
+
+            <AppText>
+              Pas encore inscrit ?{" "}
+              <AppText
+                style={{
+                  textDecorationLine: "underline",
+                  color: "#2563EB",
+                }}
+                onPress={() => {
+                  if (!isLoading) {
+                    navigation.navigate("Register" as never);
+                  }
+                }}
+              >
+                Inscrivez-vous ici
+              </AppText>
+            </AppText>
+          </View>
+        </ScrollView>
+      </Animated.View>
+    </KeyboardAvoidingView>
   );
 }

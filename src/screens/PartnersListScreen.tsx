@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   Dimensions,
   KeyboardAvoidingView,
@@ -7,10 +7,38 @@ import {
   View,
 } from "react-native";
 import GlobalStyles from "../styles/styles";
+import { useAuth } from "../hooks/useAuth";
+import { CompanyService } from "../services/api/company-service";
+import { Company } from "../models/company";
 import ItemUser from "../components/ItemUser";
+import { UserService } from "../services/api/user-service";
+import { UserResponse } from "../models/user";
 
 export default function PartnersListScreen() {
   const screenWidth = Dimensions.get("window").width;
+
+  const { token, user } = useAuth();
+
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [completeUser, setCompleteUser] = useState<UserResponse>();
+
+  useEffect(() => {
+    if (user && token) {
+      try {
+        async function fetchCompanies() {
+          const companies = (await CompanyService.getAllCompanies()).filter(
+            (c) => c.isActive
+          );
+          const completeUser = await UserService.getUserById(user!.id, token!);
+          setCompanies(companies);
+          setCompleteUser(completeUser);
+        }
+        fetchCompanies();
+      } catch (e) {
+        console.log("Error while fetching companies", e);
+      }
+    }
+  }, [token, user]);
 
   return (
     <>
@@ -29,24 +57,16 @@ export default function PartnersListScreen() {
           }
         >
           <View style={{ flexDirection: "column", gap: 16 }}>
-            <ItemUser
-              isCompany
-              companyName="Nutrisport"
-              iconName="link"
-              profilePictureUrl="users/companies/nutrisport-logo"
-            />
-            <ItemUser
-              isCompany
-              companyName="Nutrisport"
-              iconName="link"
-              profilePictureUrl="users/companies/nutrisport-logo"
-            />
-            <ItemUser
-              isCompany
-              companyName="Nutrisport"
-              iconName="link"
-              profilePictureUrl="users/companies/nutrisport-logo"
-            />
+            {completeUser?.user &&
+              companies.map((c, index) => (
+                <ItemUser
+                  key={index}
+                  isCompany={true}
+                  user={completeUser?.user}
+                  company={c}
+                  iconName="link"
+                />
+              ))}
           </View>
         </ScrollView>
       </KeyboardAvoidingView>

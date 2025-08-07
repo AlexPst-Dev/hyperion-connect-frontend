@@ -15,12 +15,9 @@ import Icon from "./Icon";
 import OptionMenuOverlay from "./OptionMenuOverlay";
 import { useAuth } from "../hooks/useAuth";
 import MemberCard from "./MemberCard";
-
-interface Props {
-  profilePictureUrl?: string;
-}
-
-const appImageUrl = "https://reactnative.dev/img/tiny_logo.png";
+import { ProfileCategory } from "../models/user";
+import { getImageSource } from "../utils/imgSrcHandler";
+import { useUserProfileImage } from "../hooks/useImageProfilePicture";
 
 const styles = StyleSheet.create<{
   container: ViewStyle;
@@ -65,11 +62,13 @@ const styles = StyleSheet.create<{
   },
 });
 
-export default function HeaderNav({ profilePictureUrl }: Props) {
+export default function HeaderNav() {
   const [menuVisible, setMenuVisible] = useState(false);
   const [memberCard, setMemberCard] = useState(false);
   const navigation = useNavigation();
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
+
+  const { profilePicture, isPpLoading } = useUserProfileImage();
 
   const handleLogout = async () => {
     setMenuVisible(false);
@@ -88,8 +87,15 @@ export default function HeaderNav({ profilePictureUrl }: Props) {
           style={styles.leftPart}
           onPress={() => navigation.navigate("Main" as never)}
         >
-          <Image source={{ uri: appImageUrl }} style={styles.appImage} />
-          <Text style={styles.appTitle}>HYPERION</Text>
+          <Image
+            source={getImageSource("white-logo")}
+            style={styles.appImage}
+          />
+          <Text style={styles.appTitle}>
+            {user?.profileCategory === ProfileCategory.PARTNER
+              ? "HYPERLINK"
+              : "HYPERION"}
+          </Text>
         </Pressable>
 
         <Pressable style={styles.rightPart} onPress={() => setMemberCard(true)}>
@@ -103,12 +109,8 @@ export default function HeaderNav({ profilePictureUrl }: Props) {
 
           <Pressable onPress={() => setMenuVisible(true)}>
             <Image
-              source={
-                profilePictureUrl
-                  ? { uri: profilePictureUrl }
-                  : { uri: "https://reactnative.dev/img/tiny_logo.png" }
-              }
-              style={styles.profilePicture}
+              source={{ uri: profilePicture }}
+              style={[styles.profilePicture, isPpLoading && { opacity: 0.5 }]}
             />
           </Pressable>
         </Pressable>
@@ -122,7 +124,7 @@ export default function HeaderNav({ profilePictureUrl }: Props) {
         />
       )}
 
-      {memberCard && <MemberCard onClose={() => setMemberCard(false)} />}
+      {memberCard && <MemberCard onClose={() => setMemberCard(false)} visible={memberCard} />}
     </>
   );
 }

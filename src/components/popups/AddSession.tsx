@@ -3,32 +3,24 @@ import { StyleSheet, View, Pressable, Modal } from "react-native";
 import PopUp from "../PopUp";
 import Input from "../Input";
 import { ScrollView } from "react-native-gesture-handler";
-import ItemUser from "../ItemUser";
-import AppButton from "../AppButton";
 import AppText from "../AppText";
 import Session from "../Session";
-import Label from "../Label";
 import Icon from "../Icon";
 import { Colors } from "@/src/styles/styles";
-
-export interface TempInterfaceSession {
-  id: number;
-  title: string;
-  nbExercises?: number;
-  durationTime: number;
-  muscleGroups: Array<{
-    title: string;
-    color: "blue" | "orange" | "green";
-  }>;
-}
+import { SessionWithFile } from "@/src/models/session";
+import { ExerciseWithDetails } from "@/src/models/exercise";
+import { Category } from "@/src/models/category";
+import Label from "../Label";
 
 interface Props {
   visible: boolean;
-  listOfSession: TempInterfaceSession[];
+  listOfSession: SessionWithFile[];
   onClose: () => void;
-  onSubmit?: (selectedSessions: TempInterfaceSession[]) => void;
+  onSubmit?: (selectedSessions: SessionWithFile[]) => void;
   isEditable?: boolean;
   isExercises?: boolean;
+  exercises: ExerciseWithDetails[];
+  categories: Category[];
 }
 
 export default function AddSessions({
@@ -37,32 +29,91 @@ export default function AddSessions({
   onClose,
   onSubmit,
   isExercises,
+  exercises,
+  categories,
 }: Props) {
   const [selectedSessionIds, setSelectedSessionIds] = useState<number[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
 
+  // Helper to get muscle group categories for a session
+  const getSessionMuscleGroups = (sessionWithFile: SessionWithFile) => {
+    // Get exercise IDs from session.listExercises
+    const exerciseIds = sessionWithFile.session.listExercises
+      .split(";")
+      .map((id) => id.trim())
+      .filter(Boolean)
+      .map(Number);
+
+    // Get all muscle group IDs from those exercises
+    const muscleGroupIds = exercises
+      .filter((ex) => exerciseIds.includes(ex.id))
+      .flatMap((ex) =>
+        ex.listMuscleGroupIds
+          .split(";")
+          .map((id) => id.trim())
+          .filter(Boolean)
+          .map(Number)
+      );
+
+    // Get unique muscle group IDs
+    const uniqueMuscleGroupIds = Array.from(new Set(muscleGroupIds));
+
+    // Map to category objects
+    return categories.filter((cat) => uniqueMuscleGroupIds.includes(cat.id));
+  };
+
+  // For filter options
   const filterCategories = Array.from(
     new Set(
       listOfSession
-        .flatMap((session) => session.muscleGroups.map((group) => group.title))
+        .flatMap((session) =>
+          session.session.listExercises && session.session.listExercises !== ""
+            ? getSessionMuscleGroups(session).map((group) => group.label)
+            : []
+        )
         .filter(Boolean)
     )
   );
-  useEffect(() => {
-    if (
-      visible &&
-      filterCategories.length > 0 &&
-      selectedFilters.length === 0
-    ) {
-      setSelectedFilters(filterCategories);
-    }
-  }, [visible, filterCategories]);
 
-  const filterOptions = filterCategories.map((cat) => ({
-    label: cat.charAt(0).toUpperCase() + cat.slice(1),
-    value: cat,
+  // Reset filters when popup opens
+  useEffect(() => {
+    if (visible) {
+      setSelectedFilters([]);
+      setSearchTerm("");
+      setSelectedSessionIds([]);
+    }
+  }, [visible]);
+
+  const allMuscleGroups = Array.from(
+    new Set(
+      listOfSession
+        .flatMap((session) =>
+          session.session.listExercises && session.session.listExercises !== ""
+            ? getSessionMuscleGroups(session).map((group) => group.label)
+            : []
+        )
+        .filter(Boolean)
+    )
+  );
+
+  const filterOptions = allMuscleGroups.map((label) => ({
+    label: label.charAt(0).toUpperCase() + label.slice(1),
+    value: label,
   }));
+
+  const handleFilterChange = (value: string) => {
+    if (!value) {
+      setSelectedFilters([]);
+      return;
+    }
+    setSelectedFilters(
+      value
+        .split(",")
+        .map((v) => v.trim())
+        .filter(Boolean)
+    );
+  };
 
   const toggleSelection = (userId: number) => {
     setSelectedSessionIds((prev) =>
@@ -73,24 +124,47 @@ export default function AddSessions({
   };
 
   const handleSubmit = () => {
-    const selectedSessions = listOfSession.filter((session) =>
-      selectedSessionIds.includes(session.id)
+    const selectedSessions = listOfSession.filter((sessionWithFile) =>
+      selectedSessionIds.includes(sessionWithFile.session.id)
     );
     onSubmit?.(selectedSessions);
     onClose();
   };
 
-  const filteredSessions = listOfSession.filter((session) => {
-    const matchesSearch =
-      searchTerm.length < 3 ||
-      session.title.toLowerCase().startsWith(searchTerm.toLowerCase());
+  const filteredSessions = listOfSession
+    .filter((s) => s.session.isActive)
+    .filter((sessionWithFile) => {
+      const sessionMuscleGroups =
+        sessionWithFile.session.listExercises &&
+        sessionWithFile.session.listExercises !== ""
+          ? getSessionMuscleGroups(sessionWithFile)
+          : [];
 
-    const matchesFilter = session.muscleGroups.some((group) =>
-      selectedFilters.includes(group.title)
-    );
+      const matchesSearch =
+        searchTerm.length < 3 ||
+        sessionWithFile.session.label
+          .toLowerCase()
+          .startsWith(searchTerm.toLowerCase());
 
-    return matchesSearch && matchesFilter;
-  });
+      // Logique de filtrage corrigée
+      let matchesFilter = true;
+
+      if (selectedFilters.length > 0) {
+        // Si des filtres sont sélectionnés
+        if (sessionMuscleGroups.length === 0) {
+          // Session sans groupes musculaires : ne pas afficher
+          matchesFilter = false;
+        } else {
+          // Session avec groupes musculaires : vérifier la correspondance
+          matchesFilter = sessionMuscleGroups.some((group) =>
+            selectedFilters.includes(group.label)
+          );
+        }
+      }
+      // Si aucun filtre sélectionné, matchesFilter reste true (toutes les sessions)
+
+      return matchesSearch && matchesFilter;
+    });
 
   return (
     <Modal
@@ -113,14 +187,11 @@ export default function AddSessions({
             inputs={
               <>
                 <Input
-                  type="selector"
-                  label="Groupe musculaire"
-                  placeholder="Jambes"
-                  value={selectedFilters}
-                  onChangeText={(v) => {
-                    const values = v.split(",");
-                    setSelectedFilters(values);
-                  }}
+                  type="multiSelector"
+                  label="Groupes musculaires"
+                  placeholder="Filtrer par groupe musculaire"
+                  value={selectedFilters.join(",")}
+                  onChangeText={handleFilterChange}
                   options={filterOptions}
                 />
                 <Input
@@ -136,14 +207,22 @@ export default function AddSessions({
               <>
                 <ScrollView style={styles.sessionList}>
                   {filteredSessions.length > 0 ? (
-                    filteredSessions.map((session, index) => {
+                    filteredSessions.map((sessionWithFile, index) => {
                       const isSelected = selectedSessionIds.includes(
-                        session.id
+                        sessionWithFile.session.id
                       );
+                      const sessionMuscleGroups =
+                        sessionWithFile.session.listExercises &&
+                        sessionWithFile.session.listExercises !== ""
+                          ? getSessionMuscleGroups(sessionWithFile)
+                          : [];
+
                       return (
                         <Pressable
-                          key={session.id}
-                          onPress={() => toggleSelection(session.id)}
+                          key={sessionWithFile.session.id}
+                          onPress={() =>
+                            toggleSelection(sessionWithFile.session.id)
+                          }
                           style={{
                             marginBottom:
                               index === filteredSessions.length - 1 ? 0 : 12,
@@ -153,45 +232,27 @@ export default function AddSessions({
                           }}
                         >
                           <View style={{ width: "89%" }}>
-                            {!isExercises ? (
-                              <Session
-                                title={session.title}
-                                durationTime={session.durationTime}
-                                nbExercises={session.nbExercises}
-                                hideIcon
-                                labels={
-                                  <>
-                                    {session.muscleGroups.map((group) => (
-                                      <Label
-                                        key={group.title}
-                                        title={group.title}
-                                        type={group.color}
-                                        size="small"
-                                      />
-                                    ))}
-                                  </>
-                                }
-                              />
-                            ) : (
-                              <Session
-                                title={session.title}
-                                durationTime={session.durationTime}
-                                isExercice
-                                hideIcon
-                                labels={
-                                  <>
-                                    {session.muscleGroups.map((group) => (
-                                      <Label
-                                        key={group.title}
-                                        title={group.title}
-                                        type={group.color}
-                                        size="small"
-                                      />
-                                    ))}
-                                  </>
-                                }
-                              />
-                            )}
+                            <Session
+                              title={sessionWithFile.session.label}
+                              labels={
+                                sessionMuscleGroups.length > 0
+                                  ? sessionMuscleGroups.map(
+                                      (muscleGroup, index) => (
+                                        <Label
+                                          key={index}
+                                          title={muscleGroup.label}
+                                          textColor={muscleGroup.textColor}
+                                          backgroundColor={
+                                            muscleGroup.backgroundColor
+                                          }
+                                          size="small"
+                                        />
+                                      )
+                                    )
+                                  : undefined
+                              }
+                              hideIcon
+                            />
                           </View>
                           <Icon
                             name={isSelected ? "circleChecked" : "circle"}

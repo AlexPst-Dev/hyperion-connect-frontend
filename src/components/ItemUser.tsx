@@ -1,111 +1,189 @@
-import React from "react";
-import { StyleSheet, View, Text, Image } from "react-native";
+import React, { useEffect, useState } from "react";
+import { StyleSheet, View, Image } from "react-native";
 import GlobalStyles, { Colors, shadowStyles } from "../styles/styles";
 import Icon, { IconName } from "./Icon";
+import {
+  CoachProfile,
+  MedicProfile,
+  ProfileCategory,
+  SportsmanProfile,
+  User,
+} from "../models/user";
+import { Company } from "../models/company";
+import AppText from "./AppText";
+import {
+  useAnyUserProfileImage,
+  useCompanyImage,
+} from "../hooks/useImageProfilePicture";
+import { fileService } from "../services/api/file-service";
+import { useAuth } from "../hooks/useAuth";
+import { File } from "../models/file";
+import { UserService } from "../services/api/user-service";
+import { categoryService } from "../services/api/category-service";
 
 interface Props {
   isCompany: boolean;
-  companyName?: string;
-  link?: string;
-  firstName?: string;
-  lastName?: string;
-  sport?: string;
-  job?: string;
-  profilePictureUrl?: string;
+  user: User;
+  company?: Company;
   iconName?: IconName;
 }
 
-const styles = StyleSheet.create({
-  header: {
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-    borderRadius: 8,
-    backgroundColor: "white",
-    borderTopWidth: 1,
-    borderBottomWidth: 2,
-    borderLeftWidth: 1,
-    borderRightWidth: 2,
-    borderColor: Colors.shadow,
-    width: "100%",
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  userInfos: {
-    flexDirection: "column",
-    marginLeft: 16,
-  },
-  name: {
-    ...GlobalStyles.p,
-    color: Colors.deepBlue,
-  },
-  profilePicture: {
-    width: 72,
-    height: 72,
-    borderRadius: 8,
-    backgroundColor: Colors.grey,
-  },
-  separator: {
-    width: 1,
-    height: 48,
-    backgroundColor: "black",
-    marginLeft: 16,
-  },
-  icon: {
-    marginLeft: "auto",
-    marginRight: 20,
-  },
-});
-
 export default function ItemUser({
   isCompany = false,
-  companyName,
-  firstName,
-  lastName,
-  link,
-  sport,
-  job,
-  profilePictureUrl,
+  user,
+  company,
   iconName = "send",
 }: Props) {
-  function getImageSource(imageUrl?: string): any {
-    if (!imageUrl) {
-      // fallback
-      return require("../assets/images/react-logo.png");
-    }
+  const { token } = useAuth();
 
-    if (imageUrl.startsWith("http") || imageUrl.startsWith("https")) {
-      return { uri: imageUrl };
-    }
+  const [userFile, setUserFile] = useState<File | undefined>();
+  const [companyFile, setCompanyFile] = useState<File | undefined>();
+  const [categoryLabel, setCategoryLabel] = useState<string>("");
 
-    // Mapping of konwn local images
-    const localImages: Record<string, any> = {
-      "users/companies/nutrisport-logo": require("../assets/images/users/companies/nutrisport-logo.png"),
+  // Récupérer le fichier utilisateur
+  useEffect(() => {
+    const fetchUserFile = async () => {
+      if (
+        !isCompany &&
+        token &&
+        user.filePictureId &&
+        !isNaN(Number(user.filePictureId))
+      ) {
+        try {
+          const file = await fileService.getFileById(
+            Number(user.filePictureId),
+            token
+          );
+          setUserFile(file);
+        } catch (e) {
+          console.log(
+            "Impossible de récupérer le fichier de la photo de profil utilisateur"
+          );
+          setUserFile(undefined);
+        }
+      } else {
+        setUserFile(undefined);
+      }
+    };
+    const getCategoryLabel = async () => {
+      // Sportsman: une seule catégorie
+      if (user.profileCategory === ProfileCategory.SPORTSMAN && token) {
+        const completeUser = await UserService.getUserById(user.id, token);
+        const sportCategoryId = (completeUser.profile as SportsmanProfile)
+          .sportCategoryId;
+        if (!sportCategoryId || !token) return "";
+        const cat = await categoryService.getCategoryById(
+          sportCategoryId,
+          token
+        );
+        setCategoryLabel(cat ? cat.label : "");
+      }
+
+      // Coach: plusieurs catégories
+      if (user.profileCategory === ProfileCategory.COACH && user.id && token) {
+        const completeUser = await UserService.getUserById(user.id, token);
+        const catCoach =
+          (completeUser.profile as CoachProfile).sportCategories || [];
+        setCategoryLabel(
+          catCoach.length > 0 ? catCoach.map((c) => c.label).join(", ") : ""
+        );
+      }
+
+      // Medic: plusieurs catégories
+      if (user.profileCategory === ProfileCategory.MEDIC && user.id && token) {
+        const completeUser = await UserService.getUserById(user.id, token);
+        const catMedic =
+          (completeUser.profile as MedicProfile).sportCategories || [];
+        setCategoryLabel(
+          catMedic.length > 0 ? catMedic.map((c) => c.label).join(", ") : ""
+        );
+      }
+
+      return "";
     };
 
-    return localImages[imageUrl] || require("../assets/images/react-logo.png");
-  }
+    fetchUserFile();
+    getCategoryLabel();
+  }, [user.filePictureId, token, isCompany]);
+
+  // Récupérer le fichier entreprise
+  useEffect(() => {
+    const fetchCompanyFile = async () => {
+      if (
+        isCompany &&
+        token &&
+        company &&
+        company.fileImageCompany &&
+        !isNaN(Number(company.fileImageCompany.id))
+      ) {
+        try {
+          const file = await fileService.getFileById(
+            Number(company.fileImageCompany.id),
+            token
+          );
+          setCompanyFile(file);
+        } catch (e) {
+          console.log(
+            "Impossible de récupérer le fichier de la photo de profil entreprise"
+          );
+          setCompanyFile(undefined);
+        }
+      } else {
+        setCompanyFile(undefined);
+      }
+    };
+
+    fetchCompanyFile();
+  }, [company?.fileImageCompany, token, isCompany]);
+
+  // Utiliser les hooks conditionnellement
+  const { profilePicture, isUserPPLoading } = useAnyUserProfileImage(
+    !isCompany ? userFile : undefined
+  );
+  const { companyImage, isCppLoading } = useCompanyImage(
+    isCompany ? company?.id : undefined,
+    isCompany ? companyFile : undefined
+  );
+
+  // Déterminer l'image et l'état de chargement
+  const imageSource = isCompany ? companyImage : profilePicture;
+  const isLoading = isCompany ? isCppLoading : isUserPPLoading;
 
   return (
     <View style={[styles.header, shadowStyles.small]}>
       <Image
-        source={getImageSource(profilePictureUrl)}
-        style={styles.profilePicture}
+        source={{ uri: imageSource }}
+        style={[styles.profilePicture, isLoading && { opacity: 0.5 }]}
       />
       <View style={styles.separator} />
       <View style={styles.userInfos}>
         {!isCompany ? (
           <View>
-            <Text style={styles.name}>
-              {firstName} {lastName}
-            </Text>
-            <Text style={GlobalStyles.p}>
-              {sport ? sport : ""}
-              {sport && job ? "|" : ""}
-              {job ? job : ""}
-            </Text>
+            <AppText style={styles.name}>
+              {user.firstName} {user.lastName}
+            </AppText>
+            {(user.profileCategory === ProfileCategory.SPORTSMAN ||
+              user.profileCategory === ProfileCategory.COACH ||
+              user.profileCategory === ProfileCategory.MEDIC) && (
+              <AppText>{categoryLabel}</AppText>
+            )}
+            {user.profileCategory === ProfileCategory.PARTNER && (
+              <AppText
+                numberOfLines={1}
+                ellipsizeMode="tail"
+                style={[
+                  GlobalStyles.span,
+                  { color: Colors.grey, flex: 1, minWidth: 0 },
+                ]}
+              >
+                {user.description && user.description.length > 20
+                  ? user.description.slice(0, 20) + "..."
+                  : user.description}
+              </AppText>
+            )}
           </View>
         ) : (
-          <Text style={styles.name}>{companyName}</Text>
+          <AppText style={styles.name}>{company?.name}</AppText>
         )}
       </View>
       <View style={styles.icon}>
@@ -128,3 +206,43 @@ export default function ItemUser({
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  header: {
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+    backgroundColor: "white",
+    borderTopWidth: 1,
+    borderBottomWidth: 2,
+    borderLeftWidth: 1,
+    borderRightWidth: 2,
+    borderColor: Colors.shadow,
+    width: "100%",
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  userInfos: {
+    flexDirection: "column",
+    marginLeft: 16,
+  },
+  name: {
+    color: Colors.deepBlue,
+  },
+  profilePicture: {
+    width: 72,
+    height: 72,
+    borderRadius: 8,
+    backgroundColor: "#CDCDCD",
+  },
+  separator: {
+    width: 1,
+    height: 48,
+    backgroundColor: "black",
+    marginLeft: 16,
+  },
+  icon: {
+    marginLeft: "auto",
+    marginRight: 20,
+  },
+});

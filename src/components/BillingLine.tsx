@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { StyleSheet, View } from "react-native";
 import AppText from "./AppText";
-import GlobalStyles from "../styles/styles";
+import GlobalStyles, { Colors } from "../styles/styles";
 import AppButton from "./AppButton";
 import Label from "./Label";
 
@@ -10,6 +10,7 @@ interface Props {
   state: "received" | "pending";
   startDate: Date;
   endDate: Date;
+  onBtnChangeStatePress?: () => void;
 }
 
 export default function BillingLine({
@@ -17,6 +18,7 @@ export default function BillingLine({
   state,
   startDate,
   endDate,
+  onBtnChangeStatePress,
 }: Props) {
   const [billingState, setBillingState] = useState<"pending" | "received">(
     state
@@ -44,7 +46,10 @@ export default function BillingLine({
                 ? "Paiement en attente"
                 : "Paiement reçu"
             }
-            type={billingState === "pending" ? "orange" : "green"}
+            backgroundColor={billingState === "pending" ? "#FFFAF4" : "#DEFFD6"}
+            textColor={
+              billingState === "pending" ? Colors.orange : Colors.green
+            }
             size="small"
           />
         </View>
@@ -54,7 +59,10 @@ export default function BillingLine({
               title="Marquer comme reçu"
               iconName="check"
               type="changeState"
-              onPress={handleChangeState}
+              onPress={() => {
+                if (onBtnChangeStatePress) onBtnChangeStatePress();
+                handleChangeState();
+              }}
               textStyle={{ fontSize: 12 }}
             />
           </View>

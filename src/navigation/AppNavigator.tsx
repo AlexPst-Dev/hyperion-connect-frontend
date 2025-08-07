@@ -1,9 +1,11 @@
+// AppNavigator.tsx (mis à jour)
 import React from "react";
 import {
   NavigationContainer,
   getFocusedRouteNameFromRoute,
 } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
+import { View, ActivityIndicator } from "react-native";
 import LoginScreen from "../screens/LoginScreen";
 import RegisterScreen from "../screens/RegisterScreen";
 import SportsmanTabs from "./tabs/SporstmanTabs";
@@ -25,14 +27,20 @@ import ContactDetailScreen from "../screens/ContactDetailScreen";
 import PartnersListScreen from "../screens/PartnersListScreen";
 import ClientDetailScreen from "../screens/ClientDetailScreen";
 import OffersHistoryScreen from "../screens/OffersHistoryScreen";
+import SessionHistoryScreen from "../screens/SessionHistoryScreen";
 
 const Stack = createStackNavigator<RootStackParamList>();
 
 export default function AppNavigator() {
-  const { user } = useAuth();
+  const { user, isLoading, isAuthenticated } = useAuth();
 
-  if (!user && user !== null) {
-    return null;
+  // Afficher un loader pendant la vérification de l'authentification
+  if (isLoading) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <ActivityIndicator size="large" color="#007AFF" />
+      </View>
+    );
   }
 
   const pageTitles: Record<string, string> = {
@@ -72,9 +80,9 @@ export default function AppNavigator() {
     <NavigationContainer>
       <Stack.Navigator
         screenOptions={{ headerShown: false }}
-        initialRouteName={!user ? "Login" : "Main"}
+        initialRouteName={!isAuthenticated ? "Login" : "Main"}
       >
-        {!user ? (
+        {!isAuthenticated ? (
           <>
             <Stack.Screen
               name="Login"
@@ -89,7 +97,7 @@ export default function AppNavigator() {
           </>
         ) : (
           <>
-            {user.profileCategory === "sportsman" && (
+            {user?.profileCategory === "sportsman" && (
               <>
                 <Stack.Screen
                   name="Main"
@@ -126,9 +134,16 @@ export default function AppNavigator() {
                     mainOptions(route, navigation, user, "NOS PARTENAIRES")
                   }
                 />
+                <Stack.Screen
+                  name="SessionHistory"
+                  component={SessionHistoryScreen}
+                  options={({ route, navigation }) =>
+                    mainOptions(route, navigation, user, "HISTORIQUE")
+                  }
+                />
               </>
             )}
-            {user.profileCategory === "free" && (
+            {user?.profileCategory === "free" && (
               <>
                 <Stack.Screen
                   name="Main"
@@ -146,8 +161,8 @@ export default function AppNavigator() {
                 />
               </>
             )}
-            {(user.profileCategory === "coach" ||
-              user.profileCategory === "medic") && (
+            {(user?.profileCategory === "coach" ||
+              user?.profileCategory === "medic") && (
               <>
                 <Stack.Screen
                   name="Main"
@@ -188,12 +203,19 @@ export default function AppNavigator() {
                   name="ClientDetail"
                   component={ClientDetailScreen}
                   options={({ route, navigation }) =>
-                    mainOptions(route, navigation, user, "CLIENTS")
+                    mainOptions(
+                      route,
+                      navigation,
+                      user,
+                      `${route.params.client.firstName || ""} ${
+                        route.params.client.lastName || ""
+                      }`
+                    )
                   }
                 />
               </>
             )}
-            {user.profileCategory === "partner" && (
+            {user?.profileCategory === "partner" && (
               <>
                 <Stack.Screen
                   name="Main"
@@ -218,7 +240,7 @@ export default function AppNavigator() {
                 />
               </>
             )}
-            {user.profileCategory === "admin" && (
+            {user?.profileCategory === "admin" && (
               <>
                 <Stack.Screen
                   name="Main"
@@ -252,7 +274,14 @@ export default function AppNavigator() {
                   name="ClientDetail"
                   component={ClientDetailScreen}
                   options={({ route, navigation }) =>
-                    mainOptions(route, navigation, user, "CLIENTS")
+                    mainOptions(
+                      route,
+                      navigation,
+                      user,
+                      `${route.params.client.firstName || ""} ${
+                        route.params.client.lastName || ""
+                      }`
+                    )
                   }
                 />
                 <Stack.Screen
