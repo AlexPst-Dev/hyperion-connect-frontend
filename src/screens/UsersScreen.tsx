@@ -504,6 +504,19 @@ export default function UsersScreen() {
         companyId = companyRes.company.id;
       }
 
+      const formatDateForDatabase = (dateString: string): string => {
+        if (!dateString) return "";
+
+        // Si le format est DD/MM/YYYY
+        const parts = dateString.split("/");
+        if (parts.length === 3) {
+          const [day, month, year] = parts;
+          return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+        }
+
+        return dateString; // Retourne tel quel si pas au bon format
+      };
+
       // Construction du payload selon la structure attendue par le backend
       const baseUserData = {
         firstName: formData.firstName,
@@ -513,7 +526,7 @@ export default function UsersScreen() {
         street: formData.street || undefined,
         city: formData.city,
         postalCode: formData.postalCode,
-        birthDate: formData.birthDate,
+        birthDate: formatDateForDatabase(formData.birthDate),
         isActive: true,
         isInHyperlinkNetwork: formData.isInHyperlinkNetwork || false,
         profileCategory: newUserType ? newUserType : undefined,
