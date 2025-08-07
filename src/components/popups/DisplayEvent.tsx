@@ -335,7 +335,7 @@ export default function DisplayEvent({
         statusBarTranslucent
       >
         <Pressable style={styles.overlay} onPress={onClose}>
-          <Pressable style={styles.inner} onPress={(e) => e.stopPropagation()}>
+          <View style={styles.inner}>
             <PopUp
               onClose={onClose}
               title={event.title ?? ""}
@@ -646,7 +646,7 @@ export default function DisplayEvent({
                 </>
               }
             />
-          </Pressable>
+          </View>
         </Pressable>
       </Modal>
       {editEventPopUpVisible && (
@@ -692,7 +692,6 @@ const styles = StyleSheet.create({
   longUserList: {
     flexDirection: "row",
     gap: 8,
-    maxWidth: "100%",
   },
   participantList: {
     flexDirection: "row",
