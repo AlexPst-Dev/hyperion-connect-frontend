@@ -9,7 +9,7 @@ import AppButton from "../components/AppButton";
 import AddContacts from "../components/popups/AddContacts";
 import DisplayEvent from "../components/popups/DisplayEvent";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { useNavigation } from "expo-router";
+import { useNavigation } from "@react-navigation/native";
 import { RootStackParamList } from "../navigation/types";
 import ViewController from "../components/ViewController";
 import { LoggedUser } from "../models/auth";

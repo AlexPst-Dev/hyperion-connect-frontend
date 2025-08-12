@@ -23,7 +23,6 @@
     },
     "web": {
       "bundler": "metro",
-      "output": "static",
       "favicon": "./src/assets/images/favicon.png",
       "build": {
         "babel": {
@@ -32,7 +31,6 @@
       }
     },
     "plugins": [
-      "expo-router",
       [
         "expo-splash-screen",
         {
