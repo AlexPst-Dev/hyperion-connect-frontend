@@ -6,25 +6,18 @@ const ENV = {
     API_URL: "http://192.168.1.92:3000/api",
   },
   staging: {
-    API_URL: "https://dev.api.hyperion-connect.com/api",
+    API_URL: "EXPO_PUBLIC_API_URL_PLACEHOLDER", // Cette chaîne sera remplacée par le script
   },
   production: {
-    API_URL: "https://api.hyperion-connect.com/api",
+    API_URL: "EXPO_PUBLIC_API_URL_PLACEHOLDER", // Cette chaîne sera remplacée par le script
   },
 };
 
 const getEnvVars = () => {
-  // Pour le web, on peut utiliser des variables d'environnement
+  // Pour le web en production/staging, on utilise l'URL injectée
   if (typeof window !== "undefined") {
-    // En mode web, on peut lire les variables d'environnement injectées
     const nodeEnv = process.env.NODE_ENV || "development";
-    const apiUrl = process.env.EXPO_PUBLIC_API_URL;
 
-    if (apiUrl) {
-      return { API_URL: apiUrl };
-    }
-
-    // Fallback sur la configuration par environnement
     switch (nodeEnv) {
       case "production":
         return ENV.production;

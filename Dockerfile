@@ -16,7 +16,7 @@ COPY . .
 RUN npm run build:web
 
 # ---- Runtime stage ----
-FROM nginx:1.27-alpine
+FROM nginx:1.27-alpine AS prod
 WORKDIR /usr/share/nginx/html
 
 # Copier le build web
@@ -25,7 +25,7 @@ COPY --from=builder /app/dist/ ./
 # Copier la config Nginx
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Copier le script d’injection d’env
+# Copier le script d'injection d'env
 COPY inject-env.sh /docker-entrypoint.d/00-inject-env.sh
 RUN chmod +x /docker-entrypoint.d/00-inject-env.sh
 
