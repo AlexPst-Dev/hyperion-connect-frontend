@@ -1269,534 +1269,276 @@ export default function ClientDetailScreen() {
         <AppText>
           {client.description || "Aucune description renseignée."}
         </AppText>
-        {/* Tests sportifs & bilans */}
-        <View style={{ flexDirection: "column", gap: 16 }}>
-          <AppText style={GlobalStyles.h2}>TESTS SPORTIFS & BILANS</AppText>
-          <View style={{ flexDirection: "column", gap: 8 }}>
-            {userFiles.length > 0 ? (
-              userFiles.map((file) => (
-                <ItemFile
-                  key={file.id}
-                  file={file}
-                  displayControllers={
-                    user.profileCategory === "admin" ||
-                    user.profileCategory === "coach"
-                  }
-                  token={token!}
-                  uploadToASpecificId={client.id}
-                  onDeleteSuccess={handleFileDeletedForUserFilesList}
-                />
-              ))
-            ) : (
-              <AppText>Aucun tests sportifs ou bilans</AppText>
-            )}
-          </View>
-          {(user.profileCategory === "admin" ||
-            user.profileCategory === "coach") && (
-            <View style={{ flexDirection: "row", justifyContent: "flex-end" }}>
-              <FileUploadButton
-                fileCategory={FileCategory.USER_FILE}
-                label=""
-                authToken={token!}
-                authUser={user}
-                uploadToUserId={client.id}
-                onUploadSuccess={(file) => {
-                  setUserFiles((prev) => [...prev, file]);
-                }}
-                onUploadError={(error) => {
-                  console.error("Erreur:", error);
-                }}
-                styleAddButton
-              />
-            </View>
-          )}
-        </View>
-        {/* Comptes rendus médicaux */}
-        <View style={{ flexDirection: "column", gap: 16 }}>
-          <AppText style={GlobalStyles.h2}>COMPTES RENDUS MEDICAUX</AppText>
-          <View style={{ flexDirection: "column", gap: 8 }}>
-            {medicFiles.length > 0 ? (
-              medicFiles.map((file) => (
-                <ItemFile
-                  key={file.id}
-                  file={file}
-                  displayControllers={
-                    user.profileCategory === "admin" ||
-                    user.profileCategory === "medic"
-                  }
-                  token={token!}
-                  uploadToASpecificId={client.id}
-                  onDeleteSuccess={handleFileDeletedForMedicalFilesList}
-                />
-              ))
-            ) : (
-              <AppText>Aucun compte rendu médical</AppText>
-            )}
-          </View>
-          {(user.profileCategory === "admin" ||
-            user.profileCategory === "medic") && (
-            <View style={{ flexDirection: "row", justifyContent: "flex-end" }}>
-              <FileUploadButton
-                fileCategory={FileCategory.MEDICAL_FILE}
-                label=""
-                authToken={token!}
-                authUser={user}
-                uploadToUserId={client.id}
-                onUploadSuccess={(file) => {
-                  setMedicFiles((prev) => [...prev, file]);
-                }}
-                onUploadError={(error) => {
-                  console.error("Erreur:", error);
-                }}
-                styleAddButton
-              />
-            </View>
-          )}
-        </View>
-        {/* Notes */}
-        <View style={{ flexDirection: "column", gap: 16 }}>
-          <AppText style={GlobalStyles.h2}>NOTES</AppText>
-
-          <View style={{ marginBottom: 16 }}>
-            {sportsmanNotes.length > 0 ? (
-              <>
-                {sportsmanNotes
-                  .slice()
-                  .reverse()
-                  .slice(
-                    0,
-                    showAllNotes ? sportsmanNotes.length : maxNotesToShow
-                  )
-                  .map((note, idx) => (
-                    <View key={idx} style={{ marginBottom: 12 }}>
-                      <AppText style={{ fontWeight: "bold" }}>
-                        {note.header}
-                      </AppText>
-                      <AppText>{note.message}</AppText>
-                      {user.profileCategory === "admin" && (
-                        <View
-                          style={{
-                            flexDirection: "row",
-                            justifyContent: "flex-end",
-                          }}
-                        >
-                          <AppButton
-                            type="linkSmall"
-                            title="Supprimer"
-                            iconName="trash"
-                            textStyle={{ color: Colors.lightRed }}
-                            borderColor={Colors.lightRed}
-                            iconColor={Colors.lightRed}
-                            onPress={() =>
-                              handleDeleteNote(sportsmanNotes.length - 1 - idx)
-                            }
-                          />
-                        </View>
-                      )}
-                    </View>
-                  ))}
-
-                {/* Bouton pour voir plus/moins */}
-                {sportsmanNotes.length > maxNotesToShow && (
-                  <View style={{ alignItems: "center", marginTop: 8 }}>
-                    <AppButton
-                      type="linkNormal"
-                      title={
-                        showAllNotes
-                          ? "Voir moins"
-                          : `Voir ${
-                              sportsmanNotes.length - maxNotesToShow
-                            } notes de plus`
+        {client.profileCategory === ProfileCategory.SPORTSMAN && (
+          <>
+            {/* Tests sportifs & bilans */}
+            <View style={{ flexDirection: "column", gap: 16 }}>
+              <AppText style={GlobalStyles.h2}>TESTS SPORTIFS & BILANS</AppText>
+              <View style={{ flexDirection: "column", gap: 8 }}>
+                {userFiles.length > 0 ? (
+                  userFiles.map((file) => (
+                    <ItemFile
+                      key={file.id}
+                      file={file}
+                      displayControllers={
+                        user.profileCategory === "admin" ||
+                        user.profileCategory === "coach"
                       }
-                      iconName={showAllNotes ? "chevronUp" : "chevronDown"}
-                      iconColor={Colors.lightBlue}
-                      onPress={() => setShowAllNotes(!showAllNotes)}
+                      token={token!}
+                      uploadToASpecificId={client.id}
+                      onDeleteSuccess={handleFileDeletedForUserFilesList}
                     />
-                  </View>
+                  ))
+                ) : (
+                  <AppText>Aucun tests sportifs ou bilans</AppText>
                 )}
-              </>
-            ) : (
-              <AppText>Aucune note</AppText>
-            )}
-          </View>
-
-          <View style={{ flexDirection: "row", justifyContent: "flex-end" }}>
-            <AppButton
-              type="add"
-              iconName="plus"
-              onPress={() => setEditNotesPopUpVisible(true)}
-            />
-          </View>
-        </View>
-        {editNotesPopUpVisible && (
-          <Modal
-            visible={editNotesPopUpVisible}
-            transparent
-            onRequestClose={() => {
-              setEditNotesPopUpVisible(false);
-            }}
-          >
-            <Pressable
-              onPress={() => {
-                setEditNotesPopUpVisible(false);
-              }}
-              style={{
-                flex: 1,
-                backgroundColor: "rgba(0,0,0,0.5)",
-                justifyContent: "center",
-                padding: 24,
-              }}
-            >
-              <PopUp
-                onClose={() => {
-                  setEditNotesPopUpVisible(false);
-                  setNewNoteContent("");
-                }}
-                title="Ajouter une note"
-                btnType="primary"
-                btnText="Valider"
-                iconName="check"
-                closeText="Annuler"
-                onSubmit={handleAddNote}
-                paragraph="Renseignez ici le contenu de la note"
-                inputs={
-                  <>
-                    <Input
-                      type="textarea"
-                      label="Contenu de la note"
-                      placeholder="Remarques, conseils, etc."
-                      value={newNoteContent}
-                      onChangeText={setNewNoteContent}
-                    />
-                  </>
-                }
-              />
-            </Pressable>
-          </Modal>
-        )}
-        {/* Prestation & échéance */}
-        <View style={{ flexDirection: "column", gap: 16 }}>
-          <AppText style={GlobalStyles.h2}>PRESTATION & ECHEANCES</AppText>
-          {objectives.filter((obj) => obj.isActive).length > 0 ? (
-            objectives
-              .filter((obj) => obj.isActive)
-              .map((objective) => (
-                <Objective
-                  key={objective.id}
-                  duration={getMonthsBetween(
-                    objective.startDate,
-                    objective.endDate
-                  )}
-                  onGoingNumber={getOngoingMonth(
-                    objective.startDate,
-                    objective.endDate
-                  )}
-                  label={objective.label}
-                />
-              ))
-          ) : (
-            <AppText>Aucun objectif défini</AppText>
-          )}
-          {user.profileCategory === "admin" && (
-            <View
-              style={{
-                flexDirection: "row",
-                justifyContent: "space-between",
-                alignItems: "center",
-              }}
-            >
-              <AppButton
-                type="linkNormal"
-                title="Voir la facturation"
-                iconName="eye"
-              />
-              <AppButton
-                type="add"
-                iconName="plus"
-                onPress={() => setAddObjectivePopUpVisible(true)}
-              />
+              </View>
+              {(user.profileCategory === "admin" ||
+                user.profileCategory === "coach") && (
+                <View
+                  style={{ flexDirection: "row", justifyContent: "flex-end" }}
+                >
+                  <FileUploadButton
+                    fileCategory={FileCategory.USER_FILE}
+                    label=""
+                    authToken={token!}
+                    authUser={user}
+                    uploadToUserId={client.id}
+                    onUploadSuccess={(file) => {
+                      setUserFiles((prev) => [...prev, file]);
+                    }}
+                    onUploadError={(error) => {
+                      console.error("Erreur:", error);
+                    }}
+                    styleAddButton
+                  />
+                </View>
+              )}
             </View>
-          )}
-          {addObjectivePopUpVisible && (
-            <Modal
-              visible={addObjectivePopUpVisible}
-              transparent
-              onRequestClose={() => {
-                setAddObjectivePopUpVisible(false);
-              }}
-            >
-              <Pressable
-                onPress={() => {
-                  setAddObjectivePopUpVisible(false);
-                }}
-                style={{
-                  flex: 1,
-                  backgroundColor: "rgba(0,0,0,0.5)",
-                  justifyContent: "center",
-                  padding: 24,
+            {/* Comptes rendus médicaux */}
+            <View style={{ flexDirection: "column", gap: 16 }}>
+              <AppText style={GlobalStyles.h2}>COMPTES RENDUS MEDICAUX</AppText>
+              <View style={{ flexDirection: "column", gap: 8 }}>
+                {medicFiles.length > 0 ? (
+                  medicFiles.map((file) => (
+                    <ItemFile
+                      key={file.id}
+                      file={file}
+                      displayControllers={
+                        user.profileCategory === "admin" ||
+                        user.profileCategory === "medic"
+                      }
+                      token={token!}
+                      uploadToASpecificId={client.id}
+                      onDeleteSuccess={handleFileDeletedForMedicalFilesList}
+                    />
+                  ))
+                ) : (
+                  <AppText>Aucun compte rendu médical</AppText>
+                )}
+              </View>
+              {(user.profileCategory === "admin" ||
+                user.profileCategory === "medic") && (
+                <View
+                  style={{ flexDirection: "row", justifyContent: "flex-end" }}
+                >
+                  <FileUploadButton
+                    fileCategory={FileCategory.MEDICAL_FILE}
+                    label=""
+                    authToken={token!}
+                    authUser={user}
+                    uploadToUserId={client.id}
+                    onUploadSuccess={(file) => {
+                      setMedicFiles((prev) => [...prev, file]);
+                    }}
+                    onUploadError={(error) => {
+                      console.error("Erreur:", error);
+                    }}
+                    styleAddButton
+                  />
+                </View>
+              )}
+            </View>
+            {/* Notes */}
+            <View style={{ flexDirection: "column", gap: 16 }}>
+              <AppText style={GlobalStyles.h2}>NOTES</AppText>
+
+              <View style={{ marginBottom: 16 }}>
+                {sportsmanNotes.length > 0 ? (
+                  <>
+                    {sportsmanNotes
+                      .slice()
+                      .reverse()
+                      .slice(
+                        0,
+                        showAllNotes ? sportsmanNotes.length : maxNotesToShow
+                      )
+                      .map((note, idx) => (
+                        <View key={idx} style={{ marginBottom: 12 }}>
+                          <AppText style={{ fontWeight: "bold" }}>
+                            {note.header}
+                          </AppText>
+                          <AppText>{note.message}</AppText>
+                          {user.profileCategory === "admin" && (
+                            <View
+                              style={{
+                                flexDirection: "row",
+                                justifyContent: "flex-end",
+                              }}
+                            >
+                              <AppButton
+                                type="linkSmall"
+                                title="Supprimer"
+                                iconName="trash"
+                                textStyle={{ color: Colors.lightRed }}
+                                borderColor={Colors.lightRed}
+                                iconColor={Colors.lightRed}
+                                onPress={() =>
+                                  handleDeleteNote(
+                                    sportsmanNotes.length - 1 - idx
+                                  )
+                                }
+                              />
+                            </View>
+                          )}
+                        </View>
+                      ))}
+
+                    {/* Bouton pour voir plus/moins */}
+                    {sportsmanNotes.length > maxNotesToShow && (
+                      <View style={{ alignItems: "center", marginTop: 8 }}>
+                        <AppButton
+                          type="linkNormal"
+                          title={
+                            showAllNotes
+                              ? "Voir moins"
+                              : `Voir ${
+                                  sportsmanNotes.length - maxNotesToShow
+                                } notes de plus`
+                          }
+                          iconName={showAllNotes ? "chevronUp" : "chevronDown"}
+                          iconColor={Colors.lightBlue}
+                          onPress={() => setShowAllNotes(!showAllNotes)}
+                        />
+                      </View>
+                    )}
+                  </>
+                ) : (
+                  <AppText>Aucune note</AppText>
+                )}
+              </View>
+
+              <View
+                style={{ flexDirection: "row", justifyContent: "flex-end" }}
+              >
+                <AppButton
+                  type="add"
+                  iconName="plus"
+                  onPress={() => setEditNotesPopUpVisible(true)}
+                />
+              </View>
+            </View>
+            {editNotesPopUpVisible && (
+              <Modal
+                visible={editNotesPopUpVisible}
+                transparent
+                onRequestClose={() => {
+                  setEditNotesPopUpVisible(false);
                 }}
               >
-                <PopUp
-                  onClose={() => {
-                    if (!objectiveLoading) setAddObjectivePopUpVisible(false);
+                <Pressable
+                  onPress={() => {
+                    setEditNotesPopUpVisible(false);
                   }}
-                  title="Ajouter un objectif"
-                  btnType="primary"
-                  btnText="Valider"
-                  iconName="check"
-                  closeText="Annuler"
-                  onSubmit={handleAddObjective}
-                  paragraph="Renseignez les champs ci-dessous pour ajouter un objectif"
-                  specificBody={
-                    objectiveLoading ? (
-                      <View style={{ alignItems: "center", padding: 32 }}>
-                        <ActivityIndicator
-                          size="large"
-                          color={Colors.deepBlue}
-                        />
-                        <AppText style={{ marginTop: 16 }}>
-                          Création en cours...
-                        </AppText>
-                      </View>
-                    ) : (
-                      <View style={{ flexDirection: "column", gap: 16 }}>
+                  style={{
+                    flex: 1,
+                    backgroundColor: "rgba(0,0,0,0.5)",
+                    justifyContent: "center",
+                    padding: 24,
+                  }}
+                >
+                  <PopUp
+                    onClose={() => {
+                      setEditNotesPopUpVisible(false);
+                      setNewNoteContent("");
+                    }}
+                    title="Ajouter une note"
+                    btnType="primary"
+                    btnText="Valider"
+                    iconName="check"
+                    closeText="Annuler"
+                    onSubmit={handleAddNote}
+                    paragraph="Renseignez ici le contenu de la note"
+                    inputs={
+                      <>
                         <Input
-                          type="text"
-                          label="Libellé de la prestation"
-                          placeholder="Libellé"
-                          value={formData.objectiveLabel || ""}
-                          onChangeText={(v) =>
-                            handleNewObjectiveInputChange("objectiveLabel", v)
-                          }
+                          type="textarea"
+                          label="Contenu de la note"
+                          placeholder="Remarques, conseils, etc."
+                          value={newNoteContent}
+                          onChangeText={setNewNoteContent}
                         />
-                        <Input
-                          type="date"
-                          label="Date de début"
-                          placeholder="XX/XX/XXXX"
-                          value={formData.objectiveStartDate || ""}
-                          onChangeText={(v) =>
-                            handleNewObjectiveInputChange(
-                              "objectiveStartDate",
-                              v
-                            )
-                          }
-                        />
-
-                        <Input
-                          type="date"
-                          label="Date de fin"
-                          placeholder="XX/XX/XXXX"
-                          value={formData.objectiveEndDate || ""}
-                          onChangeText={(v) =>
-                            handleNewObjectiveInputChange("objectiveEndDate", v)
-                          }
-                        />
-
-                        <View style={{ flexDirection: "column", gap: 8 }}>
-                          <AppText>Tarification complète par défaut</AppText>
-                          <Input
-                            type="checkbox"
-                            label="Passer en tarification par mois"
-                            value={formData.objectiveIsMonthly || false}
-                            onChange={(v) =>
-                              handleNewObjectiveInputChange(
-                                "objectiveIsMonthly",
-                                v
-                              )
-                            }
-                          />
-                        </View>
-
-                        <Input
-                          type="text"
-                          label={
-                            formData.objectiveIsMonthly
-                              ? "Tarification par mois"
-                              : "Tarification totale"
-                          }
-                          placeholder={
-                            formData.objectiveIsMonthly ? "XX€/mois" : "XX€"
-                          }
-                          value={
-                            formData.objectiveIsMonthly
-                              ? formData.billingMonthlyAmount || ""
-                              : formData.billingTotalAmount || ""
-                          }
-                          onChangeText={(v) =>
-                            handleNewObjectiveInputChange(
-                              formData.objectiveIsMonthly
-                                ? "billingMonthlyAmount"
-                                : "billingTotalAmount",
-                              v
-                            )
-                          }
-                        />
-                        <Pressable
-                          onPress={() =>
-                            setCoachSelectorVisible(!coachSelectorVisible)
-                          }
-                          style={{
-                            paddingHorizontal: 8,
-                            paddingVertical: 6,
-                            borderRadius: 8,
-                            borderWidth: 1,
-                            borderColor: Colors.deepBlue,
-                            marginTop: 8,
-                          }}
-                        >
-                          {selectedCoach ? (
-                            <AppText>
-                              {selectedCoach.firstName} {selectedCoach.lastName}
-                            </AppText>
-                          ) : (
-                            <AppText style={{ color: Colors.grey }}>
-                              Sélectionnez un coach à affecter
-                            </AppText>
-                          )}
-                        </Pressable>
-                        <AppText>
-                          Le coach sélectionné sera responsable de l'objectif de
-                          ce sportif.
-                        </AppText>
-                      </View>
-                    )
-                  }
-                />
-              </Pressable>
-            </Modal>
-          )}
-          {coachSelectorVisible && (
-            <AddContacts
-              visible={coachSelectorVisible}
-              onClose={() => setCoachSelectorVisible(!coachSelectorVisible)}
-              onSubmit={handleAddCoachSubmit}
-              token={token as string}
-            />
-          )}
-          <AppText style={GlobalStyles.h3}>PLAN DE PERFORMANCES</AppText>
-          <View style={{ flexDirection: "column", gap: 8 }}>
-            {activeSessions.length > 0 ? (
-              activeSessions.map((sessionWithFile) => (
-                <Session
-                  key={sessionWithFile.session.id}
-                  title={sessionWithFile.session.label}
-                  nbExercises={sessionWithFile.session.numberOfExercises}
-                  durationTime={getMinutesFromDuration(
-                    sessionWithFile.session.durationTime
-                  )}
-                  imageUrl={
-                    sessionWithFile.filePicture
-                      ? sessionWithFile.filePicture.url
-                      : undefined
-                  }
-                  labels={[]}
-                  onPress={() =>
-                    navigation.navigate("SessionDetail", {
-                      session: sessionWithFile.session,
-                    })
-                  }
-                />
-              ))
-            ) : (
-              <AppText>Aucune séance active</AppText>
-            )}
-            <View style={{ flexDirection: "row", justifyContent: "flex-end" }}>
-              <AppButton
-                type="primary"
-                title="Envoyer un plan"
-                iconName="send"
-                onPress={() => {
-                  setAddSessionPopUpVisible(true);
-                }}
-              />
-            </View>
-            {addSessionPopUpVisible && (
-              <AddSessions
-                visible={addSessionPopUpVisible}
-                listOfSession={allSessions}
-                onClose={() => setAddSessionPopUpVisible(false)}
-                onSubmit={async (selectedSessions) => {
-                  await Promise.all(
-                    selectedSessions.map((s) =>
-                      SessionService.addSessionToUser(
-                        client.id,
-                        s.session.id,
-                        token as string
-                      )
-                    )
-                  );
-                  const newSessions = await Promise.all(
-                    selectedSessions.map((s) =>
-                      SessionService.getSessionById(
-                        s.session.id,
-                        token as string
-                      )
-                    )
-                  );
-                  setActiveSessions((prev) => [
-                    ...prev,
-                    ...newSessions.filter(
-                      (newSession) =>
-                        !prev.some(
-                          (s) => s.session.id === newSession.session.id
-                        )
-                    ),
-                  ]);
-                  setAddSessionPopUpVisible(false);
-                  notify({
-                    title: "Séances ajoutées avec succès",
-                    type: "success",
-                  });
-                }}
-                exercises={allExercises}
-                categories={muscleGroupCategories}
-              />
-            )}
-          </View>
-          {user.profileCategory === "coach" && (
-            <View style={{ flexDirection: "column", gap: 16 }}>
-              <AppText style={GlobalStyles.h3}>AVANCEMENT</AppText>
-              {currentCoachingEvents.length > 0 ? (
-                currentCoachingEvents
-                  .filter((e) => !e.coachingEvent.coachComment)
-                  .map(({ eventId, coachingEvent }) => {
-                    if (coachingEvent.sessionId && token) {
-                      const sessionOfCoachingEvent = allSessions.find(
-                        (s) => s.session.id === coachingEvent.sessionId
-                      );
-                      return (
-                        <Session
-                          key={coachingEvent.id}
-                          title={sessionOfCoachingEvent?.session.label || ""}
-                          imageUrl={
-                            sessionOfCoachingEvent?.filePicture
-                              ? sessionOfCoachingEvent.filePicture.url
-                              : undefined
-                          }
-                          isToDo
-                          onChangeStateBtnPress={() => {
-                            setSelectedCoachingEvent(eventId);
-                            setEvaluateCoachingEventPopUpVisible(true);
-                          }}
-                          hasChangeStateBtn
-                        />
-                      );
+                      </>
                     }
-                    return null;
-                  })
+                  />
+                </Pressable>
+              </Modal>
+            )}
+            {/* Prestation & échéance */}
+            <View style={{ flexDirection: "column", gap: 16 }}>
+              <AppText style={GlobalStyles.h2}>PRESTATION & ECHEANCES</AppText>
+              {objectives.filter((obj) => obj.isActive).length > 0 ? (
+                objectives
+                  .filter((obj) => obj.isActive)
+                  .map((objective) => (
+                    <Objective
+                      key={objective.id}
+                      duration={getMonthsBetween(
+                        objective.startDate,
+                        objective.endDate
+                      )}
+                      onGoingNumber={getOngoingMonth(
+                        objective.startDate,
+                        objective.endDate
+                      )}
+                      label={objective.label}
+                    />
+                  ))
               ) : (
-                <AppText>Aucune session en cours</AppText>
+                <AppText>Aucun objectif défini</AppText>
               )}
-              {evaluateCoachingEventPopUpVisible && (
+              {user.profileCategory === "admin" && (
+                <View
+                  style={{
+                    flexDirection: "row",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  }}
+                >
+                  <AppButton
+                    type="linkNormal"
+                    title="Voir la facturation"
+                    iconName="eye"
+                  />
+                  <AppButton
+                    type="add"
+                    iconName="plus"
+                    onPress={() => setAddObjectivePopUpVisible(true)}
+                  />
+                </View>
+              )}
+              {addObjectivePopUpVisible && (
                 <Modal
-                  visible={evaluateCoachingEventPopUpVisible}
+                  visible={addObjectivePopUpVisible}
                   transparent
-                  onRequestClose={() =>
-                    setEvaluateCoachingEventPopUpVisible(false)
-                  }
+                  onRequestClose={() => {
+                    setAddObjectivePopUpVisible(false);
+                  }}
                 >
                   <Pressable
-                    onPress={() => setEvaluateCoachingEventPopUpVisible(false)}
+                    onPress={() => {
+                      setAddObjectivePopUpVisible(false);
+                    }}
                     style={{
                       flex: 1,
                       backgroundColor: "rgba(0,0,0,0.5)",
@@ -1805,41 +1547,338 @@ export default function ClientDetailScreen() {
                     }}
                   >
                     <PopUp
-                      onClose={() =>
-                        setEvaluateCoachingEventPopUpVisible(false)
-                      }
-                      title="Evaluer la séance"
-                      paragraph={`Comment estimeriez-vous la motivation de ${client.firstName} ${client.lastName} à cette séance ?`}
-                      onSubmit={() => {
-                        handleAddCommentaryToCoachingEventDone(
-                          selectedCoachingEvent
-                        );
-                        notify({
-                          title: "Evaluation ajoutée avec succès",
-                          type: "success",
-                        });
-                        setEvaluateCoachingEventPopUpVisible(false);
+                      onClose={() => {
+                        if (!objectiveLoading)
+                          setAddObjectivePopUpVisible(false);
                       }}
-                      iconName="check"
-                      btnText="Valider"
+                      title="Ajouter un objectif"
                       btnType="primary"
+                      btnText="Valider"
+                      iconName="check"
                       closeText="Annuler"
-                      inputs={
-                        <Input
-                          type="textarea"
-                          label="Commentaire"
-                          placeholder="douleur, fatigue, progression, ..."
-                          value={coachCommentText}
-                          onChangeText={(v) => setCoachCommentText(v)}
-                        />
+                      onSubmit={handleAddObjective}
+                      paragraph="Renseignez les champs ci-dessous pour ajouter un objectif"
+                      specificBody={
+                        objectiveLoading ? (
+                          <View style={{ alignItems: "center", padding: 32 }}>
+                            <ActivityIndicator
+                              size="large"
+                              color={Colors.deepBlue}
+                            />
+                            <AppText style={{ marginTop: 16 }}>
+                              Création en cours...
+                            </AppText>
+                          </View>
+                        ) : (
+                          <View style={{ flexDirection: "column", gap: 16 }}>
+                            <Input
+                              type="text"
+                              label="Libellé de la prestation"
+                              placeholder="Libellé"
+                              value={formData.objectiveLabel || ""}
+                              onChangeText={(v) =>
+                                handleNewObjectiveInputChange(
+                                  "objectiveLabel",
+                                  v
+                                )
+                              }
+                            />
+                            <Input
+                              type="date"
+                              label="Date de début"
+                              placeholder="XX/XX/XXXX"
+                              value={formData.objectiveStartDate || ""}
+                              onChangeText={(v) =>
+                                handleNewObjectiveInputChange(
+                                  "objectiveStartDate",
+                                  v
+                                )
+                              }
+                            />
+
+                            <Input
+                              type="date"
+                              label="Date de fin"
+                              placeholder="XX/XX/XXXX"
+                              value={formData.objectiveEndDate || ""}
+                              onChangeText={(v) =>
+                                handleNewObjectiveInputChange(
+                                  "objectiveEndDate",
+                                  v
+                                )
+                              }
+                            />
+
+                            <View style={{ flexDirection: "column", gap: 8 }}>
+                              <AppText>
+                                Tarification complète par défaut
+                              </AppText>
+                              <Input
+                                type="checkbox"
+                                label="Passer en tarification par mois"
+                                value={formData.objectiveIsMonthly || false}
+                                onChange={(v) =>
+                                  handleNewObjectiveInputChange(
+                                    "objectiveIsMonthly",
+                                    v
+                                  )
+                                }
+                              />
+                            </View>
+
+                            <Input
+                              type="text"
+                              label={
+                                formData.objectiveIsMonthly
+                                  ? "Tarification par mois"
+                                  : "Tarification totale"
+                              }
+                              placeholder={
+                                formData.objectiveIsMonthly ? "XX€/mois" : "XX€"
+                              }
+                              value={
+                                formData.objectiveIsMonthly
+                                  ? formData.billingMonthlyAmount || ""
+                                  : formData.billingTotalAmount || ""
+                              }
+                              onChangeText={(v) =>
+                                handleNewObjectiveInputChange(
+                                  formData.objectiveIsMonthly
+                                    ? "billingMonthlyAmount"
+                                    : "billingTotalAmount",
+                                  v
+                                )
+                              }
+                            />
+                            <Pressable
+                              onPress={() =>
+                                setCoachSelectorVisible(!coachSelectorVisible)
+                              }
+                              style={{
+                                paddingHorizontal: 8,
+                                paddingVertical: 6,
+                                borderRadius: 8,
+                                borderWidth: 1,
+                                borderColor: Colors.deepBlue,
+                                marginTop: 8,
+                              }}
+                            >
+                              {selectedCoach ? (
+                                <AppText>
+                                  {selectedCoach.firstName}{" "}
+                                  {selectedCoach.lastName}
+                                </AppText>
+                              ) : (
+                                <AppText style={{ color: Colors.grey }}>
+                                  Sélectionnez un coach à affecter
+                                </AppText>
+                              )}
+                            </Pressable>
+                            <AppText>
+                              Le coach sélectionné sera responsable de
+                              l'objectif de ce sportif.
+                            </AppText>
+                          </View>
+                        )
                       }
                     />
                   </Pressable>
                 </Modal>
               )}
+              {coachSelectorVisible && (
+                <AddContacts
+                  visible={coachSelectorVisible}
+                  onClose={() => setCoachSelectorVisible(!coachSelectorVisible)}
+                  onSubmit={handleAddCoachSubmit}
+                  token={token as string}
+                />
+              )}
+              {client.profileCategory === ProfileCategory.SPORTSMAN && (
+                <>
+                  <AppText style={GlobalStyles.h3}>
+                    PLAN DE PERFORMANCES
+                  </AppText>
+                  <View style={{ flexDirection: "column", gap: 8 }}>
+                    {activeSessions.length > 0 ? (
+                      activeSessions.map((sessionWithFile) => (
+                        <Session
+                          key={sessionWithFile.session.id}
+                          title={sessionWithFile.session.label}
+                          nbExercises={
+                            sessionWithFile.session.numberOfExercises
+                          }
+                          durationTime={getMinutesFromDuration(
+                            sessionWithFile.session.durationTime
+                          )}
+                          imageUrl={
+                            sessionWithFile.filePicture
+                              ? sessionWithFile.filePicture.url
+                              : undefined
+                          }
+                          labels={[]}
+                          onPress={() =>
+                            navigation.navigate("SessionDetail", {
+                              session: sessionWithFile.session,
+                            })
+                          }
+                        />
+                      ))
+                    ) : (
+                      <AppText>Aucune séance active</AppText>
+                    )}
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        justifyContent: "flex-end",
+                      }}
+                    >
+                      <AppButton
+                        type="primary"
+                        title="Envoyer un plan"
+                        iconName="send"
+                        onPress={() => {
+                          setAddSessionPopUpVisible(true);
+                        }}
+                      />
+                    </View>
+                    {addSessionPopUpVisible && (
+                      <AddSessions
+                        visible={addSessionPopUpVisible}
+                        listOfSession={allSessions}
+                        onClose={() => setAddSessionPopUpVisible(false)}
+                        onSubmit={async (selectedSessions) => {
+                          await Promise.all(
+                            selectedSessions.map((s) =>
+                              SessionService.addSessionToUser(
+                                client.id,
+                                s.session.id,
+                                token as string
+                              )
+                            )
+                          );
+                          const newSessions = await Promise.all(
+                            selectedSessions.map((s) =>
+                              SessionService.getSessionById(
+                                s.session.id,
+                                token as string
+                              )
+                            )
+                          );
+                          setActiveSessions((prev) => [
+                            ...prev,
+                            ...newSessions.filter(
+                              (newSession) =>
+                                !prev.some(
+                                  (s) => s.session.id === newSession.session.id
+                                )
+                            ),
+                          ]);
+                          setAddSessionPopUpVisible(false);
+                          notify({
+                            title: "Séances ajoutées avec succès",
+                            type: "success",
+                          });
+                        }}
+                        exercises={allExercises}
+                        categories={muscleGroupCategories}
+                      />
+                    )}
+                  </View>
+                </>
+              )}
+              {user.profileCategory === "coach" && (
+                <View style={{ flexDirection: "column", gap: 16 }}>
+                  <AppText style={GlobalStyles.h3}>AVANCEMENT</AppText>
+                  {currentCoachingEvents.length > 0 ? (
+                    currentCoachingEvents
+                      .filter((e) => !e.coachingEvent.coachComment)
+                      .map(({ eventId, coachingEvent }) => {
+                        if (coachingEvent.sessionId && token) {
+                          const sessionOfCoachingEvent = allSessions.find(
+                            (s) => s.session.id === coachingEvent.sessionId
+                          );
+                          return (
+                            <Session
+                              key={coachingEvent.id}
+                              title={
+                                sessionOfCoachingEvent?.session.label || ""
+                              }
+                              imageUrl={
+                                sessionOfCoachingEvent?.filePicture
+                                  ? sessionOfCoachingEvent.filePicture.url
+                                  : undefined
+                              }
+                              isToDo
+                              onChangeStateBtnPress={() => {
+                                setSelectedCoachingEvent(eventId);
+                                setEvaluateCoachingEventPopUpVisible(true);
+                              }}
+                              hasChangeStateBtn
+                            />
+                          );
+                        }
+                        return null;
+                      })
+                  ) : (
+                    <AppText>Aucune session en cours</AppText>
+                  )}
+                  {evaluateCoachingEventPopUpVisible && (
+                    <Modal
+                      visible={evaluateCoachingEventPopUpVisible}
+                      transparent
+                      onRequestClose={() =>
+                        setEvaluateCoachingEventPopUpVisible(false)
+                      }
+                    >
+                      <Pressable
+                        onPress={() =>
+                          setEvaluateCoachingEventPopUpVisible(false)
+                        }
+                        style={{
+                          flex: 1,
+                          backgroundColor: "rgba(0,0,0,0.5)",
+                          justifyContent: "center",
+                          padding: 24,
+                        }}
+                      >
+                        <PopUp
+                          onClose={() =>
+                            setEvaluateCoachingEventPopUpVisible(false)
+                          }
+                          title="Evaluer la séance"
+                          paragraph={`Comment estimeriez-vous la motivation de ${client.firstName} ${client.lastName} à cette séance ?`}
+                          onSubmit={() => {
+                            handleAddCommentaryToCoachingEventDone(
+                              selectedCoachingEvent
+                            );
+                            notify({
+                              title: "Evaluation ajoutée avec succès",
+                              type: "success",
+                            });
+                            setEvaluateCoachingEventPopUpVisible(false);
+                          }}
+                          iconName="check"
+                          btnText="Valider"
+                          btnType="primary"
+                          closeText="Annuler"
+                          inputs={
+                            <Input
+                              type="textarea"
+                              label="Commentaire"
+                              placeholder="douleur, fatigue, progression, ..."
+                              value={coachCommentText}
+                              onChangeText={(v) => setCoachCommentText(v)}
+                            />
+                          }
+                        />
+                      </Pressable>
+                    </Modal>
+                  )}
+                </View>
+              )}
             </View>
-          )}
-        </View>
+          </>
+        )}
         {/* Formulaire de suivi */}
         {client.profileCategory === ProfileCategory.SPORTSMAN && (
           <View style={{ flexDirection: "column", gap: 16 }}>
@@ -2091,16 +2130,18 @@ export default function ClientDetailScreen() {
                 iconName="archive"
                 onPress={() => setArchiveUserPopupVisible(true)}
               />
-              <AppButton
-                type="secondary"
-                title="Abonnement"
-                iconName="subscription"
-                onPress={() => {
-                  setEditSubscriptionEditPopUpVisible(
-                    !editSubscriptionEditPopUpVisible
-                  );
-                }}
-              />
+              {client.profileCategory === ProfileCategory.SPORTSMAN && (
+                <AppButton
+                  type="secondary"
+                  title="Abonnement"
+                  iconName="subscription"
+                  onPress={() => {
+                    setEditSubscriptionEditPopUpVisible(
+                      !editSubscriptionEditPopUpVisible
+                    );
+                  }}
+                />
+              )}
             </View>
             {editSubscriptionEditPopUpVisible && (
               <Modal
