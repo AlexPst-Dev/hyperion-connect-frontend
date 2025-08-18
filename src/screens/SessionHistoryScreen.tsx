@@ -30,13 +30,13 @@ export default function SessionHistoryScreen() {
           ls.sessionId,
           token
         );
-        if (completeSessions.filePicture) {
-          setFileImageUrl(completeSessions.filePicture.url);
+        if (completeSessions.publicImageUrl) {
+          setFileImageUrl(completeSessions.publicImageUrl);
         }
-        if (!completeSessions.session.isActive) {
+        if (!completeSessions.isActive) {
           setAllInactivesSporstmanSessions((prev) => [
             ...prev,
-            completeSessions.session,
+            completeSessions,
           ]);
         }
       });
@@ -55,7 +55,7 @@ export default function SessionHistoryScreen() {
         <Session
           key={session.id}
           title={session.label}
-          imageUrl={session.filePictureId ? fileImageUrl : ""}
+          imageUrl={session.publicImageUrl || ""}
           hideIcon
         />
       );

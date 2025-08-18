@@ -124,7 +124,9 @@ export default function HeaderNav() {
         />
       )}
 
-      {memberCard && <MemberCard onClose={() => setMemberCard(false)} visible={memberCard} />}
+      {memberCard && (
+        <MemberCard onClose={() => setMemberCard(false)} visible={memberCard} />
+      )}
     </>
   );
 }

@@ -2,7 +2,6 @@ import {
   CreateSessionRequest,
   Session,
   SessionExercisesResponse,
-  SessionWithFile,
   UpdateSessionRequest,
   LinkedSessions,
 } from "../../models/session";
@@ -53,16 +52,13 @@ export class SessionService {
   /**
    * Retrieve a session by it's id with the picture
    */
-  static async getSessionById(
-    id: number,
-    token?: string
-  ): Promise<SessionWithFile> {
+  static async getSessionById(id: number, token?: string): Promise<Session> {
     if (isNaN(id)) {
       throw new Error("ID de session invalide");
     }
 
     try {
-      return await apiClient.get<SessionWithFile>(`/sessions/${id}`, token);
+      return await apiClient.get<Session>(`/sessions/${id}`, token);
     } catch (error) {
       console.error("Erreur lors de la récupération de la session :", error);
       throw error;
@@ -289,21 +285,15 @@ export function addExercisesToSessionList(
   currentList: string,
   newIds: number[]
 ): string {
-  // Split current list into array, filter out empty strings, and convert to numbers
-  const currentIds = currentList
+  const existingIds = currentList
     .split(";")
     .map((id) => id.trim())
     .filter((id) => id !== "")
     .map(Number);
 
-  // Create a Set to avoid duplicates
-  const idSet = new Set(currentIds);
+  const merged = Array.from(new Set([...existingIds, ...newIds]));
 
-  // Add new IDs
-  newIds.forEach((id) => idSet.add(id));
-
-  // Join back to string with "; " separator and a trailing ";"
-  return Array.from(idSet).join("; ") + ";";
+  return merged.join("; ");
 }
 
 export function isDuplicateLinkedSession(

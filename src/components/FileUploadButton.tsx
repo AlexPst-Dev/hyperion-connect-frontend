@@ -79,8 +79,6 @@ export const FileUploadButton: React.FC<FileUploadButtonProps> = ({
         label: file.name,
         fileCategory,
         authToken,
-        uploadToASpecificId: uploadToUserId ? uploadToUserId : undefined,
-        companyId: companyId ? companyId : undefined,
       });
 
       if (result.success) {
@@ -98,7 +96,7 @@ export const FileUploadButton: React.FC<FileUploadButtonProps> = ({
                 label: file.name,
                 numberOfExercises: 1,
                 durationTime: "00:01:00",
-                filePictureId: result.data.id,
+                publicImageUrl: `file-session-imported-${result.data.id}`,
                 authorId: authUser.id,
               },
               authToken
@@ -119,7 +117,6 @@ export const FileUploadButton: React.FC<FileUploadButtonProps> = ({
         } else if (fileCategory === FileCategory.IMAGE) {
           try {
             if (companyId) {
-              console.log(companyId);
               const companyToUpdate = await CompanyService.getCompanyById(
                 companyId,
                 authToken
@@ -161,48 +158,6 @@ export const FileUploadButton: React.FC<FileUploadButtonProps> = ({
           } catch (e) {
             console.log(
               "Error while create a new image for the connected user : ",
-              e
-            );
-          }
-        } else if (fileCategory === FileCategory.USER_FILE && uploadToUserId) {
-          try {
-            const userToUpdate = await UserService.getUserById(
-              uploadToUserId,
-              authToken
-            );
-            if (
-              userToUpdate.user.profileCategory === ProfileCategory.SPORTSMAN &&
-              userToUpdate.profile
-            ) {
-              const currentList =
-                (userToUpdate.profile as SportsmanProfile)?.listUserFiles || "";
-              const currentIds = currentList
-                ? currentList
-                    .split(";")
-                    .map((id) => parseInt(id.trim(), 10))
-                    .filter((id) => !isNaN(id))
-                : [];
-
-              // Get new medic IDs from selection
-              const newId = result.data.id;
-
-              // Merge and deduplicate
-              const mergedIds = Array.from(new Set([...currentIds, newId]));
-
-              // Build new list string
-              const updatedList = mergedIds.join("; ");
-              const updatedUser = UserService.updateSportsman(
-                uploadToUserId,
-                {
-                  listUserFiles: updatedList,
-                },
-                authToken
-              );
-              onUploadSuccess?.(result.data, updatedUser);
-            }
-          } catch (e) {
-            console.log(
-              "Error while fetching for user and uploading user file : ",
               e
             );
           }

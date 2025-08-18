@@ -25,7 +25,6 @@ import {
   ProfileCategory,
   SportsmanProfile,
   User,
-  UserProfile,
 } from "../models/user";
 import { useAuth } from "../hooks/useAuth";
 import Icon from "../components/Icon";
@@ -48,7 +47,7 @@ import {
   getOngoingMonth,
   Objective as ObjectiveModel,
 } from "../models/objective";
-import { SessionWithFile } from "../models/session";
+import { Session as SessionModel } from "../models/session";
 import { categoryService } from "../services/api/category-service";
 import { SubscriptionService } from "../services/api/subscription-service";
 import { fileService } from "../services/api/file-service";
@@ -121,7 +120,7 @@ export default function ClientDetailScreen() {
 
   const [objectives, setObjectives] = useState<ObjectiveModel[]>([]);
 
-  const [activeSessions, setActiveSessions] = useState<SessionWithFile[]>([]);
+  const [activeSessions, setActiveSessions] = useState<SessionModel[]>([]);
 
   const [graph, setGraph] = useState<Graph | null>(null);
   const [progressGraphData, setProgressGraphData] = useState<
@@ -175,7 +174,7 @@ export default function ClientDetailScreen() {
   });
 
   const [allExercises, setAllExercises] = useState<ExerciseWithDetails[]>([]);
-  const [allSessions, setAllSessions] = useState<SessionWithFile[]>([]);
+  const [allSessions, setAllSessions] = useState<SessionModel[]>([]);
   const [muscleGroupCategories, setMuscleGroupCategories] = useState<
     Category[]
   >([]);
@@ -403,16 +402,6 @@ export default function ClientDetailScreen() {
           if (isMounted) setCurrentCoachingEvents(coachingEventDetails);
         }
 
-        const sessionsWithFiles: SessionWithFile[] = await Promise.all(
-          allSessions.map(async (session) => ({
-            session,
-            filePicture: session.filePictureId
-              ? await fileService
-                  .getFileById(session.filePictureId, token)
-                  .catch(() => null)
-              : null,
-          }))
-        );
         const notesString = (client.profile as SportsmanProfile)
           ?.listMedicNotes;
         const allNotes = getAllNotes(notesString);
@@ -420,11 +409,11 @@ export default function ClientDetailScreen() {
         const coachingNotes = await getCoachingCommentsForNotes(
           client.id,
           token,
-          sessionsWithFiles
+          allSessions
         );
         setSportsmanNotes([...allNotes, ...coachingNotes]);
 
-        setAllSessions(sessionsWithFiles);
+        setAllSessions(allSessions);
         setAllExercises(exercises as ExerciseWithDetails[]);
 
         // Graph
@@ -507,9 +496,7 @@ export default function ClientDetailScreen() {
             SessionService.getSessionById(ls.sessionId, token)
           );
           const allActiveSessions = await Promise.all(sessionPromises);
-          const onlyActive = allActiveSessions.filter(
-            (s) => s.session.isActive
-          );
+          const onlyActive = allActiveSessions.filter((s) => s.isActive);
           if (isMounted) setActiveSessions(onlyActive);
         } catch {
           if (isMounted) setActiveSessions([]);
@@ -641,7 +628,7 @@ export default function ClientDetailScreen() {
   async function getCoachingCommentsForNotes(
     clientId: number,
     token: string,
-    allSessions: SessionWithFile[]
+    allSessions: SessionModel[]
   ): Promise<{ header: string; message: string }[]> {
     const eventsOfUser = await eventService.getEventsByUserId(clientId, token);
     const coachingEvents = eventsOfUser.events.filter(
@@ -654,8 +641,8 @@ export default function ClientDetailScreen() {
       let sessionLabel = "";
       if (sessionId) {
         // Cherche la session dans allSessions déjà chargées (évite un appel API)
-        const sessionObj = allSessions.find((s) => s.session.id === sessionId);
-        sessionLabel = sessionObj?.session.label || "Session inconnue";
+        const sessionObj = allSessions.find((s) => s.id === sessionId);
+        sessionLabel = sessionObj?.label || "Session inconnue";
       }
       const header = `Session : ${sessionLabel}`;
 
@@ -1700,25 +1687,19 @@ export default function ClientDetailScreen() {
                   </AppText>
                   <View style={{ flexDirection: "column", gap: 8 }}>
                     {activeSessions.length > 0 ? (
-                      activeSessions.map((sessionWithFile) => (
+                      activeSessions.map((session) => (
                         <Session
-                          key={sessionWithFile.session.id}
-                          title={sessionWithFile.session.label}
-                          nbExercises={
-                            sessionWithFile.session.numberOfExercises
-                          }
+                          key={session.id}
+                          title={session.label}
+                          nbExercises={session.numberOfExercises}
                           durationTime={getMinutesFromDuration(
-                            sessionWithFile.session.durationTime
+                            session.durationTime
                           )}
-                          imageUrl={
-                            sessionWithFile.filePicture
-                              ? sessionWithFile.filePicture.url
-                              : undefined
-                          }
+                          imageUrl={session.publicImageUrl || undefined}
                           labels={[]}
                           onPress={() =>
                             navigation.navigate("SessionDetail", {
-                              session: sessionWithFile.session,
+                              session,
                             })
                           }
                         />
@@ -1751,7 +1732,7 @@ export default function ClientDetailScreen() {
                             selectedSessions.map((s) =>
                               SessionService.addSessionToUser(
                                 client.id,
-                                s.session.id,
+                                s.id,
                                 token as string
                               )
                             )
@@ -1759,7 +1740,7 @@ export default function ClientDetailScreen() {
                           const newSessions = await Promise.all(
                             selectedSessions.map((s) =>
                               SessionService.getSessionById(
-                                s.session.id,
+                                s.id,
                                 token as string
                               )
                             )
@@ -1768,9 +1749,7 @@ export default function ClientDetailScreen() {
                             ...prev,
                             ...newSessions.filter(
                               (newSession) =>
-                                !prev.some(
-                                  (s) => s.session.id === newSession.session.id
-                                )
+                                !prev.some((s) => s.id === newSession.id)
                             ),
                           ]);
                           setAddSessionPopUpVisible(false);
@@ -1795,18 +1774,15 @@ export default function ClientDetailScreen() {
                       .map(({ eventId, coachingEvent }) => {
                         if (coachingEvent.sessionId && token) {
                           const sessionOfCoachingEvent = allSessions.find(
-                            (s) => s.session.id === coachingEvent.sessionId
+                            (s) => s.id === coachingEvent.sessionId
                           );
                           return (
                             <Session
                               key={coachingEvent.id}
-                              title={
-                                sessionOfCoachingEvent?.session.label || ""
-                              }
+                              title={sessionOfCoachingEvent?.label || ""}
                               imageUrl={
-                                sessionOfCoachingEvent?.filePicture
-                                  ? sessionOfCoachingEvent.filePicture.url
-                                  : undefined
+                                sessionOfCoachingEvent?.publicImageUrl ||
+                                undefined
                               }
                               isToDo
                               onChangeStateBtnPress={() => {

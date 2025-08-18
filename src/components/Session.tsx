@@ -47,12 +47,15 @@ export default function Session({
   hour,
   hideIcon = false,
 }: Props) {
-  function getImageSource(imageUrl: string): any {
-    if (imageUrl.startsWith("http") || imageUrl.startsWith("https")) {
+  function getImageSource(imageUrl?: string): any {
+    if (!imageUrl) {
+      return require("../assets/images/default-session.png");
+    }
+
+    if (imageUrl.startsWith("http")) {
       return { uri: imageUrl };
     }
 
-    // Mapping of konwn local images
     const localImages: Record<string, any> = {
       "sessions/img-running": require("../assets/images/sessions/img-running.png"),
     };
@@ -99,15 +102,15 @@ export default function Session({
             />
           )}
           {(!imageUrl && !isImportedFile) ||
-            (imageUrl && isYoutubeUrl(imageUrl) && (
-              <Icon
-                name="eye"
-                width={32}
-                height={32}
-                strokeColor="black"
-                fillColor="transparent"
-              />
-            ))}
+          (imageUrl && isYoutubeUrl(imageUrl)) ? (
+            <Icon
+              name="eye"
+              width={32}
+              height={32}
+              strokeColor="black"
+              fillColor="transparent"
+            />
+          ) : null}
         </View>
         <View style={styles.separator} />
         <View style={styles.infos}>

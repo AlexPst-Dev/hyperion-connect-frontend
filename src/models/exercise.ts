@@ -1,5 +1,4 @@
 import { Category } from "./category";
-import { File as FileModel } from "./file";
 
 export interface Exercise {
   id: number;
@@ -8,8 +7,7 @@ export interface Exercise {
   durationTime: string;
   description: string;
   recommendations: string;
-  filePicture: FileModel;
-  filePictureId: number;
+  publicImageUrl: string;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -21,7 +19,7 @@ export interface UpdateExerciseRequest {
   durationTime?: string;
   description?: string;
   recommendations?: string;
-  filePictureId?: number;
+  publicImageUrl?: string;
   isActive?: boolean;
 }
 
@@ -31,10 +29,9 @@ export interface CreateExerciseRequest {
   durationTime?: string;
   description?: string;
   recommendations?: string;
-  filePictureId?: number;
+  publicImageUrl?: string;
 }
 
 export interface ExerciseWithDetails extends Exercise {
-  filePicture: FileModel;
   muscleGroups: Category[];
 }

@@ -117,12 +117,12 @@ export default function HomeScreen() {
         // Loop from last to first
         for (let i = linkedSessions.length - 1; i >= 0; i--) {
           try {
-            const sessionWithFile = await SessionService.getSessionById(
+            const session = await SessionService.getSessionById(
               linkedSessions[i].sessionId,
               token
             );
-            if (sessionWithFile.session.isActive) {
-              setLastSession(sessionWithFile.session);
+            if (session.isActive) {
+              setLastSession(session);
               return; // Stop at the first active session found
             } else {
               continue;
@@ -445,11 +445,7 @@ export default function HomeScreen() {
                 title={lastSession.label}
                 durationTime={getMinutesFromDuration(lastSession.durationTime)}
                 nbExercises={lastSession.numberOfExercises}
-                imageUrl={
-                  lastSession.filePicture
-                    ? lastSession.filePicture.url
-                    : undefined
-                }
+                imageUrl={lastSession.publicImageUrl || undefined}
               />
             ) : (
               <AppText>Aucune séance trouvée.</AppText>
@@ -923,7 +919,6 @@ export default function HomeScreen() {
             closestEvent.id,
             token
           );
-          console.log(event);
           setClosestEvent(event); // This will trigger a re-render and update DisplayEvent
         } catch (error) {
           console.error("Error refreshing event:", error);

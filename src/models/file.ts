@@ -9,7 +9,9 @@ export enum FileCategory {
 export interface File {
   id: number;
   label: string;
-  url: string;
+  url?: string;
+  mime?: string;
+  blob?: Buffer;
   fileCategory: FileCategory;
   createdAt: string;
   updatedAt: string;

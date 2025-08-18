@@ -45,11 +45,10 @@ import {
   User,
 } from "../models/user";
 import { UserService } from "../services/api/user-service";
-import { FileCategory, File as FileModel } from "../models/file";
+import { File as FileModel } from "../models/file";
 import { notify } from "../components/NotificationContainer";
 import { categoryService } from "../services/api/category-service";
-import * as FileSystem from "expo-file-system";
-import env from "@/env";
+import { downloadFileFromDb } from "../utils/file-utils";
 
 type SessionDetailRouteProp = RouteProp<RootStackParamList, "SessionDetail">;
 
@@ -59,7 +58,6 @@ export default function SessionDetailScreen() {
 
   const [currentSession, setCurrentSession] = useState({
     ...session,
-    filePicture: session.filePicture || null,
   });
 
   type ModalStep = "selector" | "catalog" | "custom" | "import";
@@ -80,8 +78,6 @@ export default function SessionDetailScreen() {
       console.log("Annulé");
       return;
     }
-
-    console.log("Fichier sélectionné :", result.assets[0]);
   };
 
   const handleAddContactPopUpVisible = () => {
@@ -163,7 +159,7 @@ export default function SessionDetailScreen() {
   const [sessionEditionLoading, setSessionEditionLoading] = useState(false);
   const [sessionForm, setSessionForm] = useState({
     label: "",
-    filePictureUrl: "",
+    publicImageUrl: "",
     recommendations: "",
     contributions: "",
   });
@@ -174,7 +170,7 @@ export default function SessionDetailScreen() {
     muscleGroups: [] as Category[],
     recommendations: "",
     description: "",
-    filePictureUrl: "",
+    publicImageUrl: "",
     durationTime: "",
   });
 
@@ -200,52 +196,19 @@ export default function SessionDetailScreen() {
 
   const [isDownloading, setIsDownloading] = useState(false);
 
-  // Fetch and update session after edit
-  const refreshSession = async () => {
-    try {
-      const updated = await SessionService.getSessionById(session.id, token);
-      setCurrentSession({
-        ...updated.session,
-        filePicture: updated.filePicture || updated.session.filePicture,
-      });
-    } catch (e) {
-      console.error("Failed to refresh session:", e);
-    }
-  };
+  const [fileToDownload, setFileToDownload] = useState<FileModel>();
 
   const handleEditSessionSubmit = async () => {
     setSessionEditionLoading(true);
     if (token && sessionForm) {
-      let newSessionImageFile: FileModel | undefined;
-      if (sessionForm.filePictureUrl !== "") {
-        const fileResponse = session.filePictureId
-          ? await fileService.updateFile(
-              session.filePictureId,
-              {
-                url: sessionForm.filePictureUrl,
-              },
-              token
-            )
-          : await fileService.createFile(
-              {
-                label: `${sessionForm.label.toLowerCase().trim()}-image`,
-                url: sessionForm.filePictureUrl,
-                fileCategory: FileCategory.IMAGE,
-              },
-              token
-            );
-        newSessionImageFile =
-          "file" in fileResponse ? fileResponse.file : fileResponse;
-      }
-
       const baseData: UpdateSessionRequest = {
         label:
           sessionForm.label !== session.label
             ? sessionForm.label
             : session.label,
-        filePictureId:
-          sessionForm.filePictureUrl !== "" && newSessionImageFile
-            ? newSessionImageFile.id
+        publicImageUrl:
+          sessionForm.publicImageUrl !== ""
+            ? sessionForm.publicImageUrl
             : undefined,
 
         recommendations:
@@ -259,8 +222,11 @@ export default function SessionDetailScreen() {
       };
 
       try {
-        await SessionService.updateSessionById(session.id, baseData, token);
-        await refreshSession();
+        await SessionService.updateSessionById(
+          session.id,
+          baseData,
+          token
+        ).then(({ session }) => setCurrentSession({ ...session }));
       } catch (error) {
         console.log("Error while trying to updating session : ", error);
       } finally {
@@ -273,24 +239,12 @@ export default function SessionDetailScreen() {
   const handleEditExerciseSubmit = async () => {
     setExerciseEditionLoading(true);
     if (token && exerciseForm) {
-      const newExerciseImageFile =
-        exerciseForm.filePictureUrl !== ""
-          ? await fileService.createFile(
-              {
-                label: `${exerciseForm.label.toLowerCase().trim()}-image`,
-                url: exerciseForm.filePictureUrl,
-                fileCategory: FileCategory.IMAGE,
-              },
-              token
-            )
-          : { id: undefined };
-
       const baseData: CreateExerciseRequest = {
         label: exerciseForm.label,
         durationTime: `${Math.floor(Number(exerciseForm.durationTime) / 60)}:${
           Number(exerciseForm.durationTime) % 60
         }`,
-        filePictureId: newExerciseImageFile.id,
+        publicImageUrl: exerciseForm.publicImageUrl,
         recommendations: exerciseForm.recommendations,
         description: exerciseForm.description,
         listMuscleGroupIds: exerciseForm.muscleGroups
@@ -317,29 +271,45 @@ export default function SessionDetailScreen() {
   };
 
   const handleFetchExercises = async (sessionId: number) => {
+    if (!session.listExercises || session.listExercises.trim() === "") {
+      setExercisesOfSession([]);
+      return;
+    }
+
     try {
       const resExercises = await SessionService.getExercisesBySessionId(
         sessionId,
         token
       );
-      setExercisesOfSession(resExercises.exercises);
 
-      if (resExercises.exercises.length > 0) {
+      // Filtrer ceux qui existent vraiment
+      const validExercises = resExercises.exercises.filter(Boolean);
+
+      setExercisesOfSession(validExercises);
+
+      if (validExercises.length > 0) {
         const exercisesWithMuscleGroups = await Promise.all(
-          resExercises.exercises.map(async (exercise) => {
+          validExercises.map(async (exercise) => {
             const resMuscleGroups =
               await exerciseService.getMuscleGroupsForExercise(
                 exercise.id,
                 token
               );
-            return {
-              exercise,
-              muscleGroups: resMuscleGroups.muscleGroups,
-            };
+            return { exercise, muscleGroups: resMuscleGroups.muscleGroups };
           })
         );
 
         setMuscleGroupsByExercise(exercisesWithMuscleGroups);
+      }
+
+      // 🔥 Nettoyage automatique si des exercices manquent
+      if (validExercises.length !== resExercises.exercises.length) {
+        const validIds = validExercises.map((ex) => ex.id).join("; ");
+        await SessionService.updateSessionById(
+          sessionId,
+          { listExercises: validIds },
+          token
+        );
       }
     } catch (e) {
       console.log("Error while fetching exercises of the session", e);
@@ -365,27 +335,24 @@ export default function SessionDetailScreen() {
       setExercisesOfSession((prev) => [...prev, ...exercises]);
 
       try {
-        // Récupérer la session fraîche
-        const currentSession = await SessionService.getSessionById(
-          session.id,
-          token
-        );
-
         const updatedSession = await SessionService.updateSessionById(
           session.id,
           {
             listExercises: addExercisesToSessionList(
-              currentSession.session.listExercises,
+              session.listExercises,
               exerciseIds
             ),
-            numberOfExercises:
-              currentSession.session.numberOfExercises + exerciseIds.length,
+            numberOfExercises: 1,
           },
           token
         );
 
         // Confirmer avec le serveur
         await handleFetchExercises(session.id);
+        notify({
+          type: "success",
+          title: "Exercice ajouté avec succès",
+        });
       } catch (updateError) {
         // Rollback en cas d'erreur
         setExercisesOfSession(originalExercises);
@@ -452,9 +419,6 @@ export default function SessionDetailScreen() {
         } else if (user.profileCategory === ProfileCategory.ADMIN) {
           await SessionService.deleteSessionById(session.id, token);
         }
-        if (session.filePictureId) {
-          await fileService.deleteFile(session.filePictureId, token);
-        }
         navigation.goBack();
       } catch (error) {
         console.error("Error deleting session:", error);
@@ -462,72 +426,33 @@ export default function SessionDetailScreen() {
     }
   };
 
-  const handleFileDownload = async (filePicture: FileModel) => {
-    if (!filePicture.url) {
-      notify({
-        title: "URL du fichier non disponible",
-        type: "error",
-      });
-      return;
-    }
+  const handleFileDownload = async () => {
+    if (!session || !token) return;
 
     setIsDownloading(true);
 
     try {
-      const fullUrl = `${env.API_URL}/files/download/${filePicture.id}?targetUserId=${currentSession.authorId}`;
-
-      if (Platform.OS === "web") {
-        // Version web
-        const response = await fetch(fullUrl, {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+      if (!fileToDownload) {
+        notify({
+          title: "Fichier introuvable",
+          type: "error",
         });
-
-        if (!response.ok) {
-          throw new Error(`Erreur HTTP: ${response.status}`);
-        }
-
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = filePicture.label;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        window.URL.revokeObjectURL(url);
-      } else {
-        // Version mobile - reste identique
-        const { downloadAsync } = await import("expo-file-system");
-        const { shareAsync, isAvailableAsync } = await import("expo-sharing");
-
-        const headers: Record<string, string> = {};
-        if (token) {
-          headers.Authorization = `Bearer ${token}`;
-        }
-
-        const fileUri = `${FileSystem.documentDirectory}${filePicture.label}`;
-        const downloadResult = await downloadAsync(fullUrl, fileUri, {
-          headers,
-        });
-
-        if (downloadResult.status === 200) {
-          const isSharingAvailable = await isAvailableAsync();
-          if (isSharingAvailable) {
-            await shareAsync(downloadResult.uri, {
-              UTI: "com.adobe.pdf",
-              mimeType: "application/pdf",
-            });
-          }
-        }
+        return;
       }
 
-      notify({
-        title: "Fichier téléchargé avec succès",
-        type: "success",
-      });
+      const success = await downloadFileFromDb(fileToDownload, token);
+
+      if (success) {
+        notify({
+          title: "Fichier téléchargé avec succès",
+          type: "success",
+        });
+      } else {
+        notify({
+          title: "Erreur lors du téléchargement",
+          type: "error",
+        });
+      }
     } catch (error) {
       console.error("Erreur téléchargement:", error);
       notify({
@@ -543,18 +468,16 @@ export default function SessionDetailScreen() {
     async function fetchSessionAndRelatedData() {
       if (!session?.id || !token) return;
       try {
-        const updated = await SessionService.getSessionById(session.id, token);
         setCurrentSession({
-          ...updated.session,
-          filePicture: updated.filePicture || updated.session.filePicture,
+          ...session,
         });
         setSessionForm({
-          label: updated.session.label || "",
-          filePictureUrl: updated.filePicture?.url || "",
-          recommendations: updated.session.recommendations || "",
-          contributions: updated.session.contributions || "",
+          label: session.label || "",
+          publicImageUrl: session.publicImageUrl || "",
+          recommendations: session.recommendations || "",
+          contributions: session.contributions || "",
         });
-        handleFetchExercises(updated.session.id);
+        handleFetchExercises(session.id);
         fetchAllMuscleGroups();
         if (user) {
           const profileConnected = await UserService.getUserById(
@@ -566,6 +489,16 @@ export default function SessionDetailScreen() {
           } else if (user.profileCategory === ProfileCategory.COACH) {
             setCompleteUserProfile(profileConnected.profile as CoachProfile);
           }
+        }
+        if (
+          session.publicImageUrl &&
+          session.publicImageUrl.startsWith("file-session-imported-")
+        ) {
+          const allFiles = await fileService.getAllFiles(token);
+          const fileInDb = allFiles.find(
+            (f) => f.id === Number(session.publicImageUrl.split("-").pop())
+          );
+          if (fileInDb) setFileToDownload(fileInDb);
         }
       } catch (error) {
         console.error("Erreur lors du chargement de la session :", error);
@@ -590,7 +523,7 @@ export default function SessionDetailScreen() {
         }
       >
         <View style={{ flexDirection: "column", gap: 24 }}>
-          {currentSession.filePicture && currentSession.filePicture.url ? (
+          {currentSession.publicImageUrl ? (
             <View
               style={{
                 height: 192,
@@ -599,7 +532,7 @@ export default function SessionDetailScreen() {
               }}
             >
               <Image
-                source={getImageSource(currentSession.filePicture.url)}
+                source={getImageSource(currentSession.publicImageUrl)}
                 style={{ borderRadius: 8, width: "100%", height: "100%" }}
               />
             </View>
@@ -644,21 +577,16 @@ export default function SessionDetailScreen() {
               <AppText>{currentSession.contributions}</AppText>
             </View>
           )}
-          {currentSession.filePicture &&
-            currentSession.filePicture.fileCategory !==
-              FileCategory.SESSION_IMPORTED &&
-            isEditable && (
-              <View
-                style={{ flexDirection: "row", justifyContent: "flex-end" }}
-              >
-                <AppButton
-                  title="Modifier"
-                  iconName="pencil"
-                  type="primary"
-                  onPress={() => setEditSessionPopUpVisible(true)}
-                />
-              </View>
-            )}
+          {isEditable && !fileToDownload && (
+            <View style={{ flexDirection: "row", justifyContent: "flex-end" }}>
+              <AppButton
+                title="Modifier"
+                iconName="pencil"
+                type="primary"
+                onPress={() => setEditSessionPopUpVisible(true)}
+              />
+            </View>
+          )}
 
           <Modal
             transparent
@@ -707,9 +635,9 @@ export default function SessionDetailScreen() {
                           type="text"
                           placeholder={"https://"}
                           label="Lien image"
-                          value={sessionForm.filePictureUrl}
+                          value={sessionForm.publicImageUrl}
                           onChangeText={(v) =>
-                            handleSessionFormChange("filePictureUrl", v)
+                            handleSessionFormChange("publicImageUrl", v)
                           }
                         />
                         <Input
@@ -744,7 +672,7 @@ export default function SessionDetailScreen() {
             </Pressable>
           </Modal>
 
-          {muscleGroupsByExercise.length > 0 ? (
+          {!fileToDownload && muscleGroupsByExercise.length > 0 ? (
             <>
               <View
                 style={{
@@ -781,11 +709,7 @@ export default function SessionDetailScreen() {
                         durationTime={getMinutesFromDuration(
                           item.exercise.durationTime
                         )}
-                        imageUrl={
-                          item.exercise.filePicture
-                            ? item.exercise.filePicture.url
-                            : "default-session"
-                        }
+                        imageUrl={item.exercise.publicImageUrl || ""}
                         labels={item.muscleGroups.map((muscleGroup) => (
                           <Label
                             key={muscleGroup.id}
@@ -816,7 +740,7 @@ export default function SessionDetailScreen() {
           ) : (
             <AppText>Aucun exercises dans ce plan d'entrainement</AppText>
           )}
-          {isEditable && (
+          {isEditable && !fileToDownload && (
             <View style={{ flexDirection: "row", justifyContent: "center" }}>
               <AppButton
                 iconName="plus"
@@ -826,16 +750,14 @@ export default function SessionDetailScreen() {
             </View>
           )}
 
-          {currentSession.filePicture &&
-            currentSession.filePicture.fileCategory ===
-              FileCategory.SESSION_IMPORTED && (
-              <AppButton
-                type="secondary"
-                title="Télécharger"
-                iconName="download"
-                onPress={() => handleFileDownload(currentSession.filePicture)}
-              />
-            )}
+          {fileToDownload && (
+            <AppButton
+              type="secondary"
+              title="Télécharger"
+              iconName="download"
+              onPress={handleFileDownload}
+            />
+          )}
 
           <View
             style={{
@@ -1034,9 +956,9 @@ export default function SessionDetailScreen() {
                         type="text"
                         placeholder="https://"
                         label="Lien image"
-                        value={exerciseForm.filePictureUrl}
+                        value={exerciseForm.publicImageUrl}
                         onChangeText={(v) =>
-                          handleExerciseFormChange("filePictureUrl", v)
+                          handleExerciseFormChange("publicImageUrl", v)
                         }
                       />
                       <Input

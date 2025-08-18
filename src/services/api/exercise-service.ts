@@ -28,8 +28,8 @@ export const exerciseService = {
   async getExerciseById(
     id: number,
     token: string
-  ): Promise<{ exercice: Exercise; filePicture: any }> {
-    return apiClient.get<{ exercice: Exercise; filePicture: any }>(
+  ): Promise<{ exercice: Exercise }> {
+    return apiClient.get<{ exercice: Exercise }>(
       `/exercises/${id}`,
       token
     );
@@ -38,7 +38,7 @@ export const exerciseService = {
   async updateExerciseById(
     id: number,
     data: Partial<
-      Omit<Exercise, "id" | "createdAt" | "updatedAt" | "filePicture">
+      Omit<Exercise, "id" | "createdAt" | "updatedAt">
     >,
     token: string
   ): Promise<{ message: string; exercice: Exercise }> {

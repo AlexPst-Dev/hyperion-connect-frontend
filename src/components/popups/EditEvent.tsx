@@ -6,11 +6,6 @@ import { User } from "@/src/models/user";
 import AppText from "../AppText";
 import { Colors } from "@/src/styles/styles";
 import {
-  CreateEventWithCoaching,
-  CreateEventWithHyperion,
-  CreateEventWithHyperlink,
-  CreateEventWithMedical,
-  CreateEventWithSportingActivity,
   Event,
   EventCategory,
   parseIds,
@@ -20,7 +15,7 @@ import AddContacts from "./AddContacts";
 import { eventService } from "@/src/services/api/event-service";
 import { UserService } from "@/src/services/api/user-service";
 import AddSessions from "./AddSession";
-import { Session, SessionWithFile } from "@/src/models/session";
+import { Session } from "@/src/models/session";
 import { SessionService } from "@/src/services/api/session-service";
 import { fileService } from "@/src/services/api/file-service";
 import { useAuth } from "@/src/hooks/useAuth";
@@ -49,7 +44,7 @@ export default function EditEvent({
   const [selectedUsers, setSelectedUser] = useState<User[]>([]);
 
   const [addSessionPopUpVisible, setAddSessionPopUpVisible] = useState(false);
-  const [sessionsCatalog, setSessionsCatalog] = useState<SessionWithFile[]>([]);
+  const [sessionsCatalog, setSessionsCatalog] = useState<Session[]>([]);
   const [selectedSession, setSelectedSession] = useState<Session>();
 
   const { user } = useAuth();
@@ -109,26 +104,7 @@ export default function EditEvent({
     async function fetchSessionsCatalog() {
       try {
         const allSessions = await SessionService.getAllSessions(token);
-        const catalogSessionsWithFiles = await Promise.all(
-          allSessions.map(async (session) => {
-            let filePicture: any = null;
-            if (session.filePictureId) {
-              try {
-                filePicture = await fileService.getFileById(
-                  session.filePictureId,
-                  token!
-                );
-              } catch {
-                filePicture = null;
-              }
-            }
-            return {
-              session,
-              filePicture,
-            };
-          })
-        );
-        setSessionsCatalog(catalogSessionsWithFiles);
+        setSessionsCatalog(allSessions);
       } catch (e) {
         console.log(
           "Error while fetching all the sessions for the catalog : ",
@@ -421,8 +397,8 @@ export default function EditEvent({
                           listOfSession={sessionsCatalog}
                           onClose={() => setAddSessionPopUpVisible(false)}
                           onSubmit={(selectedSession) => {
-                            setSelectedSession(selectedSession[0].session);
-                            setEventSessionId(selectedSession[0].session.id);
+                            setSelectedSession(selectedSession[0]);
+                            setEventSessionId(selectedSession[0].id);
                           }}
                           exercises={[]}
                           categories={[]}

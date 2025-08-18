@@ -7,16 +7,16 @@ import AppText from "../AppText";
 import Session from "../Session";
 import Icon from "../Icon";
 import { Colors } from "@/src/styles/styles";
-import { SessionWithFile } from "@/src/models/session";
+import { Session as SessionModel } from "@/src/models/session";
 import { ExerciseWithDetails } from "@/src/models/exercise";
 import { Category } from "@/src/models/category";
 import Label from "../Label";
 
 interface Props {
   visible: boolean;
-  listOfSession: SessionWithFile[];
+  listOfSession: SessionModel[];
   onClose: () => void;
-  onSubmit?: (selectedSessions: SessionWithFile[]) => void;
+  onSubmit?: (selectedSessions: SessionModel[]) => void;
   isEditable?: boolean;
   isExercises?: boolean;
   exercises: ExerciseWithDetails[];
@@ -37,9 +37,9 @@ export default function AddSessions({
   const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
 
   // Helper to get muscle group categories for a session
-  const getSessionMuscleGroups = (sessionWithFile: SessionWithFile) => {
+  const getSessionMuscleGroups = (session: SessionModel) => {
     // Get exercise IDs from session.listExercises
-    const exerciseIds = sessionWithFile.session.listExercises
+    const exerciseIds = session.listExercises
       .split(";")
       .map((id) => id.trim())
       .filter(Boolean)
@@ -68,7 +68,7 @@ export default function AddSessions({
     new Set(
       listOfSession
         .flatMap((session) =>
-          session.session.listExercises && session.session.listExercises !== ""
+          session.listExercises && session.listExercises !== ""
             ? getSessionMuscleGroups(session).map((group) => group.label)
             : []
         )
@@ -89,7 +89,7 @@ export default function AddSessions({
     new Set(
       listOfSession
         .flatMap((session) =>
-          session.session.listExercises && session.session.listExercises !== ""
+          session.listExercises && session.listExercises !== ""
             ? getSessionMuscleGroups(session).map((group) => group.label)
             : []
         )
@@ -124,25 +124,24 @@ export default function AddSessions({
   };
 
   const handleSubmit = () => {
-    const selectedSessions = listOfSession.filter((sessionWithFile) =>
-      selectedSessionIds.includes(sessionWithFile.session.id)
+    const selectedSessions = listOfSession.filter((session) =>
+      selectedSessionIds.includes(session.id)
     );
     onSubmit?.(selectedSessions);
     onClose();
   };
 
   const filteredSessions = listOfSession
-    .filter((s) => s.session.isActive)
-    .filter((sessionWithFile) => {
+    .filter((s) => s.isActive)
+    .filter((session) => {
       const sessionMuscleGroups =
-        sessionWithFile.session.listExercises &&
-        sessionWithFile.session.listExercises !== ""
-          ? getSessionMuscleGroups(sessionWithFile)
+        session.listExercises && session.listExercises !== ""
+          ? getSessionMuscleGroups(session)
           : [];
 
       const matchesSearch =
         searchTerm.length < 3 ||
-        sessionWithFile.session.label
+        session.label
           .toLowerCase()
           .startsWith(searchTerm.toLowerCase());
 
@@ -207,21 +206,20 @@ export default function AddSessions({
               <>
                 <ScrollView style={styles.sessionList}>
                   {filteredSessions.length > 0 ? (
-                    filteredSessions.map((sessionWithFile, index) => {
+                    filteredSessions.map((session, index) => {
                       const isSelected = selectedSessionIds.includes(
-                        sessionWithFile.session.id
+                        session.id
                       );
                       const sessionMuscleGroups =
-                        sessionWithFile.session.listExercises &&
-                        sessionWithFile.session.listExercises !== ""
-                          ? getSessionMuscleGroups(sessionWithFile)
+                        session.listExercises && session.listExercises !== ""
+                          ? getSessionMuscleGroups(session)
                           : [];
 
                       return (
                         <Pressable
-                          key={sessionWithFile.session.id}
+                          key={session.id}
                           onPress={() =>
-                            toggleSelection(sessionWithFile.session.id)
+                            toggleSelection(session.id)
                           }
                           style={{
                             marginBottom:
@@ -233,7 +231,7 @@ export default function AddSessions({
                         >
                           <View style={{ width: "89%" }}>
                             <Session
-                              title={sessionWithFile.session.label}
+                              title={session.label}
                               labels={
                                 sessionMuscleGroups.length > 0
                                   ? sessionMuscleGroups.map(

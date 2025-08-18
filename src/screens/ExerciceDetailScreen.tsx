@@ -43,7 +43,6 @@ export default function ExerciceDetailScreen() {
 
   const [currentExercise, setCurrentExercise] = useState({
     ...exercise,
-    filePicture: exercise.filePicture || null,
   });
   const [currentMuscleGroups, setCurrentMuscleGroups] = useState<Category[]>(
     muscleGroups || []
@@ -58,14 +57,14 @@ export default function ExerciceDetailScreen() {
   const [exerciseEditionLoading, setExerciseEditionLoading] = useState(false);
   const [exerciseForm, setExerciseForm] = useState<{
     label: string;
-    filePictureUrl: string;
+    publicImageUrl: string;
     muscleGroups: Category[];
     duration: string;
     description: string;
     recommendations: string;
   }>({
     label: "",
-    filePictureUrl: "",
+    publicImageUrl: "",
     muscleGroups: [] as Category[],
     duration: "",
     description: "",
@@ -88,7 +87,6 @@ export default function ExerciceDetailScreen() {
       const updated = await exerciseService.getExerciseById(exercise.id, token);
       setCurrentExercise({
         ...updated.exercice,
-        filePicture: updated.filePicture || updated.exercice.filePicture,
         muscleGroups: muscleGroups || [],
       });
       const updatedMuscleGroups =
@@ -103,39 +101,16 @@ export default function ExerciceDetailScreen() {
     setExerciseEditionLoading(true);
     if (token && exerciseForm) {
       let newExerciseImageFile: FileModel | undefined;
-      if (exerciseForm.filePictureUrl !== "") {
-        const fileResponse = exercise.filePictureId
-          ? await fileService.updateFile(
-              exercise.filePictureId,
-              {
-                url:
-                  exerciseForm.filePictureUrl !== exercise.filePicture.url
-                    ? exerciseForm.filePictureUrl
-                    : exercise.filePicture.url,
-              },
-              token
-            )
-          : await fileService.createFile(
-              {
-                label: `${exerciseForm.label.toLowerCase().trim()}-image`,
-                url: exerciseForm.filePictureUrl,
-                fileCategory: FileCategory.IMAGE,
-              },
-              token
-            );
-        newExerciseImageFile =
-          "file" in fileResponse ? fileResponse.file : fileResponse;
-      }
 
       const baseData: UpdateExerciseRequest = {
         label:
           exerciseForm.label !== exercise.label
             ? exerciseForm.label
             : exercise.label,
-        filePictureId:
-          exerciseForm.filePictureUrl !== "" && newExerciseImageFile
-            ? newExerciseImageFile.id
-            : undefined,
+        publicImageUrl:
+          exerciseForm.publicImageUrl !== exercise.publicImageUrl
+            ? exerciseForm.publicImageUrl
+            : exercise.publicImageUrl,
         recommendations:
           exerciseForm.recommendations !== exercise.recommendations
             ? exerciseForm.recommendations
@@ -199,7 +174,7 @@ export default function ExerciceDetailScreen() {
     if (exercise) {
       setExerciseForm({
         label: exercise.label || "",
-        filePictureUrl: exercise.filePicture?.url || "",
+        publicImageUrl: exercise.publicImageUrl || "",
         muscleGroups: muscleGroups || [],
         duration: getMinutesFromDuration(exercise.durationTime).toString(),
         description: exercise.description || "",
@@ -252,7 +227,7 @@ export default function ExerciceDetailScreen() {
         }
       >
         <View style={{ flexDirection: "column", gap: 24 }}>
-          {currentExercise.filePicture && currentExercise.filePicture.url && (
+          {currentExercise.publicImageUrl && (
             <View
               style={{
                 height: 192,
@@ -260,12 +235,12 @@ export default function ExerciceDetailScreen() {
                 borderRadius: 8,
               }}
             >
-              {isYoutubeUrl(currentExercise.filePicture.url) ? (
+              {isYoutubeUrl(currentExercise.publicImageUrl) ? (
                 Platform.OS === "web" ? (
                   <iframe
                     width="100%"
                     height="100%"
-                    src={getYoutubeEmbedUrl(currentExercise.filePicture.url)}
+                    src={getYoutubeEmbedUrl(currentExercise.publicImageUrl)}
                     title="YouTube video"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                     allowFullScreen
@@ -274,7 +249,7 @@ export default function ExerciceDetailScreen() {
                 ) : (
                   <WebView
                     source={{
-                      uri: getYoutubeEmbedUrl(currentExercise.filePicture.url),
+                      uri: getYoutubeEmbedUrl(currentExercise.publicImageUrl),
                     }}
                     style={{ borderRadius: 8, height: "100%", width: "100%" }}
                     allowsFullscreenVideo
@@ -282,7 +257,7 @@ export default function ExerciceDetailScreen() {
                 )
               ) : (
                 <Image
-                  source={getImageSource(currentExercise.filePicture.url)}
+                  source={getImageSource(currentExercise.publicImageUrl)}
                   style={{ borderRadius: 8, height: "100%", width: "100%" }}
                 />
               )}
@@ -413,9 +388,9 @@ export default function ExerciceDetailScreen() {
                             type="text"
                             placeholder={"https://"}
                             label="Lien image"
-                            value={exerciseForm.filePictureUrl}
+                            value={exerciseForm.publicImageUrl}
                             onChangeText={(v) =>
-                              handleExerciseFormChange("filePictureUrl", v)
+                              handleExerciseFormChange("publicImageUrl", v)
                             }
                           />
                           <Input

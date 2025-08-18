@@ -36,7 +36,6 @@ import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../navigation/types";
 import AddSessions from "../components/popups/AddSession";
-import * as DocumentPicker from "expo-document-picker";
 import { BlurView } from "expo-blur";
 import ProgressGraph from "../components/ProgressGraph";
 import { LoggedUser } from "../models/auth";
@@ -47,9 +46,7 @@ import {
 import {
   CreateSessionRequest,
   Session as SessionModel,
-  SessionWithFile,
 } from "../models/session";
-import { fileService } from "../services/api/file-service";
 import { FileCategory } from "../models/file";
 import { notify } from "../components/NotificationContainer";
 import { UserService } from "../services/api/user-service";
@@ -88,13 +85,13 @@ export default function SessionsScreen() {
 
   const [sessionForm, setSessionForm] = useState({
     label: "",
-    filePictureUrl: "",
+    publicImageUrl: "",
     recommendations: "",
     contributions: "",
   });
 
   const [sessionEditionLoading, setSessionEditionLoading] = useState(false);
-  const [sessionsComplete, setSessions] = useState<SessionWithFile[]>([]);
+  const [sessionsComplete, setSessions] = useState<SessionModel[]>([]);
 
   const [editSessionPopUp, setEditSessionPopUp] = useState(false);
 
@@ -107,23 +104,11 @@ export default function SessionsScreen() {
   const handleEditSessionSubmit = async () => {
     setSessionEditionLoading(true);
     if (token && user && sessionForm) {
-      const newSessionImageFile =
-        sessionForm.filePictureUrl !== ""
-          ? await fileService.createFile(
-              {
-                label: `${sessionForm.label.toLowerCase().trim()}-image`,
-                url: sessionForm.filePictureUrl,
-                fileCategory: FileCategory.IMAGE,
-              },
-              token
-            )
-          : { id: undefined };
-
       const baseData: CreateSessionRequest = {
         label: sessionForm.label,
         numberOfExercises: 1,
         durationTime: "00:01:00",
-        filePictureId: newSessionImageFile.id,
+        publicImageUrl: sessionForm.publicImageUrl,
         authorId: user.id,
         listExercises: "0;",
         recommendations: sessionForm.recommendations,
@@ -133,10 +118,7 @@ export default function SessionsScreen() {
       try {
         await SessionService.createSession(baseData, token).then(
           async (res) => {
-            setSessions((prev) => [
-              ...prev,
-              { session: res.session, filePicture: null },
-            ]);
+            setSessions((prev) => [...prev]);
             notify({ title: "Séance créée avec succès", type: "success" });
             if (
               user.profileCategory === ProfileCategory.COACH ||
@@ -280,7 +262,7 @@ export default function SessionsScreen() {
       const [submitLoading, setSubmitLoading] = useState(false);
 
       const [allSportsmanSessions, setAllSporstmanSessions] = useState<
-        SessionWithFile[]
+        SessionModel[]
       >([]);
       const [allInactivesSportsmanSessions, setAllInactivesSporstmanSessions] =
         useState<SessionModel[]>([]);
@@ -386,12 +368,12 @@ export default function SessionsScreen() {
               ls.sessionId,
               token
             );
-            if (completeSessions.session.isActive) {
+            if (completeSessions.isActive) {
               setAllSporstmanSessions((prev) => [...prev, completeSessions]);
             } else {
               setAllInactivesSporstmanSessions((prev) => [
                 ...prev,
-                completeSessions.session,
+                completeSessions,
               ]);
             }
           });
@@ -516,19 +498,15 @@ export default function SessionsScreen() {
 
           // Séparer les sessions avec et sans exercices
           const sessionsWithExercises = allSportsmanSessions.filter(
-            (s) =>
-              s.session.listExercises && s.session.listExercises.trim() !== ""
+            (s) => s.listExercises && s.listExercises.trim() !== ""
           );
           const sessionsWithoutExercises = allSportsmanSessions.filter(
-            (s) =>
-              !s.session.listExercises || s.session.listExercises.trim() === ""
+            (s) => !s.listExercises || s.listExercises.trim() === ""
           );
 
           // Stocker les sessions sans exercices
           if (isMounted)
-            setSessionsWithoutExercises(
-              sessionsWithoutExercises.map((s) => s.session)
-            );
+            setSessionsWithoutExercises(sessionsWithoutExercises.map((s) => s));
 
           // Traiter les sessions avec exercices
           const muscleGroupsResult: {
@@ -544,7 +522,7 @@ export default function SessionsScreen() {
           for (const completeSession of sessionsWithExercises) {
             // Get exercises for this session
             const exercisesResp = await SessionService.getExercisesBySessionId(
-              completeSession.session.id,
+              completeSession.id,
               token
             );
             const exercises = exercisesResp.exercises || [];
@@ -567,17 +545,17 @@ export default function SessionsScreen() {
             );
 
             muscleGroupsResult.push({
-              session: completeSession.session,
+              session: completeSession,
               muscleGroups: uniqueMuscleGroups,
             });
 
             // Calculer les stats pour cette session
             const stats = await getSessionExercisesAndStats(
-              completeSession.session,
+              completeSession,
               token
             );
             statsResult.push({
-              session: completeSession.session,
+              session: completeSession,
               nbExercises: stats.nbExercises,
               durationTime: stats.durationTime,
             });
@@ -637,28 +615,22 @@ export default function SessionsScreen() {
       const renderAllSessions = () => {
         return allSportsmanSessions.map((completeSession) => {
           const hasExercises =
-            completeSession.session.listExercises &&
-            completeSession.session.listExercises.trim() !== "";
+            completeSession.listExercises &&
+            completeSession.listExercises.trim() !== "";
 
           if (hasExercises) {
             // Session avec exercices - afficher avec stats et groupes musculaires
-            const stats = getStatsForSession(completeSession.session.id);
-            const muscleGroups = getMuscleGroupsForSession(
-              completeSession.session.id
-            );
+            const stats = getStatsForSession(completeSession.id);
+            const muscleGroups = getMuscleGroupsForSession(completeSession.id);
 
             return (
               <Session
-                key={completeSession.session.id}
-                title={completeSession.session.label}
+                key={completeSession.id}
+                title={completeSession.label}
                 nbExercises={
                   stats?.nbExercises === 0 ? undefined : stats?.nbExercises
                 }
-                imageUrl={
-                  completeSession.filePicture
-                    ? completeSession.filePicture.url
-                    : ""
-                }
+                imageUrl={completeSession.publicImageUrl || undefined}
                 durationTime={
                   stats && !isNaN(stats.durationTime)
                     ? stats.durationTime
@@ -666,7 +638,7 @@ export default function SessionsScreen() {
                 }
                 onPress={() =>
                   navigation.navigate("SessionDetail", {
-                    session: completeSession.session,
+                    session: completeSession,
                   })
                 }
                 labels={
@@ -688,11 +660,11 @@ export default function SessionsScreen() {
             // Session sans exercices - afficher simplement
             return (
               <Session
-                key={completeSession.session.id}
-                title={completeSession.session.label}
+                key={completeSession.id}
+                title={completeSession.label}
                 onPress={() =>
                   navigation.navigate("SessionDetail", {
-                    session: completeSession.session,
+                    session: completeSession,
                   })
                 }
                 // Pas de nbExercises, durationTime, ni labels
@@ -1161,7 +1133,7 @@ export default function SessionsScreen() {
 
       const closeModal = () => setModalStep(null);
 
-      const [catalogSessions, setCatalogSessions] = useState<SessionWithFile[]>(
+      const [catalogSessions, setCatalogSessions] = useState<SessionModel[]>(
         []
       );
 
@@ -1179,38 +1151,17 @@ export default function SessionsScreen() {
             // Fetch full session details for linked sessions
             const linkedSessionsDetails = await Promise.all(
               allLinkedSessions.map(async (linkedSession) => {
-                const sessionWithFile = await SessionService.getSessionById(
+                const session = await SessionService.getSessionById(
                   linkedSession.sessionId,
                   token!
                 );
-                return sessionWithFile;
-              })
-            );
-
-            // Fetch file for each catalog session to build SessionWithFile[]
-            const catalogSessionsWithFiles = await Promise.all(
-              allCatalogSessions.map(async (session) => {
-                let filePicture: any = null;
-                if (session.filePictureId) {
-                  try {
-                    filePicture = await fileService.getFileById(
-                      session.filePictureId,
-                      token!
-                    );
-                  } catch {
-                    filePicture = null;
-                  }
-                }
-                return {
-                  session,
-                  filePicture,
-                };
+                return session;
               })
             );
 
             if (isMounted) {
               setSessions(linkedSessionsDetails); // Coach's own sessions
-              setCatalogSessions(catalogSessionsWithFiles); // All catalog sessions with files
+              setCatalogSessions(allCatalogSessions); // All catalog sessions
             }
           } catch (e) {
             if (isMounted) {
@@ -1269,6 +1220,7 @@ export default function SessionsScreen() {
           }
         }
         fetchExercisesAndCategories();
+        setLoading(false);
         return () => {
           isMounted = false;
         };
@@ -1295,31 +1247,28 @@ export default function SessionsScreen() {
                 >
                   {sessionsComplete.length > 0 ? (
                     sessionsComplete
-                      .filter((s) => s.session.isActive)
                       .slice()
                       .reverse()
+                      .filter((s) => s.isActive)
                       .map((completeSession, index) => (
                         <View key={index} style={{ marginTop: 16 }}>
                           <Session
-                            key={completeSession.session.id}
-                            title={completeSession.session.label}
+                            key={completeSession.id}
+                            title={completeSession.label}
                             imageUrl={
-                              completeSession.filePicture &&
-                              completeSession.filePicture.fileCategory ===
-                                FileCategory.IMAGE
-                                ? completeSession.filePicture.url
-                                : undefined
+                              completeSession.publicImageUrl || undefined
                             }
                             isImportedFile={
-                              completeSession.filePicture &&
-                              completeSession.filePicture.fileCategory ===
-                                FileCategory.SESSION_IMPORTED
+                              completeSession.publicImageUrl &&
+                              completeSession.publicImageUrl.startsWith(
+                                "file-session-imported-"
+                              )
                                 ? true
                                 : false
                             }
                             onPress={() => {
                               navigation.navigate("SessionDetail", {
-                                session: completeSession.session,
+                                session: completeSession,
                               });
                             }}
                           />
@@ -1411,14 +1360,8 @@ export default function SessionsScreen() {
                                 label="Importer une session"
                                 authToken={token!}
                                 authUser={user}
-                                onUploadSuccess={(file, newSession) => {
-                                  setSessions((prev) => [
-                                    ...prev,
-                                    {
-                                      session: newSession.session,
-                                      filePicture: file,
-                                    },
-                                  ]);
+                                onUploadSuccess={() => {
+                                  setSessions((prev) => [...prev]);
                                   closeModal();
                                 }}
                                 onUploadError={(error) => {
@@ -1458,10 +1401,10 @@ export default function SessionsScreen() {
                     listOfSession={catalogSessions}
                     onClose={closeModal}
                     onSubmit={(completeSession) => {
-                      completeSession.map(async (sessionWithFile) => {
+                      completeSession.map(async (s) => {
                         await SessionService.addSessionToUser(
                           user.id,
-                          sessionWithFile.session.id,
+                          s.id,
                           token!
                         );
                       });
@@ -1504,9 +1447,9 @@ export default function SessionsScreen() {
                             type="text"
                             placeholder="https://"
                             label="Lien image"
-                            value={sessionForm.filePictureUrl}
+                            value={sessionForm.publicImageUrl}
                             onChangeText={(v) =>
-                              handleSessionFormChange("filePictureUrl", v)
+                              handleSessionFormChange("publicImageUrl", v)
                             }
                           />
                           <Input
@@ -1553,7 +1496,7 @@ export default function SessionsScreen() {
 
       const closeModal = () => setModalStep(null);
 
-      const [catalogSessions, setCatalogSessions] = useState<SessionWithFile[]>(
+      const [catalogSessions, setCatalogSessions] = useState<SessionModel[]>(
         []
       );
 
@@ -1571,38 +1514,17 @@ export default function SessionsScreen() {
             // Fetch full session details for linked sessions
             const linkedSessionsDetails = await Promise.all(
               allLinkedSessions.map(async (linkedSession) => {
-                const sessionWithFile = await SessionService.getSessionById(
+                const session = await SessionService.getSessionById(
                   linkedSession.sessionId,
                   token!
                 );
-                return sessionWithFile;
-              })
-            );
-
-            // Fetch file for each catalog session to build SessionWithFile[]
-            const catalogSessionsWithFiles = await Promise.all(
-              allCatalogSessions.map(async (session) => {
-                let filePicture: any = null;
-                if (session.filePictureId) {
-                  try {
-                    filePicture = await fileService.getFileById(
-                      session.filePictureId,
-                      token!
-                    );
-                  } catch {
-                    filePicture = null;
-                  }
-                }
-                return {
-                  session,
-                  filePicture,
-                };
+                return session;
               })
             );
 
             if (isMounted) {
               setSessions(linkedSessionsDetails); // Coach's own sessions
-              setCatalogSessions(catalogSessionsWithFiles); // All catalog sessions with files
+              setCatalogSessions(allCatalogSessions); // All catalog sessions with files
             }
           } catch (e) {
             if (isMounted) {
@@ -1662,29 +1584,26 @@ export default function SessionsScreen() {
                     sessionsComplete
                       .slice()
                       .reverse()
-                      .filter((s) => s.session.isActive)
+                      .filter((s) => s.isActive)
                       .map((completeSession, index) => (
                         <View key={index} style={{ marginTop: 16 }}>
                           <Session
-                            key={completeSession.session.id}
-                            title={completeSession.session.label}
+                            key={completeSession.id}
+                            title={completeSession.label}
                             imageUrl={
-                              completeSession.filePicture &&
-                              completeSession.filePicture.fileCategory ===
-                                FileCategory.IMAGE
-                                ? completeSession.filePicture.url
-                                : undefined
+                              completeSession.publicImageUrl || undefined
                             }
                             isImportedFile={
-                              completeSession.filePicture &&
-                              completeSession.filePicture.fileCategory ===
-                                FileCategory.SESSION_IMPORTED
+                              completeSession.publicImageUrl &&
+                              completeSession.publicImageUrl.startsWith(
+                                "file-session-imported-"
+                              )
                                 ? true
                                 : false
                             }
                             onPress={() => {
                               navigation.navigate("SessionDetail", {
-                                session: completeSession.session,
+                                session: completeSession,
                               });
                             }}
                           />
@@ -1774,14 +1693,8 @@ export default function SessionsScreen() {
                                 label="Importer une session"
                                 authToken={token!}
                                 authUser={user}
-                                onUploadSuccess={(file, newSession) => {
-                                  setSessions((prev) => [
-                                    ...prev,
-                                    {
-                                      session: newSession.session,
-                                      filePicture: file,
-                                    },
-                                  ]);
+                                onUploadSuccess={() => {
+                                  setSessions((prev) => [...prev]);
                                   closeModal();
                                 }}
                                 onUploadError={(error) => {
@@ -1821,10 +1734,10 @@ export default function SessionsScreen() {
                     listOfSession={catalogSessions}
                     onClose={closeModal}
                     onSubmit={(completeSession) => {
-                      completeSession.map(async (sessionWithFile) => {
+                      completeSession.map(async (session) => {
                         await SessionService.addSessionToUser(
                           user.id,
-                          sessionWithFile.session.id,
+                          session.id,
                           token!
                         );
                       });
@@ -1866,9 +1779,9 @@ export default function SessionsScreen() {
                             type="text"
                             placeholder="https://"
                             label="Lien image"
-                            value={sessionForm.filePictureUrl}
+                            value={sessionForm.publicImageUrl}
                             onChangeText={(v) =>
-                              handleSessionFormChange("filePictureUrl", v)
+                              handleSessionFormChange("publicImageUrl", v)
                             }
                           />
                           <Input
@@ -2034,13 +1947,7 @@ export default function SessionsScreen() {
           setLoading(true);
           try {
             const all = await SessionService.getAllSessions(token!);
-            if (isMounted)
-              setSessions(
-                all.map((session) => ({
-                  session,
-                  filePicture: session.filePicture ?? null,
-                }))
-              );
+            if (isMounted) setSessions(all);
           } catch (e) {
             if (isMounted) setSessions([]);
           } finally {
@@ -2055,21 +1962,21 @@ export default function SessionsScreen() {
 
       // Filter sessions by label (case-insensitive)
       const filteredSessions = sessionsComplete.filter((s) =>
-        s.session.label.toLowerCase().includes(filter.toLowerCase())
+        s.label.toLowerCase().includes(filter.toLowerCase())
       );
 
-      const renderFilteredSessionItem: ListRenderItem<SessionWithFile> = ({
+      const renderFilteredSessionItem: ListRenderItem<SessionModel> = ({
         item,
       }) => (
         <View style={{ marginBottom: 8 }}>
           <Session
-            key={item.session.id}
-            title={item.session.label}
-            imageUrl={item.filePicture ? item.filePicture.url : undefined}
+            key={item.id}
+            title={item.label}
+            imageUrl={item.publicImageUrl || undefined}
             labels={[]}
             onPress={() =>
               navigation.navigate("SessionDetail", {
-                session: item.session,
+                session: item,
               })
             }
           />
@@ -2100,7 +2007,7 @@ export default function SessionsScreen() {
                 <FlatList
                   data={[...filteredSessions].reverse()}
                   renderItem={renderFilteredSessionItem}
-                  keyExtractor={(item) => item.session.id.toString()}
+                  keyExtractor={(item) => item.id.toString()}
                   style={{ maxHeight: 250 }}
                   scrollEnabled={true}
                   nestedScrollEnabled={true}
@@ -2164,9 +2071,9 @@ export default function SessionsScreen() {
                           type="text"
                           placeholder="https://"
                           label="Lien image"
-                          value={sessionForm.filePictureUrl}
+                          value={sessionForm.publicImageUrl}
                           onChangeText={(v) =>
-                            handleSessionFormChange("filePictureUrl", v)
+                            handleSessionFormChange("publicImageUrl", v)
                           }
                         />
                         <Input
