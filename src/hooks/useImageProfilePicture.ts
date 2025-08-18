@@ -23,8 +23,6 @@ export const useUserProfileImage = () => {
     setError("");
 
     try {
-      console.log(`🔍 Recherche image profil pour utilisateur ${user.id}`);
-
       const completeUser = await UserService.getUserById(user.id);
       if (!completeUser) {
         console.log("Aucun utilisateur trouvé");
@@ -48,13 +46,8 @@ export const useUserProfileImage = () => {
         return;
       }
 
-      console.log(`📸 Chargement image profil ID: ${imageFile.id}`);
       const imageBase64 = await getImageAsBase64(imageFile, token);
       setProfilePicture(imageBase64);
-
-      if (imageBase64) {
-        console.log("✅ Image de profil chargée avec succès");
-      }
     } catch (error) {
       console.error(
         "❌ Erreur lors du chargement de l'image de profil:",
@@ -97,16 +90,8 @@ export const useCompanyImage = (companyId?: number, fileImage?: File) => {
     setError("");
 
     try {
-      console.log(
-        `🏢 Chargement image entreprise ID: ${companyId}, File ID: ${fileImage.id}`
-      );
-
       const imageBase64 = await getImageAsBase64(fileImage, token);
       setCompanyImage(imageBase64);
-
-      if (imageBase64) {
-        console.log("✅ Image d'entreprise chargée avec succès");
-      }
     } catch (error) {
       console.error(
         "❌ Erreur lors du chargement de l'image d'entreprise:",
@@ -148,14 +133,8 @@ export const useAnyUserProfileImage = (userFile?: File) => {
     setError("");
 
     try {
-      console.log(`👤 Chargement image utilisateur File ID: ${userFile.id}`);
-
       const imageBase64 = await getImageAsBase64(userFile, token);
       setProfilePicture(imageBase64);
-
-      if (imageBase64) {
-        console.log("✅ Image utilisateur chargée avec succès");
-      }
     } catch (error) {
       console.error(
         "❌ Erreur lors du chargement de l'image utilisateur:",
@@ -206,8 +185,6 @@ export const useMultipleUserProfileImages = (users: UserResponse[]) => {
     setIsLoading(true);
     setGlobalError("");
     const newProfileImages = new Map<number, UserProfileImage>();
-
-    console.log(`👥 Chargement de ${users.length} images de profil`);
 
     // Initialiser les états de chargement
     users.forEach((completeUser) => {
@@ -273,10 +250,6 @@ export const useMultipleUserProfileImages = (users: UserResponse[]) => {
           await new Promise((resolve) => setTimeout(resolve, 100));
         }
       }
-
-      console.log(
-        `✅ Chargement terminé pour ${usersWithImages.length} images`
-      );
     } catch (error) {
       console.error(
         "❌ Erreur lors du chargement des images de profil:",
