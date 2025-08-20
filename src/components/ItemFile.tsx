@@ -30,7 +30,7 @@ export default function ItemFile({
   const [isDeleting, setIsDeleting] = useState(false);
 
   const handleFileDownload = async (file: File) => {
-    if (!file.url) {
+    if (file.fileCategory === FileCategory.SESSION_IMPORTED && !file.url) {
       notify({
         title: "URL du fichier non disponible",
         type: "error",
@@ -109,7 +109,7 @@ export default function ItemFile({
   };
 
   const handleDeleting = async (file: File) => {
-    if (!file.url) {
+    if (file.fileCategory === FileCategory.SESSION_IMPORTED && !file.url) {
       notify({
         title: "URL du fichier non disponible",
         type: "error",
