@@ -246,9 +246,7 @@ export default function Companycreen() {
                     }
                   >
                     <Image
-                      source={{
-                        uri: "https://reactnative.dev/img/tiny_logo.png",
-                      }}
+                      source={require("../assets/images/socials/facebook-icon.png")}
                       style={{ height: "100%" }}
                     />
                   </Pressable>
@@ -263,9 +261,7 @@ export default function Companycreen() {
                     }
                   >
                     <Image
-                      source={{
-                        uri: "https://reactnative.dev/img/tiny_logo.png",
-                      }}
+                      source={require("../assets/images/socials/instagram-icon.png")}
                       style={{ height: "100%" }}
                     />
                   </Pressable>
@@ -280,9 +276,7 @@ export default function Companycreen() {
                     }
                   >
                     <Image
-                      source={{
-                        uri: "https://reactnative.dev/img/tiny_logo.png",
-                      }}
+                      source={require("../assets/images/socials/linkedin-icon.png")}
                       style={{ height: "100%" }}
                     />
                   </Pressable>
@@ -297,9 +291,7 @@ export default function Companycreen() {
                     }
                   >
                     <Image
-                      source={{
-                        uri: "https://reactnative.dev/img/tiny_logo.png",
-                      }}
+                      source={require("../assets/images/socials/tiktok-icon.png")}
                       style={{ height: "100%" }}
                     />
                   </Pressable>
@@ -314,9 +306,7 @@ export default function Companycreen() {
                     }
                   >
                     <Image
-                      source={{
-                        uri: "https://reactnative.dev/img/tiny_logo.png",
-                      }}
+                      source={require("../assets/images/socials/youtube-icon.png")}
                       style={{ height: "100%" }}
                     />
                   </Pressable>

@@ -37,6 +37,7 @@ import {
   Image,
   Pressable,
   Modal,
+  Linking,
 } from "react-native";
 import { Billing } from "@/src/models/billing";
 import { ObjectivesApiService } from "@/src/services/api/objective-service";
@@ -406,117 +407,117 @@ export default function ProfileScreen() {
               completeUser.user.instagramLink ||
               completeUser.user.linkedinLink ||
               completeUser.user.stravaLink ||
-              completeUser.user.tiktokLink ||
-              completeUser.user.youtubeLink ? (
+              completeUser.user.tiktokLink ? (
                 <>
                   <AppText>Réseaux sociaux</AppText>
                   <View
                     style={{ flexDirection: "row", gap: 16, flexWrap: "wrap" }}
                   >
-                    <View style={{ flexDirection: "row", gap: 16 }}>
-                      {completeUser.user.stravaLink && (
-                        <View
-                          style={{
-                            width: 64,
-                            height: 64,
-                            borderRadius: 16,
-                            overflow: "hidden",
-                          }}
-                        >
-                          <Image
-                            source={{
-                              uri: "https://reactnative.dev/img/tiny_logo.png",
-                            }}
-                            style={{ height: "100%" }}
-                          />
-                        </View>
-                      )}
-                      {completeUser.user.facebookLink && (
-                        <View
-                          style={{
-                            width: 64,
-                            height: 64,
-                            borderRadius: 16,
-                            overflow: "hidden",
-                          }}
-                        >
-                          <Image
-                            source={{
-                              uri: "https://reactnative.dev/img/tiny_logo.png",
-                            }}
-                            style={{ height: "100%" }}
-                          />
-                        </View>
-                      )}
-                      {completeUser.user.instagramLink && (
-                        <View
-                          style={{
-                            width: 64,
-                            height: 64,
-                            borderRadius: 16,
-                            overflow: "hidden",
-                          }}
-                        >
-                          <Image
-                            source={{
-                              uri: "https://reactnative.dev/img/tiny_logo.png",
-                            }}
-                            style={{ height: "100%" }}
-                          />
-                        </View>
-                      )}
-                      {completeUser.user.linkedinLink && (
-                        <View
-                          style={{
-                            width: 64,
-                            height: 64,
-                            borderRadius: 16,
-                            overflow: "hidden",
-                          }}
-                        >
-                          <Image
-                            source={{
-                              uri: "https://reactnative.dev/img/tiny_logo.png",
-                            }}
-                            style={{ height: "100%" }}
-                          />
-                        </View>
-                      )}
-                      {completeUser.user.tiktokLink && (
-                        <View
-                          style={{
-                            width: 64,
-                            height: 64,
-                            borderRadius: 16,
-                            overflow: "hidden",
-                          }}
-                        >
-                          <Image
-                            source={{
-                              uri: "https://reactnative.dev/img/tiny_logo.png",
-                            }}
-                            style={{ height: "100%" }}
-                          />
-                        </View>
-                      )}
-                      {completeUser.user.youtubeLink && (
-                        <View
-                          style={{
-                            width: 64,
-                            height: 64,
-                            borderRadius: 16,
-                            overflow: "hidden",
-                          }}
-                        >
-                          <Image
-                            source={{
-                              uri: "https://reactnative.dev/img/tiny_logo.png",
-                            }}
-                            style={{ height: "100%" }}
-                          />
-                        </View>
-                      )}
-                    </View>
+                    {completeUser.user.stravaLink && (
+                      <Pressable
+                        style={{
+                          width: 64,
+                          height: 64,
+                          borderRadius: 16,
+                          overflow: "hidden",
+                        }}
+                        onPress={() =>
+                          completeUser.user.stravaLink
+                            ? Linking.openURL(completeUser.user.stravaLink)
+                            : {}
+                        }
+                      >
+                        <Image
+                          source={require("../../assets/images/socials/strava-icon.png")}
+                          style={{ width: "100%", height: "100%" }}
+                          resizeMode="contain"
+                        />
+                      </Pressable>
+                    )}
+                    {completeUser.user.facebookLink && (
+                      <Pressable
+                        style={{
+                          width: 64,
+                          height: 64,
+                          borderRadius: 16,
+                          overflow: "hidden",
+                        }}
+                        onPress={() =>
+                          completeUser.user.facebookLink
+                            ? Linking.openURL(completeUser.user.facebookLink)
+                            : {}
+                        }
+                      >
+                        <Image
+                          source={require("../../assets/images/socials/facebook-icon.png")}
+                          style={{ width: "100%", height: "100%" }}
+                          resizeMode="contain"
+                        />
+                      </Pressable>
+                    )}
+                    {completeUser.user.instagramLink && (
+                      <Pressable
+                        style={{
+                          width: 64,
+                          height: 64,
+                          borderRadius: 16,
+                          overflow: "hidden",
+                        }}
+                        onPress={() =>
+                          completeUser.user.instagramLink
+                            ? Linking.openURL(completeUser.user.instagramLink)
+                            : {}
+                        }
+                      >
+                        <Image
+                          source={require("../../assets/images/socials/instagram-icon.png")}
+                          style={{ width: "100%", height: "100%" }}
+                          resizeMode="contain"
+                        />
+                      </Pressable>
+                    )}
+                    {completeUser.user.linkedinLink && (
+                      <Pressable
+                        style={{
+                          width: 64,
+                          height: 64,
+                          borderRadius: 16,
+                          overflow: "hidden",
+                        }}
+                        onPress={() =>
+                          completeUser.user.linkedinLink
+                            ? Linking.openURL(completeUser.user.linkedinLink)
+                            : {}
+                        }
+                      >
+                        <Image
+                          source={require("../../assets/images/socials/linkedin-icon.png")}
+                          style={{ width: "100%", height: "100%" }}
+                          resizeMode="contain"
+                        />
+                      </Pressable>
+                    )}
+                    {completeUser.user.tiktokLink && (
+                      <Pressable
+                        style={{
+                          width: 64,
+                          height: 64,
+                          borderRadius: 16,
+                          overflow: "hidden",
+                        }}
+                        onPress={() =>
+                          completeUser.user.tiktokLink
+                            ? Linking.openURL(completeUser.user.tiktokLink)
+                            : {}
+                        }
+                      >
+                        <Image
+                          source={require("../../assets/images/socials/tiktok-icon.png")}
+                          style={{ width: "100%", height: "100%" }}
+                          resizeMode="contain"
+                        />
+                      </Pressable>
+                    )}
                     <Pressable
                       style={{
                         width: 64,

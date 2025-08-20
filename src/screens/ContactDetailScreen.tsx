@@ -8,6 +8,8 @@ import {
   Image,
   Dimensions,
   ActivityIndicator,
+  Pressable,
+  Linking,
 } from "react-native";
 import { RouteProp, useRoute } from "@react-navigation/native";
 import { RootStackParamList } from "@/src/navigation/types";
@@ -146,60 +148,116 @@ export default function ContactDetailScreen() {
             />
             {(contact.facebookLink ||
               contact.instagramLink ||
-              contact.linkedinLink) && (
+              contact.linkedinLink ||
+              contact.stravaLink ||
+              contact.tiktokLink) && (
               <>
                 <AppText>Réseaux sociaux</AppText>
                 <View style={{ flexDirection: "row", gap: 16 }}>
-                  {contact.facebookLink && (
-                    <View
+                  {contact.stravaLink && (
+                    <Pressable
                       style={{
                         width: 64,
                         height: 64,
                         borderRadius: 16,
                         overflow: "hidden",
                       }}
+                      onPress={() =>
+                        contact.stravaLink
+                          ? Linking.openURL(contact.stravaLink)
+                          : {}
+                      }
                     >
                       <Image
-                        source={{
-                          uri: "https://reactnative.dev/img/tiny_logo.png",
-                        }}
-                        style={{ height: "100%" }}
+                        source={require("../assets/images/socials/strava-icon.png")}
+                        style={{ width: "100%", height: "100%" }}
+                        resizeMode="contain"
                       />
-                    </View>
+                    </Pressable>
+                  )}
+                  {contact.facebookLink && (
+                    <Pressable
+                      style={{
+                        width: 64,
+                        height: 64,
+                        borderRadius: 16,
+                        overflow: "hidden",
+                      }}
+                      onPress={() =>
+                        contact.facebookLink
+                          ? Linking.openURL(contact.facebookLink)
+                          : {}
+                      }
+                    >
+                      <Image
+                        source={require("../assets/images/socials/facebook-icon.png")}
+                        style={{ width: "100%", height: "100%" }}
+                        resizeMode="contain"
+                      />
+                    </Pressable>
                   )}
                   {contact.instagramLink && (
-                    <View
+                    <Pressable
                       style={{
                         width: 64,
                         height: 64,
                         borderRadius: 16,
                         overflow: "hidden",
                       }}
+                      onPress={() =>
+                        contact.instagramLink
+                          ? Linking.openURL(contact.instagramLink)
+                          : {}
+                      }
                     >
                       <Image
-                        source={{
-                          uri: "https://reactnative.dev/img/tiny_logo.png",
-                        }}
-                        style={{ height: "100%" }}
+                        source={require("../assets/images/socials/instagram-icon.png")}
+                        style={{ width: "100%", height: "100%" }}
+                        resizeMode="contain"
                       />
-                    </View>
+                    </Pressable>
                   )}
                   {contact.linkedinLink && (
-                    <View
+                    <Pressable
                       style={{
                         width: 64,
                         height: 64,
                         borderRadius: 16,
                         overflow: "hidden",
                       }}
+                      onPress={() =>
+                        contact.linkedinLink
+                          ? Linking.openURL(contact.linkedinLink)
+                          : {}
+                      }
                     >
                       <Image
-                        source={{
-                          uri: "https://reactnative.dev/img/tiny_logo.png",
-                        }}
-                        style={{ height: "100%" }}
+                        source={require("../assets/images/socials/linkedin-icon.png")}
+                        style={{ width: "100%", height: "100%" }}
+                        resizeMode="contain"
                       />
-                    </View>
+                    </Pressable>
+                  )}
+                  {contact.tiktokLink && (
+                    <Pressable
+                      style={{
+                        width: 64,
+                        height: 64,
+                        borderRadius: 16,
+                        overflow: "hidden",
+                      }}
+                      onPress={() =>
+                        contact.tiktokLink
+                          ? Linking.openURL(contact.tiktokLink)
+                          : {}
+                      }
+                    >
+                      <Image
+                        source={require("../assets/images/socials/tiktok-icon.png")}
+                        style={{ width: "100%", height: "100%" }}
+                        resizeMode="contain"
+                      />
+                    </Pressable>
                   )}
                 </View>
               </>

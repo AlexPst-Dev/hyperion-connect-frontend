@@ -1195,60 +1195,112 @@ export default function ClientDetailScreen() {
         />
         {(client.facebookLink ||
           client.instagramLink ||
-          client.linkedinLink) && (
+          client.linkedinLink ||
+          client.tiktokLink ||
+          client.stravaLink) && (
           <>
             <AppText>Réseaux sociaux</AppText>
             <View style={{ flexDirection: "row", gap: 16 }}>
               {client.facebookLink && (
-                <View
+                <Pressable
                   style={{
                     width: 64,
                     height: 64,
                     borderRadius: 16,
                     overflow: "hidden",
                   }}
+                  onPress={() =>
+                    client.facebookLink
+                      ? Linking.openURL(client.facebookLink)
+                      : {}
+                  }
                 >
                   <Image
-                    source={{
-                      uri: "https://reactnative.dev/img/tiny_logo.png",
-                    }}
-                    style={{ height: "100%" }}
+                    source={require("../assets/images/socials/facebook-icon.png")}
+                    style={{ width: "100%", height: "100%" }}
+                    resizeMode="contain"
                   />
-                </View>
+                </Pressable>
               )}
               {client.instagramLink && (
-                <View
+                <Pressable
                   style={{
                     width: 64,
                     height: 64,
                     borderRadius: 16,
                     overflow: "hidden",
                   }}
+                  onPress={() =>
+                    client.instagramLink
+                      ? Linking.openURL(client.instagramLink)
+                      : {}
+                  }
                 >
                   <Image
-                    source={{
-                      uri: "https://reactnative.dev/img/tiny_logo.png",
-                    }}
-                    style={{ height: "100%" }}
+                    source={require("../assets/images/socials/instagram-icon.png")}
+                    style={{ width: "100%", height: "100%" }}
+                    resizeMode="contain"
                   />
-                </View>
+                </Pressable>
               )}
               {client.linkedinLink && (
-                <View
+                <Pressable
                   style={{
                     width: 64,
                     height: 64,
                     borderRadius: 16,
                     overflow: "hidden",
                   }}
+                  onPress={() =>
+                    client.linkedinLink
+                      ? Linking.openURL(client.linkedinLink)
+                      : {}
+                  }
                 >
                   <Image
-                    source={{
-                      uri: "https://reactnative.dev/img/tiny_logo.png",
-                    }}
-                    style={{ height: "100%" }}
+                    source={require("../assets/images/socials/linkedin-icon.png")}
+                    style={{ width: "100%", height: "100%" }}
+                    resizeMode="contain"
                   />
-                </View>
+                </Pressable>
+              )}
+              {client.tiktokLink && (
+                <Pressable
+                  style={{
+                    width: 64,
+                    height: 64,
+                    borderRadius: 16,
+                    overflow: "hidden",
+                  }}
+                  onPress={() =>
+                    client.tiktokLink ? Linking.openURL(client.tiktokLink) : {}
+                  }
+                >
+                  <Image
+                    source={require("../assets/images/socials/tiktok-icon.png")}
+                    style={{ width: "100%", height: "100%" }}
+                    resizeMode="contain"
+                  />
+                </Pressable>
+              )}
+              {client.stravaLink && (
+                <Pressable
+                  style={{
+                    width: 64,
+                    height: 64,
+                    borderRadius: 16,
+                    overflow: "hidden",
+                  }}
+                  onPress={() =>
+                    client.stravaLink ? Linking.openURL(client.stravaLink) : {}
+                  }
+                >
+                  <Image
+                    source={require("../assets/images/socials/strava-icon.png")}
+                    style={{ width: "100%", height: "100%" }}
+                    resizeMode="contain"
+                  />
+                </Pressable>
               )}
             </View>
           </>
@@ -2533,60 +2585,116 @@ export default function ClientDetailScreen() {
                 />
                 {(client.facebookLink ||
                   client.instagramLink ||
-                  client.linkedinLink) && (
+                  client.linkedinLink ||
+                  client.tiktokLink ||
+                  client.stravaLink) && (
                   <>
                     <AppText>Réseaux sociaux</AppText>
                     <View style={{ flexDirection: "row", gap: 16 }}>
                       {client.facebookLink && (
-                        <View
+                        <Pressable
                           style={{
                             width: 64,
                             height: 64,
                             borderRadius: 16,
                             overflow: "hidden",
                           }}
+                          onPress={() =>
+                            client.facebookLink
+                              ? Linking.openURL(client.facebookLink)
+                              : {}
+                          }
                         >
                           <Image
-                            source={{
-                              uri: "https://reactnative.dev/img/tiny_logo.png",
-                            }}
-                            style={{ height: "100%" }}
+                            source={require("../assets/images/socials/facebook-icon.png")}
+                            style={{ width: "100%", height: "100%" }}
+                            resizeMode="contain"
                           />
-                        </View>
+                        </Pressable>
                       )}
                       {client.instagramLink && (
-                        <View
+                        <Pressable
                           style={{
                             width: 64,
                             height: 64,
                             borderRadius: 16,
                             overflow: "hidden",
                           }}
+                          onPress={() =>
+                            client.instagramLink
+                              ? Linking.openURL(client.instagramLink)
+                              : {}
+                          }
                         >
                           <Image
-                            source={{
-                              uri: "https://reactnative.dev/img/tiny_logo.png",
-                            }}
-                            style={{ height: "100%" }}
+                            source={require("../assets/images/socials/instagram-icon.png")}
+                            style={{ width: "100%", height: "100%" }}
+                            resizeMode="contain"
                           />
-                        </View>
+                        </Pressable>
                       )}
                       {client.linkedinLink && (
-                        <View
+                        <Pressable
                           style={{
                             width: 64,
                             height: 64,
                             borderRadius: 16,
                             overflow: "hidden",
                           }}
+                          onPress={() =>
+                            client.linkedinLink
+                              ? Linking.openURL(client.linkedinLink)
+                              : {}
+                          }
                         >
                           <Image
-                            source={{
-                              uri: "https://reactnative.dev/img/tiny_logo.png",
-                            }}
-                            style={{ height: "100%" }}
+                            source={require("../assets/images/socials/linkedin-icon.png")}
+                            style={{ width: "100%", height: "100%" }}
+                            resizeMode="contain"
                           />
-                        </View>
+                        </Pressable>
+                      )}
+                      {client.tiktokLink && (
+                        <Pressable
+                          style={{
+                            width: 64,
+                            height: 64,
+                            borderRadius: 16,
+                            overflow: "hidden",
+                          }}
+                          onPress={() =>
+                            client.tiktokLink
+                              ? Linking.openURL(client.tiktokLink)
+                              : {}
+                          }
+                        >
+                          <Image
+                            source={require("../assets/images/socials/tiktok-icon.png")}
+                            style={{ width: "100%", height: "100%" }}
+                            resizeMode="contain"
+                          />
+                        </Pressable>
+                      )}
+                      {client.stravaLink && (
+                        <Pressable
+                          style={{
+                            width: 64,
+                            height: 64,
+                            borderRadius: 16,
+                            overflow: "hidden",
+                          }}
+                          onPress={() =>
+                            client.stravaLink
+                              ? Linking.openURL(client.stravaLink)
+                              : {}
+                          }
+                        >
+                          <Image
+                            source={require("../assets/images/socials/strava-icon.png")}
+                            style={{ width: "100%", height: "100%" }}
+                            resizeMode="contain"
+                          />
+                        </Pressable>
                       )}
                     </View>
                   </>
@@ -2698,60 +2806,116 @@ export default function ClientDetailScreen() {
                 />
                 {(client.facebookLink ||
                   client.instagramLink ||
-                  client.linkedinLink) && (
+                  client.linkedinLink ||
+                  client.tiktokLink ||
+                  client.stravaLink) && (
                   <>
                     <AppText>Réseaux sociaux</AppText>
                     <View style={{ flexDirection: "row", gap: 16 }}>
                       {client.facebookLink && (
-                        <View
+                        <Pressable
                           style={{
                             width: 64,
                             height: 64,
                             borderRadius: 16,
                             overflow: "hidden",
                           }}
+                          onPress={() =>
+                            client.facebookLink
+                              ? Linking.openURL(client.facebookLink)
+                              : {}
+                          }
                         >
                           <Image
-                            source={{
-                              uri: "https://reactnative.dev/img/tiny_logo.png",
-                            }}
-                            style={{ height: "100%" }}
+                            source={require("../assets/images/socials/facebook-icon.png")}
+                            style={{ width: "100%", height: "100%" }}
+                            resizeMode="contain"
                           />
-                        </View>
+                        </Pressable>
                       )}
                       {client.instagramLink && (
-                        <View
+                        <Pressable
                           style={{
                             width: 64,
                             height: 64,
                             borderRadius: 16,
                             overflow: "hidden",
                           }}
+                          onPress={() =>
+                            client.instagramLink
+                              ? Linking.openURL(client.instagramLink)
+                              : {}
+                          }
                         >
                           <Image
-                            source={{
-                              uri: "https://reactnative.dev/img/tiny_logo.png",
-                            }}
-                            style={{ height: "100%" }}
+                            source={require("../assets/images/socials/instagram-icon.png")}
+                            style={{ width: "100%", height: "100%" }}
+                            resizeMode="contain"
                           />
-                        </View>
+                        </Pressable>
                       )}
                       {client.linkedinLink && (
-                        <View
+                        <Pressable
                           style={{
                             width: 64,
                             height: 64,
                             borderRadius: 16,
                             overflow: "hidden",
                           }}
+                          onPress={() =>
+                            client.linkedinLink
+                              ? Linking.openURL(client.linkedinLink)
+                              : {}
+                          }
                         >
                           <Image
-                            source={{
-                              uri: "https://reactnative.dev/img/tiny_logo.png",
-                            }}
-                            style={{ height: "100%" }}
+                            source={require("../assets/images/socials/linkedin-icon.png")}
+                            style={{ width: "100%", height: "100%" }}
+                            resizeMode="contain"
                           />
-                        </View>
+                        </Pressable>
+                      )}
+                      {client.tiktokLink && (
+                        <Pressable
+                          style={{
+                            width: 64,
+                            height: 64,
+                            borderRadius: 16,
+                            overflow: "hidden",
+                          }}
+                          onPress={() =>
+                            client.tiktokLink
+                              ? Linking.openURL(client.tiktokLink)
+                              : {}
+                          }
+                        >
+                          <Image
+                            source={require("../assets/images/socials/tiktok-icon.png")}
+                            style={{ width: "100%", height: "100%" }}
+                            resizeMode="contain"
+                          />
+                        </Pressable>
+                      )}
+                      {client.stravaLink && (
+                        <Pressable
+                          style={{
+                            width: 64,
+                            height: 64,
+                            borderRadius: 16,
+                            overflow: "hidden",
+                          }}
+                          onPress={() =>
+                            client.stravaLink
+                              ? Linking.openURL(client.stravaLink)
+                              : {}
+                          }
+                        >
+                          <Image
+                            source={require("../assets/images/socials/strava-icon.png")}
+                            style={{ width: "100%", height: "100%" }}
+                            resizeMode="contain"
+                          />
+                        </Pressable>
                       )}
                     </View>
                   </>
@@ -3104,89 +3268,109 @@ export default function ClientDetailScreen() {
                       <AppText>Réseaux sociaux entreprise</AppText>
                       <View style={{ flexDirection: "row", gap: 16 }}>
                         {company.linkFacebook && (
-                          <View
+                          <Pressable
                             style={{
                               width: 64,
                               height: 64,
                               borderRadius: 16,
                               overflow: "hidden",
                             }}
+                            onPress={() =>
+                              company.linkFacebook
+                                ? Linking.openURL(company.linkFacebook)
+                                : {}
+                            }
                           >
                             <Image
-                              source={{
-                                uri: "https://reactnative.dev/img/tiny_logo.png",
-                              }}
-                              style={{ height: "100%" }}
+                              source={require("../assets/images/socials/facebook-icon.png")}
+                              style={{ width: "100%", height: "100%" }}
+                              resizeMode="contain"
                             />
-                          </View>
+                          </Pressable>
                         )}
                         {company.linkInstagram && (
-                          <View
+                          <Pressable
                             style={{
                               width: 64,
                               height: 64,
                               borderRadius: 16,
                               overflow: "hidden",
                             }}
+                            onPress={() =>
+                              company.linkInstagram
+                                ? Linking.openURL(company.linkInstagram)
+                                : {}
+                            }
                           >
                             <Image
-                              source={{
-                                uri: "https://reactnative.dev/img/tiny_logo.png",
-                              }}
-                              style={{ height: "100%" }}
+                              source={require("../assets/images/socials/instagram-icon.png")}
+                              style={{ width: "100%", height: "100%" }}
+                              resizeMode="contain"
                             />
-                          </View>
+                          </Pressable>
                         )}
                         {company.linkLinkedin && (
-                          <View
+                          <Pressable
                             style={{
                               width: 64,
                               height: 64,
                               borderRadius: 16,
                               overflow: "hidden",
                             }}
+                            onPress={() =>
+                              company.linkLinkedin
+                                ? Linking.openURL(company.linkLinkedin)
+                                : {}
+                            }
                           >
                             <Image
-                              source={{
-                                uri: "https://reactnative.dev/img/tiny_logo.png",
-                              }}
-                              style={{ height: "100%" }}
+                              source={require("../assets/images/socials/linkedin-icon.png")}
+                              style={{ width: "100%", height: "100%" }}
+                              resizeMode="contain"
                             />
-                          </View>
+                          </Pressable>
                         )}
                         {company.linkTiktok && (
-                          <View
+                          <Pressable
                             style={{
                               width: 64,
                               height: 64,
                               borderRadius: 16,
                               overflow: "hidden",
                             }}
+                            onPress={() =>
+                              company.linkTiktok
+                                ? Linking.openURL(company.linkTiktok)
+                                : {}
+                            }
                           >
                             <Image
-                              source={{
-                                uri: "https://reactnative.dev/img/tiny_logo.png",
-                              }}
-                              style={{ height: "100%" }}
+                              source={require("../assets/images/socials/tiktok-icon.png")}
+                              style={{ width: "100%", height: "100%" }}
+                              resizeMode="contain"
                             />
-                          </View>
+                          </Pressable>
                         )}
                         {company.linkYoutube && (
-                          <View
+                          <Pressable
                             style={{
                               width: 64,
                               height: 64,
                               borderRadius: 16,
                               overflow: "hidden",
                             }}
+                            onPress={() =>
+                              company.linkYoutube
+                                ? Linking.openURL(company.linkYoutube)
+                                : {}
+                            }
                           >
                             <Image
-                              source={{
-                                uri: "https://reactnative.dev/img/tiny_logo.png",
-                              }}
-                              style={{ height: "100%" }}
+                              source={require("../assets/images/socials/youtube-icon.png")}
+                              style={{ width: "100%", height: "100%" }}
+                              resizeMode="contain"
                             />
-                          </View>
+                          </Pressable>
                         )}
                       </View>
                     </>
@@ -3209,55 +3393,67 @@ export default function ClientDetailScreen() {
                       <AppText>Réseaux sociaux</AppText>
                       <View style={{ flexDirection: "row", gap: 16 }}>
                         {client.facebookLink && (
-                          <View
+                          <Pressable
                             style={{
                               width: 64,
                               height: 64,
                               borderRadius: 16,
                               overflow: "hidden",
                             }}
+                            onPress={() =>
+                              client.facebookLink
+                                ? Linking.openURL(client.facebookLink)
+                                : {}
+                            }
                           >
                             <Image
-                              source={{
-                                uri: "https://reactnative.dev/img/tiny_logo.png",
-                              }}
-                              style={{ height: "100%" }}
+                              source={require("../assets/images/socials/facebook-icon.png")}
+                              style={{ width: "100%", height: "100%" }}
+                              resizeMode="contain"
                             />
-                          </View>
+                          </Pressable>
                         )}
                         {client.instagramLink && (
-                          <View
+                          <Pressable
                             style={{
                               width: 64,
                               height: 64,
                               borderRadius: 16,
                               overflow: "hidden",
                             }}
+                            onPress={() =>
+                              client.instagramLink
+                                ? Linking.openURL(client.instagramLink)
+                                : {}
+                            }
                           >
                             <Image
-                              source={{
-                                uri: "https://reactnative.dev/img/tiny_logo.png",
-                              }}
-                              style={{ height: "100%" }}
+                              source={require("../assets/images/socials/instagram-icon.png")}
+                              style={{ width: "100%", height: "100%" }}
+                              resizeMode="contain"
                             />
-                          </View>
+                          </Pressable>
                         )}
                         {client.linkedinLink && (
-                          <View
+                          <Pressable
                             style={{
                               width: 64,
                               height: 64,
                               borderRadius: 16,
                               overflow: "hidden",
                             }}
+                            onPress={() =>
+                              client.linkedinLink
+                                ? Linking.openURL(client.linkedinLink)
+                                : {}
+                            }
                           >
                             <Image
-                              source={{
-                                uri: "https://reactnative.dev/img/tiny_logo.png",
-                              }}
-                              style={{ height: "100%" }}
+                              source={require("../assets/images/socials/linkedin-icon.png")}
+                              style={{ width: "100%", height: "100%" }}
+                              resizeMode="contain"
                             />
-                          </View>
+                          </Pressable>
                         )}
                       </View>
                     </>

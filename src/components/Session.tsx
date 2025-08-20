@@ -49,7 +49,7 @@ export default function Session({
 }: Props) {
   function getImageSource(imageUrl?: string): any {
     if (!imageUrl) {
-      return require("../assets/images/default-session.png");
+      return require("../assets/images/sessions/img-running.png");
     }
 
     if (imageUrl.startsWith("http")) {
@@ -61,7 +61,8 @@ export default function Session({
     };
 
     return (
-      localImages[imageUrl] || require("../assets/images/default-session.png")
+      localImages[imageUrl] ||
+      require("../assets/images/sessions/img-running.png")
     );
   }
 
