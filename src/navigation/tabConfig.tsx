@@ -13,6 +13,7 @@ export const tabIcons: Record<string, IconName> = {
   Communauté: "network",
   Offres: "store",
   Clients: "userFind",
+  Sportifs: "userFind",
   Vous: "store",
 };
 

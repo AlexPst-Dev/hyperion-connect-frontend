@@ -55,6 +55,7 @@ import {
 } from "../services/api/session-service";
 import { Session as SessionModel } from "../models/session";
 import { useEventsByCategories } from "../hooks/useEventsByCategories";
+import { useNavigation } from "@react-navigation/native";
 
 export default function HomeScreen() {
   const tempAdminUser: User = {
@@ -68,6 +69,8 @@ export default function HomeScreen() {
     email: "chloé.marchegay@mail.com",
     isInHyperlinkNetwork: true,
   };
+
+  const navigation = useNavigation();
 
   const [newsTitle, setNewsTitle] = useState("");
   const [newsText, setNewsText] = useState("");
@@ -463,7 +466,12 @@ export default function HomeScreen() {
               }}
             >
               <AppText style={GlobalStyles.h3}>VOTRE PROGRAMME DU JOUR</AppText>
-              <AppButton type="linkSmall" title="Voir plus" iconName="eye" />
+              <AppButton
+                type="linkSmall"
+                title="Voir plus"
+                iconName="eye"
+                onPress={() => navigation.navigate("Programmes" as never)}
+              />
             </View>
             {lastSession ? (
               <Session
@@ -485,7 +493,12 @@ export default function HomeScreen() {
               }}
             >
               <AppText style={GlobalStyles.h3}>VOTRE PROCHAIN RDV</AppText>
-              <AppButton type="linkSmall" title="Voir plus" iconName="eye" />
+              <AppButton
+                type="linkSmall"
+                title="Voir plus"
+                iconName="eye"
+                onPress={() => navigation.navigate("Communauté" as never)}
+              />
             </View>
             {closestEvent && (
               <>
@@ -583,7 +596,12 @@ export default function HomeScreen() {
               }}
             >
               <AppText style={GlobalStyles.h3}>VOS SPORTIFS</AppText>
-              <AppButton type="linkSmall" title="Voir plus" iconName="eye" />
+              <AppButton
+                type="linkSmall"
+                title="Voir plus"
+                iconName="eye"
+                onPress={() => navigation.navigate("Sportifs" as never)}
+              />
             </View>
             <View style={{ flexDirection: "column", gap: 8 }}>
               {coachClients.length === 0 ? (
@@ -721,7 +739,12 @@ export default function HomeScreen() {
               }}
             >
               <AppText style={GlobalStyles.h3}>VOS SPORTIFS</AppText>
-              <AppButton type="linkSmall" title="Voir plus" iconName="eye" />
+              <AppButton
+                type="linkSmall"
+                title="Voir plus"
+                iconName="eye"
+                onPress={() => navigation.navigate("Sportifs" as never)}
+              />
             </View>
             <View style={{ flexDirection: "column", gap: 8 }}>
               {medicClients.length === 0 ? (
@@ -817,7 +840,12 @@ export default function HomeScreen() {
             }}
           >
             <AppText style={GlobalStyles.h3}>PROCHAIN ÉVÉNEMENT</AppText>
-            <AppButton type="linkSmall" title="Voir plus" iconName="eye" />
+            <AppButton
+              type="linkSmall"
+              title="Voir plus"
+              iconName="eye"
+              onPress={() => navigation.navigate("Planning" as never)}
+            />
           </View>
           <Event
             title="Évenement Hyperion Vannes"
@@ -840,7 +868,12 @@ export default function HomeScreen() {
             <AppText style={[GlobalStyles.h3, { maxWidth: "70%" }]}>
               PLANS DE PERFORMANCES À LA UNE
             </AppText>
-            <AppButton type="linkSmall" title="Voir plus" iconName="eye" />
+            <AppButton
+              type="linkSmall"
+              title="Voir plus"
+              iconName="eye"
+              onPress={() => navigation.navigate("Programmes" as never)}
+            />
           </View>
           <View
             style={{ flexDirection: "column", gap: 8, position: "relative" }}
@@ -924,6 +957,7 @@ export default function HomeScreen() {
                 type="primary"
                 title="Voir plus"
                 iconName="chevronRight"
+                onPress={() => navigation.navigate("Programmes" as never)}
               />
             </View>
           </View>
@@ -968,6 +1002,7 @@ export default function HomeScreen() {
                 textStyle={{ color: Colors.gold }}
                 iconColor={Colors.gold}
                 borderColor={Colors.gold}
+                onPress={() => navigation.navigate("Planning" as never)}
               />
             </View>
             <View style={{ flexDirection: "column", gap: 16 }}>
@@ -1044,7 +1079,12 @@ export default function HomeScreen() {
               }}
             >
               <AppText style={GlobalStyles.h3}>PROCHAIN ÉVÉNEMENT</AppText>
-              <AppButton type="linkSmall" title="Voir plus" iconName="eye" />
+              <AppButton
+                type="linkSmall"
+                title="Voir plus"
+                iconName="eye"
+                onPress={() => navigation.navigate("Programmes" as never)}
+              />
             </View>
             {closestEvent && (
               <>
