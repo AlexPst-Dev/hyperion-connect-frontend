@@ -19,6 +19,7 @@ import PopUp from "./PopUp";
 import Input from "./Input";
 import { useAuth } from "../hooks/useAuth";
 import {
+  createNotification,
   getNotificationsByCategory,
   updateNotification,
 } from "../services/api/notification-service";
@@ -109,36 +110,63 @@ export default function AppHeader({
 
   // Function to update the latest notification
   const handleUpdateNotification = async (title: string, text: string) => {
-    if (!notification || !token) return;
-    try {
-      await updateNotification(
-        notification.id, // Use the id of the latest notification
-        {
+    if (!token) return;
+    if (!notification) {
+      try {
+        const newNotification = await createNotification(
+          {
+            title: title,
+            text: text,
+            notificationCategory: NotificationCategory.HOME_POPUP,
+          },
+          token
+        );
+        setNotification(newNotification);
+        setNewsTitle(title);
+        setNewsText(text);
+        setEditNewsVisible(false);
+        notify({
+          title: "PopUp d'accueil créée avec succès",
+          type: "success",
+        });
+      } catch (e) {
+        notify({
+          title: "Une erreur est survenue lors de la création",
+          type: "error",
+        });
+        console.error("Error creating notification:", e);
+      }
+    } else {
+      try {
+        await updateNotification(
+          notification.id, // Use the id of the latest notification
+          {
+            title,
+            text,
+            notificationCategory: NotificationCategory.HOME_POPUP,
+          },
+          token
+        );
+        // Optionally, refetch or update local state
+        setNotification({
+          ...notification,
           title,
           text,
-          notificationCategory: NotificationCategory.HOME_POPUP,
-        },
-        token
-      );
-      // Optionally, refetch or update local state
-      setNotification({
-        ...notification,
-        title,
-        text,
-      });
-      setNewsTitle(title);
-      setNewsText(text);
-      setEditNewsVisible(false);
-      notify({
-        title: "PopUp d'accueil mise à jour avec succès",
-        type: "success",
-      });
-    } catch (error) {
-      notify({
-        title: "Une erreur est survenue lors de la mise à jour",
-        type: "error",
-      });
-      console.error("Error updating notification:", error);
+        });
+        setNewsTitle(title);
+        setNewsText(text);
+        setEditNewsVisible(false);
+        notify({
+          title: "PopUp d'accueil mise à jour avec succès",
+          type: "success",
+        });
+      } catch (error) {
+        notify({
+          title: "Une erreur est survenue lors de la mise à jour",
+          type: "error",
+        });
+        console.error("Error updating notification:", error);
+      }
     }
   };
 

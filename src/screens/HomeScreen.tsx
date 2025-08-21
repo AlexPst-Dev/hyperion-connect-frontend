@@ -24,6 +24,7 @@ import ItemClient from "../components/ItemClient";
 import Objective from "../components/Objective";
 import { ProfileCategory, User, UserResponse } from "../models/user";
 import {
+  createNotification,
   getNotificationsByCategory,
   updateNotification,
 } from "../services/api/notification-service";
@@ -361,33 +362,57 @@ export default function HomeScreen() {
 
   // Function to update the latest notification
   const handleUpdateNotification = async (title: string, text: string) => {
-    if (!notification || !token) return;
-    try {
-      await updateNotification(
-        notification.id, // Use the id of the latest notification
-        {
+    if (!token) return;
+    if (!notification) {
+      try {
+        const newNotification = await createNotification(
+          {
+            title: title,
+            text: text,
+            notificationCategory: NotificationCategory.NEWS,
+          },
+          token
+        );
+        setNotification(newNotification);
+        setNewsTitle(title);
+        setNewsText(text);
+        setEditNewsVisible(false);
+        notify({ title: "Section créé avec succès", type: "success" });
+      } catch (e) {
+        notify({
+          title: "Une erreur est survenue lors de la création",
+          type: "error",
+        });
+        console.error("Error creating notification:", e);
+      }
+    } else {
+      try {
+        await updateNotification(
+          notification.id, // Use the id of the latest notification
+          {
+            title,
+            text,
+            notificationCategory: NotificationCategory.NEWS,
+          },
+          token
+        );
+        // Optionally, refetch or update local state
+        setNotification({
+          ...notification,
           title,
           text,
-          notificationCategory: NotificationCategory.NEWS,
-        },
-        token
-      );
-      // Optionally, refetch or update local state
-      setNotification({
-        ...notification,
-        title,
-        text,
-      });
-      setNewsTitle(title);
-      setNewsText(text);
-      setEditNewsVisible(false);
-      notify({ title: "Section mise à jour avec succès", type: "success" });
-    } catch (error) {
-      notify({
-        title: "Une erreur est survenue lors de la modification",
-        type: "error",
-      });
-      console.error("Error updating notification:", error);
+        });
+        setNewsTitle(title);
+        setNewsText(text);
+        setEditNewsVisible(false);
+        notify({ title: "Section mise à jour avec succès", type: "success" });
+      } catch (error) {
+        notify({
+          title: "Une erreur est survenue lors de la modification",
+          type: "error",
+        });
+        console.error("Error updating notification:", error);
+      }
     }
   };
 
