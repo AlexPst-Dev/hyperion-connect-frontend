@@ -52,7 +52,7 @@ export default function ProTabs() {
     >
       <Tab.Screen name="Accueil" component={HomeScreen} />
       <Tab.Screen name="Programmes" component={SessionsScreen} />
-      <Tab.Screen name="Clients" component={UsersScreen} />
+      <Tab.Screen name="Sportifs" component={UsersScreen} />
       <Tab.Screen name="Communauté" component={CommunityScreen} />
       <Tab.Screen name="Planning" component={PlanningScreen} />
     </Tab.Navigator>

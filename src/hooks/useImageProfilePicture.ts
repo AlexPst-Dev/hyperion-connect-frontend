@@ -211,8 +211,6 @@ export const useMultipleUserProfileImages = (users: UserResponse[]) => {
           const userId = completeUser.user.id;
 
           try {
-            console.log(`📸 Chargement image batch pour utilisateur ${userId}`);
-
             const imageBase64 = await getImageAsBase64(
               completeUser.filePicture!,
               token

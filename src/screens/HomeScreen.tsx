@@ -55,19 +55,10 @@ import {
 } from "../services/api/session-service";
 import { Session as SessionModel } from "../models/session";
 import { useEventsByCategories } from "../hooks/useEventsByCategories";
+import { useNavigation } from "@react-navigation/native";
 
 export default function HomeScreen() {
-  const tempAdminUser: User = {
-    id: 2,
-    firstName: "k",
-    lastName: "Marchegay",
-    profileCategory: ProfileCategory.ADMIN,
-    isActive: true,
-    createdAt: "2025-05-05",
-    updatedAt: "2025-05-05",
-    email: "chloé.marchegay@mail.com",
-    isInHyperlinkNetwork: true,
-  };
+  const navigation = useNavigation();
 
   const [newsTitle, setNewsTitle] = useState("");
   const [newsText, setNewsText] = useState("");
@@ -360,6 +351,46 @@ export default function HomeScreen() {
     };
   }, [allEvents, token]);
 
+  useEffect(() => {
+    async function fetchUsersForNextHyperionEvent() {
+      // Pick the closest event
+      const hyperionEvents = (eventsByCategory[EventCategory.HYPERION] || [])
+        .filter((e) => e.isActive && e.date && new Date(e.date) >= new Date())
+        .sort(
+          (a, b) =>
+            new Date(a.date || 0).getTime() - new Date(b.date || 0).getTime()
+        );
+
+      const nextHyperionEvent =
+        hyperionEvents.length > 0 ? hyperionEvents[0] : null;
+      console.log(nextHyperionEvent);
+
+      let idsToParse: string = "";
+      if (nextHyperionEvent && nextHyperionEvent.responsibleIds) {
+        idsToParse = nextHyperionEvent.responsibleIds as string;
+        let ids = parseIds(idsToParse);
+        // Ensure ids is always an array
+        if (!Array.isArray(ids)) {
+          ids = [ids];
+        }
+
+        if (ids.length > 0) {
+          let users: UserResponse[] = [];
+          users = await Promise.all(
+            ids.map((id) =>
+              UserService.getUserById(id, token!).then((res) => res)
+            )
+          );
+          setEventUsers(users);
+          setClosestEvent(nextHyperionEvent);
+        }
+      }
+    }
+    if (user.profileCategory === ProfileCategory.FREE) {
+      fetchUsersForNextHyperionEvent();
+    }
+  }, [user, token, eventsByCategory]);
+
   // Function to update the latest notification
   const handleUpdateNotification = async (title: string, text: string) => {
     if (!token) return;
@@ -463,7 +494,12 @@ export default function HomeScreen() {
               }}
             >
               <AppText style={GlobalStyles.h3}>VOTRE PROGRAMME DU JOUR</AppText>
-              <AppButton type="linkSmall" title="Voir plus" iconName="eye" />
+              <AppButton
+                type="linkSmall"
+                title="Voir plus"
+                iconName="eye"
+                onPress={() => navigation.navigate("Programmes" as never)}
+              />
             </View>
             {lastSession ? (
               <Session
@@ -485,7 +521,12 @@ export default function HomeScreen() {
               }}
             >
               <AppText style={GlobalStyles.h3}>VOTRE PROCHAIN RDV</AppText>
-              <AppButton type="linkSmall" title="Voir plus" iconName="eye" />
+              <AppButton
+                type="linkSmall"
+                title="Voir plus"
+                iconName="eye"
+                onPress={() => navigation.navigate("Communauté" as never)}
+              />
             </View>
             {closestEvent && (
               <>
@@ -583,7 +624,12 @@ export default function HomeScreen() {
               }}
             >
               <AppText style={GlobalStyles.h3}>VOS SPORTIFS</AppText>
-              <AppButton type="linkSmall" title="Voir plus" iconName="eye" />
+              <AppButton
+                type="linkSmall"
+                title="Voir plus"
+                iconName="eye"
+                onPress={() => navigation.navigate("Sportifs" as never)}
+              />
             </View>
             <View style={{ flexDirection: "column", gap: 8 }}>
               {coachClients.length === 0 ? (
@@ -721,7 +767,12 @@ export default function HomeScreen() {
               }}
             >
               <AppText style={GlobalStyles.h3}>VOS SPORTIFS</AppText>
-              <AppButton type="linkSmall" title="Voir plus" iconName="eye" />
+              <AppButton
+                type="linkSmall"
+                title="Voir plus"
+                iconName="eye"
+                onPress={() => navigation.navigate("Sportifs" as never)}
+              />
             </View>
             <View style={{ flexDirection: "column", gap: 8 }}>
               {medicClients.length === 0 ? (
@@ -806,136 +857,169 @@ export default function HomeScreen() {
         </View>
       );
     },
-    free: (user) => (
-      <View style={{ flexDirection: "column", gap: 24 }}>
-        <View style={{ flexDirection: "column", gap: 16 }}>
-          <View
-            style={{
-              flexDirection: "row",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-          >
-            <AppText style={GlobalStyles.h3}>PROCHAIN ÉVÉNEMENT</AppText>
-            <AppButton type="linkSmall" title="Voir plus" iconName="eye" />
-          </View>
-          <Event
-            title="Évenement Hyperion Vannes"
-            type={EventCategory.HYPERION}
-            personsInvolved={tempAdminUser}
-            location="Parc de Vannes"
-            date={new Date("2025-05-08")}
-            hour="16h00"
-            infoDescription="Lorem ipsum dolore sit amet"
-          />
-        </View>
-        <View style={{ flexDirection: "column", gap: 16 }}>
-          <View
-            style={{
-              flexDirection: "row",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-          >
-            <AppText style={[GlobalStyles.h3, { maxWidth: "70%" }]}>
-              PLANS DE PERFORMANCES À LA UNE
-            </AppText>
-            <AppButton type="linkSmall" title="Voir plus" iconName="eye" />
-          </View>
-          <View
-            style={{ flexDirection: "column", gap: 8, position: "relative" }}
-          >
-            <Session
-              title="Entrainement course à pieds"
-              nbExercises={3}
-              durationTime={40}
-              labels={[
-                <Label
-                  key={"lower-limbs"}
-                  title="Membres inférieurs"
-                  textColor="#1E3A8A"
-                  backgroundColor="#D6EBFF"
-                  size="small"
-                />,
-                <Label
-                  key={"body"}
-                  title="Tronc"
-                  textColor="#1E3A8A"
-                  backgroundColor="#D6EBFF"
-                  size="small"
-                />,
-              ]}
-            />
-            <Session
-              title="Séance de musculation corps entier maison"
-              nbExercises={5}
-              durationTime={30}
-              labels={[
-                <Label
-                  key={"lower-limbs"}
-                  title="Membres inférieurs"
-                  textColor="#1E3A8A"
-                  backgroundColor="#D6EBFF"
-                  size="small"
-                />,
-                <Label
-                  key={"body"}
-                  title="Tronc"
-                  textColor="#1E3A8A"
-                  backgroundColor="#D6EBFF"
-                  size="small"
-                />,
-                <Label
-                  key={"upper-limbs"}
-                  title="Membres supérieurs"
-                  textColor="#1E3A8A"
-                  backgroundColor="#D6EBFF"
-                  size="small"
-                />,
-              ]}
-            />
-            <BlurredSessionWrapper>
-              <Session
-                title="Séance de Tempo Run"
-                durationTime={50}
-                nbExercises={3}
-                labels={
-                  <>
-                    <Label
-                      title="Cardio"
-                      textColor="#1E3A8A"
-                      backgroundColor="#D6EBFF"
-                      size="small"
-                    />
-                    <Label
-                      title="Jambes"
-                      textColor="#F97316"
-                      backgroundColor="#FFF9F4"
-                      size="small"
-                    />
-                  </>
-                }
-                imageUrl="sessions/img-running"
-              />
-            </BlurredSessionWrapper>
-
-            <View style={{ position: "absolute", bottom: "8%", left: "32%" }}>
+    free: (user) => {
+      return (
+        <View style={{ flexDirection: "column", gap: 24 }}>
+          <View style={{ flexDirection: "column", gap: 16 }}>
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <AppText style={GlobalStyles.h3}>PROCHAIN ÉVÉNEMENT</AppText>
               <AppButton
-                type="primary"
+                type="linkSmall"
                 title="Voir plus"
-                iconName="chevronRight"
+                iconName="eye"
+                onPress={() => navigation.navigate("Planning" as never)}
               />
             </View>
+            {closestEvent ? (
+              <>
+                <Event
+                  title={closestEvent.title || "Événement"}
+                  type={closestEvent.eventCategory as EventCategory}
+                  personsInvolved={eventUsers.map((u) => u.user)}
+                  location={closestEvent.location || ""}
+                  date={
+                    closestEvent.date ? new Date(closestEvent.date) : new Date()
+                  }
+                  hour={closestEvent.time || ""}
+                  infoDescription={closestEvent.description || ""}
+                  onPress={() => setEventPopupVisible(true)}
+                />
+                {eventPopupVisible && (
+                  <DisplayEvent
+                    visible={eventPopupVisible}
+                    event={closestEvent}
+                    hyperlinkProps={undefined}
+                    userConnected={user}
+                    token={token as string}
+                    listOfUser={eventUsers}
+                    onClose={() => setEventPopupVisible(false)}
+                  />
+                )}
+              </>
+            ) : (
+              <AppText>Aucun événement à venir.</AppText>
+            )}
+          </View>
+          <View style={{ flexDirection: "column", gap: 16 }}>
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <AppText style={[GlobalStyles.h3, { maxWidth: "70%" }]}>
+                PLANS DE PERFORMANCES À LA UNE
+              </AppText>
+              <AppButton
+                type="linkSmall"
+                title="Voir plus"
+                iconName="eye"
+                onPress={() => navigation.navigate("Programmes" as never)}
+              />
+            </View>
+            <View
+              style={{ flexDirection: "column", gap: 8, position: "relative" }}
+            >
+              <Session
+                title="Entrainement course à pieds"
+                nbExercises={3}
+                durationTime={40}
+                labels={[
+                  <Label
+                    key={"lower-limbs"}
+                    title="Membres inférieurs"
+                    textColor="#1E3A8A"
+                    backgroundColor="#D6EBFF"
+                    size="small"
+                  />,
+                  <Label
+                    key={"body"}
+                    title="Tronc"
+                    textColor="#1E3A8A"
+                    backgroundColor="#D6EBFF"
+                    size="small"
+                  />,
+                ]}
+              />
+              <Session
+                title="Séance de musculation corps entier maison"
+                nbExercises={5}
+                durationTime={30}
+                labels={[
+                  <Label
+                    key={"lower-limbs"}
+                    title="Membres inférieurs"
+                    textColor="#1E3A8A"
+                    backgroundColor="#D6EBFF"
+                    size="small"
+                  />,
+                  <Label
+                    key={"body"}
+                    title="Tronc"
+                    textColor="#1E3A8A"
+                    backgroundColor="#D6EBFF"
+                    size="small"
+                  />,
+                  <Label
+                    key={"upper-limbs"}
+                    title="Membres supérieurs"
+                    textColor="#1E3A8A"
+                    backgroundColor="#D6EBFF"
+                    size="small"
+                  />,
+                ]}
+              />
+              <BlurredSessionWrapper>
+                <Session
+                  title="Séance de Tempo Run"
+                  durationTime={50}
+                  nbExercises={3}
+                  labels={
+                    <>
+                      <Label
+                        title="Cardio"
+                        textColor="#1E3A8A"
+                        backgroundColor="#D6EBFF"
+                        size="small"
+                      />
+                      <Label
+                        title="Jambes"
+                        textColor="#F97316"
+                        backgroundColor="#FFF9F4"
+                        size="small"
+                      />
+                    </>
+                  }
+                  imageUrl="sessions/img-running"
+                />
+              </BlurredSessionWrapper>
+
+              <View style={{ position: "absolute", bottom: "8%", left: "32%" }}>
+                <AppButton
+                  type="primary"
+                  title="Voir plus"
+                  iconName="chevronRight"
+                  onPress={() => navigation.navigate("Programmes" as never)}
+                />
+              </View>
+            </View>
+          </View>
+          <View style={{ flexDirection: "column", gap: 8 }}>
+            <AppText style={{ fontWeight: "bold" }}>
+              {notification?.title}
+            </AppText>
+            <AppText>{notification?.text}</AppText>
           </View>
         </View>
-        <View style={{ flexDirection: "column", gap: 8 }}>
-          <AppText style={{ fontWeight: "bold" }}>
-            {notification?.title}
-          </AppText>
-          <AppText>{notification?.text}</AppText>
-        </View>
-      </View>
-    ),
+      );
+    },
     partner: (user) => {
       const refreshClosestEvent = async () => {
         if (!closestEvent || !token) return;
@@ -968,6 +1052,7 @@ export default function HomeScreen() {
                 textStyle={{ color: Colors.gold }}
                 iconColor={Colors.gold}
                 borderColor={Colors.gold}
+                onPress={() => navigation.navigate("Planning" as never)}
               />
             </View>
             <View style={{ flexDirection: "column", gap: 16 }}>
@@ -1044,7 +1129,12 @@ export default function HomeScreen() {
               }}
             >
               <AppText style={GlobalStyles.h3}>PROCHAIN ÉVÉNEMENT</AppText>
-              <AppButton type="linkSmall" title="Voir plus" iconName="eye" />
+              <AppButton
+                type="linkSmall"
+                title="Voir plus"
+                iconName="eye"
+                onPress={() => navigation.navigate("Programmes" as never)}
+              />
             </View>
             {closestEvent && (
               <>
