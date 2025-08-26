@@ -76,7 +76,7 @@ export default function LoginScreen() {
         <ScrollView
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
-          style={Platform.OS === "web" ? { maxHeight: screenWidth + 180 } : {}}
+          style={Platform.OS === "web" ? { maxHeight: screenWidth + 220 } : {}}
         >
           <View
             style={{
@@ -194,6 +194,22 @@ export default function LoginScreen() {
                 onPress={() => {
                   if (!isLoading) {
                     navigation.navigate("Register" as never);
+                  }
+                }}
+              >
+                Inscrivez-vous ici
+              </AppText>
+            </AppText>
+            <AppText>
+              Mot de passe oublié ?{" "}
+              <AppText
+                style={{
+                  textDecorationLine: "underline",
+                  color: "#2563EB",
+                }}
+                onPress={() => {
+                  if (!isLoading) {
+                    navigation.navigate("ForgotPassword" as never);
                   }
                 }}
               >
