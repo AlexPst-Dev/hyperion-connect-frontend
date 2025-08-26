@@ -87,6 +87,29 @@ export class SubscriptionService {
   }
 
   /**
+   * Send a email to admin to inform about a subscription change wanted by user
+   */
+  async askForChangingSubscription(
+    userId: number,
+    token: string
+  ): Promise<Subscription> {
+    if (!userId) {
+      throw new Error("Un id utilisateur est requis.");
+    }
+
+    try {
+      return await apiClient.post<Subscription>(
+        "/subscriptions/askForChange",
+        { userId },
+        token
+      );
+    } catch (error) {
+      console.error("Erreur demande de changement d'abonnement :", error);
+      throw error;
+    }
+  }
+
+  /**
    * Update existing subscription
    */
   async updateSubscription(
