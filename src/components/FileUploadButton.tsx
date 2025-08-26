@@ -135,7 +135,12 @@ export const FileUploadButton: React.FC<FileUploadButtonProps> = ({
                 );
               }
             } else {
-              // Met à jour le user avec le nouveau fichier
+              // Met à jour le user avec le nouveau fichier et supprime l'ancien
+              const completeUser = await UserService.getUserById(
+                authUser.id,
+                authToken
+              );
+              const oldFilePictureId = completeUser.user.filePictureId;
               await UserService.updateUserById(
                 authUser.id,
                 {
@@ -144,6 +149,12 @@ export const FileUploadButton: React.FC<FileUploadButtonProps> = ({
                 },
                 authToken
               );
+              if (oldFilePictureId && !isNaN(Number(oldFilePictureId))) {
+                await fileService.deleteFile(
+                  Number(oldFilePictureId),
+                  authToken
+                );
+              }
             }
             onUploadSuccess?.(result.data);
           } catch (e) {
