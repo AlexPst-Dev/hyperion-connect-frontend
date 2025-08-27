@@ -7,15 +7,30 @@ import { SubscriptionService } from "@/src/services/api/subscription-service";
 import { UserService } from "@/src/services/api/user-service";
 import GlobalStyles from "@/src/styles/styles";
 import React, { useEffect, useState } from "react";
-import { View, KeyboardAvoidingView, Platform, ScrollView } from "react-native";
+import {
+  View,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Modal,
+  Pressable,
+} from "react-native";
 import { File } from "@/src/models/file";
 import ItemFile from "@/src/components/ItemFile";
+import AppButton from "@/src/components/AppButton";
+import PopUp from "@/src/components/PopUp";
+import { notify } from "@/src/components/NotificationContainer";
 
 export default function SubscriptionScreen() {
   const { user, token } = useAuth();
 
   const [subscriptionFile, setSubscriptionFile] = useState<File | null>(null);
   const [subscription, setSubscription] = useState<Subscription | null>(null);
+
+  const [
+    confirmChangingSubscriptionPopup,
+    setConfirmChangingSubscriptionPopup,
+  ] = useState(false);
 
   async function fetchSubscriptionFileAndDetails() {
     if (!user || !token) {
@@ -59,6 +74,30 @@ export default function SubscriptionScreen() {
     );
   }
 
+  async function sendChangingMsg() {
+    if (user && token) {
+      try {
+        await new SubscriptionService().askForChangingSubscription(
+          user.id,
+          token
+        );
+        setConfirmChangingSubscriptionPopup(false);
+        notify({
+          type: "success",
+          title: "La demande a bien été envoyée",
+        });
+      } catch (e) {
+        console.log("Error while asking for a subscription change", e);
+        notify({
+          type: "error",
+          title: "Une erreur est survenue lors de l'envoi de la demande",
+        });
+      }
+    } else {
+      console.log("Utilsateur non reconnu");
+    }
+  }
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -70,7 +109,7 @@ export default function SubscriptionScreen() {
         showsVerticalScrollIndicator={false}
       >
         {subscription && (
-          <>
+          <View style={{ flexDirection: "column", gap: 16 }}>
             {subscriptionFile && (
               <>
                 <AppText>
@@ -123,8 +162,53 @@ export default function SubscriptionScreen() {
                 </>
               )}
             </View>
-          </>
+            <View style={{ flexDirection: "column", gap: 8 }}>
+              <AppText>
+                Vous pouvez demander à changer d'abonnement via le bouton
+                ci-dessous, cette demande sera traitée au plus vite par les
+                consultants Hyperion
+              </AppText>
+              <AppButton
+                type="primary"
+                title="Changer d'abonnement"
+                iconName="subscription"
+                onPress={() => setConfirmChangingSubscriptionPopup(true)}
+              />
+            </View>
+          </View>
         )}
+        <Modal
+          visible={confirmChangingSubscriptionPopup}
+          transparent
+          onRequestClose={() => {
+            setConfirmChangingSubscriptionPopup(false);
+          }}
+        >
+          <Pressable
+            onPress={() => {
+              setConfirmChangingSubscriptionPopup(false);
+            }}
+            style={{
+              flex: 1,
+              backgroundColor: "rgba(0,0,0,0.5)",
+              justifyContent: "center",
+              padding: 24,
+            }}
+          >
+            <PopUp
+              onClose={() => {
+                setConfirmChangingSubscriptionPopup(false);
+              }}
+              title="Changer d'abonnement"
+              btnType="primary"
+              btnText="Valider"
+              iconName="check"
+              closeText="Annuler"
+              onSubmit={sendChangingMsg}
+              paragraph="Confirmez-vous vouloir changer d'abonnement ?"
+            />
+          </Pressable>
+        </Modal>
       </ScrollView>
     </KeyboardAvoidingView>
   );

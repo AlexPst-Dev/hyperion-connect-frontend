@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { StyleSheet, View, Pressable, Modal } from "react-native";
 import PopUp from "../PopUp";
 import Input from "../Input";
-import { User } from "@/src/models/user";
+import { ProfileCategory, User } from "@/src/models/user";
 import AppText from "../AppText";
 import { Colors } from "@/src/styles/styles";
 import {
@@ -84,12 +84,12 @@ export default function EditEvent({
 
   // Fetch responsible users when the popup opens or event changes
   useEffect(() => {
-    async function fetchResponsibleUsers() {
-      if (!existingEvent?.responsibleIds || !token) {
+    async function fetchPersonOngoingUsers() {
+      if (!existingEvent?.personOngoingIds || !token) {
         setSelectedUser([]);
         return;
       }
-      const ids = parseIds(existingEvent.responsibleIds);
+      const ids = parseIds(existingEvent.personOngoingIds);
       try {
         const users = await Promise.all(
           ids.map((id) =>
@@ -113,7 +113,7 @@ export default function EditEvent({
       }
     }
     if (visible && existingEvent) {
-      fetchResponsibleUsers();
+      fetchPersonOngoingUsers();
     } else if (visible) {
       fetchSessionsCatalog();
     }
@@ -146,11 +146,6 @@ export default function EditEvent({
         : null
     );
   }, [existingEvent, eventType]);
-
-  const handleAddContactsSubmit = (users: User[]) => {
-    setSelectedUser(users);
-    setAddContactPopUpVisible(false);
-  };
 
   const responsibleIds =
     selectedUsers.length > 0
@@ -417,8 +412,16 @@ export default function EditEvent({
           visible={addContactPopUpVisible}
           token={token}
           onClose={() => setAddContactPopUpVisible(false)}
-          onSubmit={handleAddContactsSubmit}
-          initialSelectedUserIds={selectedUsers.map((u) => u.id)}
+          onSubmit={(users) => {
+            setSelectedUser(users);
+            setAddContactPopUpVisible(false);
+          }}
+          initialSelectedUserIds={
+            existingEvent && existingEvent.personOngoingIds
+              ? parseIds(existingEvent.personOngoingIds)
+              : []
+          }
+          allowedProfileCategories={[ProfileCategory.SPORTSMAN]}
         />
       )}
     </>

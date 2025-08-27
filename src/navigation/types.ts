@@ -5,6 +5,8 @@ import { User } from "../models/user";
 
 export type RootStackParamList = {
   Login: undefined;
+  ForgotPassword: undefined;
+  ResetPassword: { token?: string };
   Home: undefined;
   Register: undefined;
   Main: undefined;
