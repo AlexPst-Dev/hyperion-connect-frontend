@@ -213,7 +213,7 @@ export default function LoginScreen() {
                   }
                 }}
               >
-                Inscrivez-vous ici
+                Cliquez ici
               </AppText>
             </AppText>
           </View>

@@ -118,14 +118,14 @@ export default function RegisterScreen() {
             <Input
               placeholder="Prénom"
               value={form.firstName}
-              label="Prénom"
+              label="Prénom *"
               type="text"
               onChangeText={(text) => handleChange("firstName", text)}
             />
             <Input
               placeholder="Nom"
               value={form.lastName}
-              label="Nom"
+              label="Nom *"
               type="text"
               onChangeText={(text) => handleChange("lastName", text)}
             />
@@ -133,7 +133,7 @@ export default function RegisterScreen() {
               placeholder="Email"
               value={form.email}
               onChangeText={(text) => handleChange("email", text)}
-              label="Email"
+              label="Email *"
               type="email"
             />
             <Input
@@ -147,14 +147,14 @@ export default function RegisterScreen() {
               placeholder="Mot de passe"
               value={form.password}
               onChangeText={(text) => handleChange("password", text)}
-              label="Mot de passe"
+              label="Mot de passe *"
               type="password"
             />
             <Input
               placeholder="Confirmer mot de passe"
               value={form.confirmPassword}
               onChangeText={(text) => handleChange("confirmPassword", text)}
-              label="Confirmer mot de passe"
+              label="Confirmer mot de passe  *"
               type="password"
             />
           </ScrollView>
