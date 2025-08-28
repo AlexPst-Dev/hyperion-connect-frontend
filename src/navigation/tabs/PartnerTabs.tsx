@@ -50,7 +50,14 @@ export default function PartnerTabs() {
         tabBarStyle: [GlobalStyles.tabBarStyle, shadowStyles.medium],
       })}
     >
-      <Tab.Screen name="Accueil" component={HomeScreen} />
+      <Tab.Screen
+        name="Accueil"
+        component={HomeScreen}
+        options={{
+          title: "Hyperion Connect",
+          tabBarLabel: "Accueil",
+        }}
+      />
       <Tab.Screen name="Communauté" component={CommunityScreen} />
       <Tab.Screen name="Planning" component={PlanningScreen} />
       <Tab.Screen name="Statistiques" component={StatisticsScreen} />

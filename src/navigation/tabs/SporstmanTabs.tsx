@@ -50,7 +50,14 @@ export default function SportsmanTabs() {
         tabBarStyle: [GlobalStyles.tabBarStyle, shadowStyles.medium],
       })}
     >
-      <Tab.Screen name="Accueil" component={HomeScreen} />
+      <Tab.Screen
+        name="Accueil"
+        component={HomeScreen}
+        options={{
+          title: "Hyperion Connect",
+          tabBarLabel: "Accueil",
+        }}
+      />
       <Tab.Screen name="Programmes" component={SessionsScreen} />
       <Tab.Screen name="Santé" component={HealthScreen} />
       <Tab.Screen name="Communauté" component={CommunityScreen} />

@@ -50,7 +50,14 @@ export default function AdminTabs() {
         tabBarStyle: [GlobalStyles.tabBarStyle, shadowStyles.medium],
       })}
     >
-      <Tab.Screen name="Accueil" component={HomeScreen} />
+      <Tab.Screen
+        name="Accueil"
+        component={HomeScreen}
+        options={{
+          title: "Hyperion Connect",
+          tabBarLabel: "Accueil",
+        }}
+      />
       <Tab.Screen name="Utilisateurs" component={UsersScreen} />
       <Tab.Screen name="Planning" component={PlanningScreen} />
       <Tab.Screen name="Programmes" component={SessionsScreen} />
