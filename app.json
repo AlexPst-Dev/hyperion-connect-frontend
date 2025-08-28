@@ -4,7 +4,7 @@
     "slug": "hyperion-connect",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./src/assets/images/favicon.png",
+    "icon": "./src/assets/images/icon-512.png",
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -16,6 +16,7 @@
       }
     },
     "android": {
+      "icon": "./src/assets/images/icon-512.png",
       "adaptiveIcon": {
         "foregroundImage": "./src/assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
