@@ -137,6 +137,7 @@ export default function DisplayEvent({
     setSportingActivityValidationLoading(true);
     try {
       await eventService.updateEvent(event.id, { isActive: true }, token);
+      await eventService.notifyValidationEvent(event.id, token);
       if (onSubmit) onSubmit();
       notify({
         title: "Activitée sportive validée avec succès",
@@ -234,6 +235,11 @@ export default function DisplayEvent({
         {
           personOngoingIds: updatedIds,
         },
+        token
+      );
+      await eventService.notifySportingActivityParticipation(
+        event.id,
+        userConnected.id,
         token
       );
       onClose();

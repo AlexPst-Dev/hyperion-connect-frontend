@@ -55,6 +55,53 @@ export const eventService = {
     );
   },
 
+  async notifyValidationEvent(
+    eventId: number,
+    token: string
+  ): Promise<{ message: string }> {
+    if (!eventId) {
+      throw new Error("Un id d'évenement est requis.");
+    }
+
+    try {
+      return await apiClient.post<{ message: string }>(
+        "/events/notifyValidation",
+        { eventId },
+        token
+      );
+    } catch (error) {
+      console.error(
+        "Erreur d'envoi de mail pour la validation d'un événement :",
+        error
+      );
+      throw error;
+    }
+  },
+
+  async notifySportingActivityParticipation(
+    eventId: number,
+    sportsmanId: number,
+    token: string
+  ): Promise<{ message: string }> {
+    if (!eventId || !sportsmanId) {
+      throw new Error("Un id d'évenement et un id d'un sportif est requis.");
+    }
+
+    try {
+      return await apiClient.post<{ message: string }>(
+        "/events/notifySportingActivityParticipation",
+        { eventId, sportsmanId },
+        token
+      );
+    } catch (error) {
+      console.error(
+        "Erreur d'envoi de mail pour la participation à un événement :",
+        error
+      );
+      throw error;
+    }
+  },
+
   async updateEvent(
     id: number,
     data: Omit<UpdateEvent | UpdateCoachingEvent, "id"> & Record<string, any>,
