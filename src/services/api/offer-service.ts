@@ -25,6 +25,7 @@ export class OffersApiService {
       companyId: number,
       category: OfferCategory
     ) => `/offers/company/${companyId}/category/${category}`,
+    NOTIFY_SPONSORHIP_PARTICIPATION: `/offers/notifySponsorshipApplication`,
   } as const;
 
   /**
@@ -38,6 +39,28 @@ export class OffersApiService {
 
     return apiClient.post<{ message: string }>(
       this.ENDPOINTS.OFFERS,
+      payload,
+      token
+    );
+  }
+
+  /**
+   * Notify sponsorship participation
+   */
+  static async notiffySponsorshipParticipation(
+    offerId: number,
+    userId: number,
+    message: string,
+    token: string
+  ): Promise<{ message: string }> {
+    const payload = {
+      offerId,
+      userId,
+      message,
+    };
+
+    return apiClient.post<{ message: string }>(
+      this.ENDPOINTS.NOTIFY_SPONSORHIP_PARTICIPATION,
       payload,
       token
     );

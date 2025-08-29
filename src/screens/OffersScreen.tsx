@@ -7,6 +7,7 @@ import {
   Pressable,
   ScrollView,
   View,
+  ActivityIndicator,
 } from "react-native";
 import AppText from "../components/AppText";
 import GlobalStyles from "../styles/styles";
@@ -19,21 +20,20 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../navigation/types";
 import { useNavigation } from "@react-navigation/native";
 import { ProfileCategory } from "../models/user";
-import {
-  DiscountOffer,
-  OfferCategory,
-  OfferCompleteResponse,
-  SponsorshipOffer,
-} from "../models/offer";
+import { OfferCategory, OfferCompleteResponse } from "../models/offer";
 import { OffersApiService } from "../services/api/offer-service";
 import { CompanyService } from "../services/api/company-service";
 import { Company } from "../models/company";
+import { notify } from "../components/NotificationContainer";
 
 export default function OffersScreen() {
   const [selectedOffer, setSelectedOffer] = useState<{
     offer: OfferCompleteResponse;
     company: Company;
   } | null>(null);
+
+  const [applicationMessage, setApplicationMessage] = useState<string>("");
+  const [loading, setLoading] = useState(false);
 
   const { user, token } = useAuth();
   if (!user || !token) return;
@@ -78,6 +78,33 @@ export default function OffersScreen() {
       }
     }
   }, [user, token]);
+
+  async function handleSponsorshipApplication() {
+    if (!selectedOffer || !user || !token) return;
+    setLoading(true);
+    try {
+      await OffersApiService.notiffySponsorshipParticipation(
+        selectedOffer.offer.id,
+        user.id,
+        applicationMessage,
+        token
+      );
+      setSelectedOffer(null);
+      setApplicationMessage("");
+      notify({
+        title: "Candidature envoyée avec succès !",
+        type: "success",
+      });
+    } catch (e) {
+      notify({
+        title: "Une erreur est survenue lors de l'envoi",
+        type: "error",
+      });
+      console.log("Erreur lors de l'envoi de la candidature", e);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
     <>
@@ -174,40 +201,61 @@ export default function OffersScreen() {
           {selectedOffer && (
             <PopUp
               title="Postuler à l'offre de sponsoring"
-              onClose={() => setSelectedOffer(null)}
+              onClose={() => {
+                setSelectedOffer(null);
+                setApplicationMessage("");
+              }}
               closeText="Annuler"
-              onSubmit={() => setSelectedOffer(null)}
+              onSubmit={handleSponsorshipApplication}
               specificBody={
-                <View style={{ flexDirection: "column", gap: 8 }}>
-                  <AppText>
-                    Voulez vous postuler à l'offre de{" "}
-                    {selectedOffer.company.name} pour la proposition suivante :
-                  </AppText>
-                  <AppText>{selectedOffer.offer.description}</AppText>
-                  <AppText>
-                    Jusqu'au{" "}
-                    {new Date(selectedOffer.offer.endDate).toLocaleDateString(
-                      "fr-FR"
-                    )}
-                    .
-                    {selectedOffer.offer.offerCategory ===
-                      OfferCategory.SPONSORSHIP &&
-                    selectedOffer.offer.sponsorshipDetails &&
-                    selectedOffer.offer.sponsorshipDetails.nbPersonMax !==
-                      undefined
-                      ? ` ${selectedOffer.offer.sponsorshipDetails.nbPersonMax} personnes sponsorisées maximum.`
-                      : ""}
-                  </AppText>
-                  <AppText>
-                    Un mail sera automatiquement envoyé à{" "}
-                    {selectedOffer.company.name} avec votre candidature.
-                  </AppText>
-                  <Input
-                    type="textarea"
-                    label="Contenu du message"
-                    placeholder="Rédigez votre message à transmettre ici..."
-                  />
-                </View>
+                loading ? (
+                  <View
+                    style={{
+                      alignItems: "center",
+                      justifyContent: "center",
+                      padding: 24,
+                    }}
+                  >
+                    <ActivityIndicator size="large" color="#007AFF" />
+                    <AppText style={{ marginTop: 16 }}>
+                      Envoi en cours...
+                    </AppText>
+                  </View>
+                ) : (
+                  <View style={{ flexDirection: "column", gap: 8 }}>
+                    <AppText>
+                      Voulez vous postuler à l'offre de{" "}
+                      {selectedOffer.company.name} pour la proposition suivante
+                      :
+                    </AppText>
+                    <AppText>{selectedOffer.offer.description}</AppText>
+                    <AppText>
+                      Jusqu'au{" "}
+                      {new Date(selectedOffer.offer.endDate).toLocaleDateString(
+                        "fr-FR"
+                      )}
+                      .
+                      {selectedOffer.offer.offerCategory ===
+                        OfferCategory.SPONSORSHIP &&
+                      selectedOffer.offer.sponsorshipDetails &&
+                      selectedOffer.offer.sponsorshipDetails.nbPersonMax !==
+                        undefined
+                        ? ` ${selectedOffer.offer.sponsorshipDetails.nbPersonMax} personnes sponsorisées maximum.`
+                        : ""}
+                    </AppText>
+                    <AppText>
+                      Un mail sera automatiquement envoyé à{" "}
+                      {selectedOffer.company.name} avec votre candidature.
+                    </AppText>
+                    <Input
+                      type="textarea"
+                      label="Contenu du message"
+                      placeholder="Rédigez votre message à transmettre ici..."
+                      value={applicationMessage}
+                      onChangeText={setApplicationMessage}
+                    />
+                  </View>
+                )
               }
               btnText="Postuler"
               btnType="primary"
