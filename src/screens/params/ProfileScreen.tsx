@@ -360,16 +360,17 @@ export default function ProfileScreen() {
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       keyboardVerticalOffset={80}
-      style={GlobalStyles.pageStyle}
+      style={[GlobalStyles.pageStyle, { flex: 1 }]}
     >
       <ScrollView
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
-        style={
+        style={[
           Platform.OS === "web"
             ? { maxHeight: screenWidth + 180, paddingBottom: 32 }
-            : {}
-        }
+            : {},
+          { flex: 1 },
+        ]}
       >
         {userLoading ? (
           <ActivityIndicator />
