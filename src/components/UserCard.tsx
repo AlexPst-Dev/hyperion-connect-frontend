@@ -138,15 +138,34 @@ export default function UserCard({
       )}
       {canBeContacted && (
         <View style={styles.contactsControllers}>
-          <View style={{ marginRight: 16 }}>
-            <Icon name="message" fillColor="transparent" strokeColor="black" />
-          </View>
-          <View style={{ marginRight: 16 }}>
-            <Icon name="mail" fillColor="transparent" strokeColor="black" />
-          </View>
-          <View>
-            <Icon name="phone" fillColor="transparent" strokeColor="black" />
-          </View>
+          {/* Message (SMS) */}
+          {phone && (
+            <Pressable
+              style={{ marginRight: 16 }}
+              onPress={() => Linking.openURL(`sms:${phone}`)}
+            >
+              <Icon
+                name="message"
+                fillColor="transparent"
+                strokeColor="black"
+              />
+            </Pressable>
+          )}
+          {/* Email */}
+          {email && (
+            <Pressable
+              style={{ marginRight: 16 }}
+              onPress={() => Linking.openURL(`mailto:${email}`)}
+            >
+              <Icon name="mail" fillColor="transparent" strokeColor="black" />
+            </Pressable>
+          )}
+          {/* Phone call */}
+          {phone && (
+            <Pressable onPress={() => Linking.openURL(`tel:${phone}`)}>
+              <Icon name="phone" fillColor="transparent" strokeColor="black" />
+            </Pressable>
+          )}
         </View>
       )}
       {companyLink && (
