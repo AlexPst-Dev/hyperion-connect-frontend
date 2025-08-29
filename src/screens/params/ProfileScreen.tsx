@@ -879,9 +879,9 @@ export default function ProfileScreen() {
             >
               <PopUp
                 onClose={() => setEditSocialsLinks(false)}
-                title={"Modifier les réseaux sociaux de l'entreprise"}
+                title={"Modifier les réseaux sociaux"}
                 onSubmit={handleSocialLinksSubmit}
-                btnText="Modifier"
+                btnText="Valider"
                 btnType="primary"
                 iconName="pencil"
                 closeText="Annuler"
