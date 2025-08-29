@@ -360,16 +360,14 @@ export default function ProfileScreen() {
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       keyboardVerticalOffset={80}
-      style={[GlobalStyles.pageStyle, { flex: 1 }]}
+      style={GlobalStyles.pageStyle}
     >
       <ScrollView
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
         style={[
-          Platform.OS === "web"
-            ? { maxHeight: screenWidth + 180, paddingBottom: 32 }
-            : {},
-          { flex: 1 },
+          Platform.OS === "web" ? { maxHeight: screenWidth + 180 } : {},
+          { flexGrow: 1, paddingBottom: 32 },
         ]}
       >
         {userLoading ? (
@@ -704,30 +702,6 @@ export default function ProfileScreen() {
                                         )
                                       )
                                     }
-                                    onBtnChangeStatePress={() => {
-                                      if (token)
-                                        try {
-                                          billingService.updateBilling(
-                                            billing.billingId,
-                                            {
-                                              paymentReceived: true,
-                                            },
-                                            token
-                                          );
-                                          notify({
-                                            title:
-                                              "Facture marquée comme payée",
-                                            type: "success",
-                                          });
-                                        } catch (error) {
-                                          notify({
-                                            title:
-                                              "Erreur lors de la mise à jour de la facture",
-                                            type: "error",
-                                          });
-                                          console.log(error);
-                                        }
-                                    }}
                                   />
                                 ))
                               : [
