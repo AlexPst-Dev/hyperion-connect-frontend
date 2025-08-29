@@ -24,7 +24,7 @@
     },
     "web": {
       "bundler": "metro",
-      "favicon": "./src/assets/images/icon-512.png",
+      "favicon": "./src/assets/images/favicon.png",
       "name": "Hyperion Connect",
       "build": {
         "babel": {
