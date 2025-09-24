@@ -284,9 +284,9 @@ export default function AddContacts({
                   )}
                 </ScrollView>
 
-                <View style={styles.inviteBtn}>
+                {/* <View style={styles.inviteBtn}>
                   <AppButton title="Inviter" type="secondary" iconName="link" />
-                </View>
+                </View> */}
               </>
             }
             onSubmit={handleSubmit}

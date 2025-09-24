@@ -731,13 +731,6 @@ export default function UsersScreen() {
         );
       }
 
-      // Succès - retour à la liste
-      setDisplayUsersList(true);
-      setSelectedFreeUser(null);
-      setSelectedCoach(null);
-      setSelectedUser([]);
-      resetForm();
-
       // Rafraîchir la liste des utilisateurs
       if (newUserType) {
         fetchUsersByCategories(newUserType as ProfileCategory);
@@ -746,6 +739,12 @@ export default function UsersScreen() {
       console.error("Erreur lors de la création de l'utilisateur:", error);
       // Vous pouvez ajouter ici une notification d'erreur pour l'utilisateur
     } finally {
+      // Succès - retour à la liste
+      setDisplayUsersList(true);
+      setSelectedFreeUser(null);
+      setSelectedCoach(null);
+      setSelectedUser([]);
+      resetForm();
       setIsLoading(false);
       notify({
         title: "Utilisateur créé avec succès",
@@ -1600,7 +1599,7 @@ export default function UsersScreen() {
                         ))
                       ) : (
                         <AppText style={{ color: Colors.grey }}>
-                          Selectionnez une personne à ajouter à l'évenement
+                          Selectionnez un soignant à ajouter au sportif
                         </AppText>
                       )}
                     </Pressable>

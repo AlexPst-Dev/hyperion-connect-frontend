@@ -2171,6 +2171,60 @@ export default function ClientDetailScreen() {
                 />
               )}
             </View>
+            {archiveUserPopupVisible && (
+              <Modal
+                visible={archiveUserPopupVisible}
+                transparent
+                onRequestClose={() => {
+                  setArchiveUserPopupVisible(false);
+                }}
+              >
+                <Pressable
+                  onPress={() => {
+                    setArchiveUserPopupVisible(false);
+                  }}
+                  style={{
+                    flex: 1,
+                    backgroundColor: "rgba(0,0,0,0.5)",
+                    justifyContent: "center",
+                    padding: 24,
+                  }}
+                >
+                  <PopUp
+                    onClose={() => {
+                      setArchiveUserPopupVisible(false);
+                    }}
+                    title="Archiver l'utilisateur"
+                    btnType="primary"
+                    btnText="Archiver"
+                    iconName="archive"
+                    closeText="Annuler"
+                    onSubmit={async () => {
+                      try {
+                        await UserService.updateUserByProfileAndId(
+                          client.id,
+                          client.profileCategory,
+                          { isActive: false },
+                          token!
+                        );
+                        notify({
+                          title: "Utilisateur archivé",
+                          type: "information",
+                        });
+                        setArchiveUserPopupVisible(false);
+                      } catch (error) {
+                        notify({
+                          title: "Impossible d'archiver l'utilisateur",
+                          type: "error",
+                        });
+                        console.error("Erreur lors de l'archivage :", error);
+                      }
+                    }}
+                    paragraph="Êtes-vous sûr de vouloir archiver cet utilisateur ?"
+                  />
+                </Pressable>
+              </Modal>
+            )}
             {editSubscriptionEditPopUpVisible && (
               <Modal
                 visible={editSubscriptionEditPopUpVisible}
@@ -2502,63 +2556,6 @@ export default function ClientDetailScreen() {
                   onTabChange={setActiveTabIndex}
                 />
                 {tabViews[activeTabIndex]}
-                {archiveUserPopupVisible && (
-                  <Modal
-                    visible={archiveUserPopupVisible}
-                    transparent
-                    onRequestClose={() => {
-                      setArchiveUserPopupVisible(false);
-                    }}
-                  >
-                    <Pressable
-                      onPress={() => {
-                        setArchiveUserPopupVisible(false);
-                      }}
-                      style={{
-                        flex: 1,
-                        backgroundColor: "rgba(0,0,0,0.5)",
-                        justifyContent: "center",
-                        padding: 24,
-                      }}
-                    >
-                      <PopUp
-                        onClose={() => {
-                          setArchiveUserPopupVisible(false);
-                        }}
-                        title="Archiver l'utilisateur"
-                        btnType="primary"
-                        btnText="Archiver"
-                        iconName="archive"
-                        closeText="Annuler"
-                        onSubmit={async () => {
-                          try {
-                            await UserService.updateUserByProfileAndId(
-                              client.id,
-                              client.profileCategory,
-                              { isActive: false },
-                              token!
-                            );
-                            notify({
-                              title: "Utilisateur archivé",
-                              type: "information",
-                            });
-                            setArchiveUserPopupVisible(false);
-                          } catch (error) {
-                            notify({
-                              title: "Impossible d'archiver l'utilisateur",
-                              type: "error",
-                            });
-                            console.error(
-                              "Erreur lors de l'archivage :",
-                              error
-                            );
-                          }
-                        }}
-                        paragraph="Êtes-vous sûr de vouloir archiver cet utilisateur ?"
-                      />
-                    </Pressable>
-                  </Modal>
-                )}
               </View>
             </>
           );
