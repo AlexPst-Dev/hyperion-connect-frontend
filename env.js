@@ -3,10 +3,10 @@ import Constants from "expo-constants";
 
 const ENV = {
   development: {
-    API_URL: "http://192.168.1.92:3000/api",
+    API_URL: "",
   },
   production: {
-    API_URL: "https://ton-domaine.com/api",
+    API_URL: "",
   },
 };
 
