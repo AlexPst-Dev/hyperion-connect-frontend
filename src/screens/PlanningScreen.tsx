@@ -1,3 +1,4 @@
+import { APP_NAME_UPPER, NETWORK_LABEL, NETWORK_LABEL_UPPER } from "../constants/brand";
 import React, { JSX, useEffect, useMemo, useState } from "react";
 import { KeyboardAvoidingView, Platform, ScrollView, View } from "react-native";
 import GlobalStyles from "../styles/styles";
@@ -252,7 +253,7 @@ export default function PlanningScreen() {
         // Tab 1 : Company Events
         <View key="events" style={{ flexDirection: "column", gap: 16 }}>
           <AppText style={GlobalStyles.h3}>PROCHAINS EVENEMENTS</AppText>
-          <AppText style={GlobalStyles.h3}>HYPERION</AppText>
+          <AppText style={GlobalStyles.h3}>{APP_NAME_UPPER}</AppText>
           {eventsByCategoriesLoading ? (
             <AppText>Chargement...</AppText>
           ) : eventsByCategory[EventCategory.HYPERION] &&
@@ -290,7 +291,7 @@ export default function PlanningScreen() {
           {isInHyperlinkNetwork && (
             <>
               <AppText style={[GlobalStyles.h3, { marginTop: 16 }]}>
-                HYPERLINK
+                {NETWORK_LABEL_UPPER}
               </AppText>
               {eventsByCategoriesLoading ? (
                 <AppText>Chargement...</AppText>
@@ -589,7 +590,7 @@ export default function PlanningScreen() {
         // Tab 1 : Company Events
         <View key="events" style={{ flexDirection: "column", gap: 16 }}>
           <AppText style={GlobalStyles.h3}>PROCHAINS EVENEMENTS</AppText>
-          <AppText style={GlobalStyles.h3}>HYPERION</AppText>
+          <AppText style={GlobalStyles.h3}>{APP_NAME_UPPER}</AppText>
           {eventsByCategoriesLoading ? (
             <AppText>Chargement...</AppText>
           ) : eventsByCategory[EventCategory.HYPERION] &&
@@ -627,7 +628,7 @@ export default function PlanningScreen() {
           {isInHyperlinkNetwork && (
             <>
               <AppText style={[GlobalStyles.h3, { marginTop: 16 }]}>
-                HYPERLINK
+                {NETWORK_LABEL_UPPER}
               </AppText>
               {eventsByCategoriesLoading ? (
                 <AppText>Chargement...</AppText>
@@ -791,7 +792,7 @@ export default function PlanningScreen() {
         <>
           <View style={{ flexDirection: "column", gap: 32 }}>
             <View style={{ flexDirection: "column", gap: 24 }}>
-              <AppText style={GlobalStyles.h2}>EVENEMENTS HYPERION</AppText>
+              <AppText style={GlobalStyles.h2}>ÉVÉNEMENTS {APP_NAME_UPPER}</AppText>
               <View style={{ flexDirection: "column", gap: 16 }}>
                 {eventsByCategoriesLoading ? (
                   <AppText>Chargement...</AppText>
@@ -937,7 +938,7 @@ export default function PlanningScreen() {
         <>
           <View style={{ flexDirection: "column", gap: 32 }}>
             <View style={{ flexDirection: "column", gap: 24 }}>
-              <AppText style={GlobalStyles.h2}>RENDEZ-VOUS HYPERLINK</AppText>
+              <AppText style={GlobalStyles.h2}>RENDEZ-VOUS {NETWORK_LABEL_UPPER}</AppText>
               <View style={{ flexDirection: "column", gap: 16 }}>
                 {eventsByCategoriesLoading ? (
                   <AppText>Chargement...</AppText>
@@ -968,7 +969,7 @@ export default function PlanningScreen() {
                   <AppText>Aucun événement n'est prévu actuellement</AppText>
                 )}
               </View>
-              <AppText style={GlobalStyles.h2}>RENDEZ-VOUS HYPERION</AppText>
+              <AppText style={GlobalStyles.h2}>RENDEZ-VOUS {APP_NAME_UPPER}</AppText>
               <View style={{ flexDirection: "column", gap: 16 }}>
                 {eventsByCategoriesLoading ? (
                   <AppText>Chargement...</AppText>
@@ -1157,7 +1158,7 @@ export default function PlanningScreen() {
         <>
           <View style={{ flexDirection: "column", gap: 32 }}>
             <View style={{ flexDirection: "column", gap: 24 }}>
-              <AppText style={GlobalStyles.h2}>RENDEZ-VOUS HYPERLINK</AppText>
+              <AppText style={GlobalStyles.h2}>RENDEZ-VOUS {NETWORK_LABEL_UPPER}</AppText>
               <View style={{ flexDirection: "column", gap: 16 }}>
                 {(eventsByCategory[EventCategory.HYPERLINK] || []).map(
                   (hyperlinkEvent) => {
@@ -1168,7 +1169,7 @@ export default function PlanningScreen() {
                     return (
                       <Event
                         key={hyperlinkEvent.id}
-                        title={hyperlinkEvent.title || "Evénement Hyperlink"}
+                        title={hyperlinkEvent.title || `Événement ${NETWORK_LABEL}`}
                         type={EventCategory.HYPERLINK}
                         personsInvolved={personsInvolved.map((u) => u.user)}
                         location={
@@ -1199,7 +1200,7 @@ export default function PlanningScreen() {
                   }
                 )}
                 {eventsByCategory[EventCategory.HYPERLINK]?.length === 0 && (
-                  <AppText>Aucun événement HYPERLINK trouvé</AppText>
+                  <AppText>Aucun événement {NETWORK_LABEL_UPPER} trouvé</AppText>
                 )}
                 <View
                   style={{ flexDirection: "row", justifyContent: "center" }}
@@ -1216,7 +1217,7 @@ export default function PlanningScreen() {
               </View>
             </View>
             <View style={{ flexDirection: "column", gap: 24 }}>
-              <AppText style={GlobalStyles.h2}>EVENEMENTS HYPERION</AppText>
+              <AppText style={GlobalStyles.h2}>ÉVÉNEMENTS {APP_NAME_UPPER}</AppText>
               <View style={{ flexDirection: "column", gap: 16 }}>
                 {(eventsByCategory[EventCategory.HYPERION] || []).map(
                   (hyperionEvent) => {
@@ -1227,7 +1228,7 @@ export default function PlanningScreen() {
                     return (
                       <Event
                         key={hyperionEvent.id}
-                        title={hyperionEvent.title || "Evénement Hyperlink"}
+                        title={hyperionEvent.title || `Événement ${NETWORK_LABEL}`}
                         type={EventCategory.HYPERION}
                         personsInvolved={personsInvolved.map((u) => u.user)}
                         location={hyperionEvent.location || "Lieu non spécifié"}
@@ -1247,7 +1248,7 @@ export default function PlanningScreen() {
                   }
                 )}
                 {eventsByCategory[EventCategory.HYPERION]?.length === 0 && (
-                  <AppText>Aucun événement HYPERION trouvé</AppText>
+                  <AppText>Aucun événement {APP_NAME_UPPER} trouvé</AppText>
                 )}
                 <View
                   style={{ flexDirection: "row", justifyContent: "center" }}

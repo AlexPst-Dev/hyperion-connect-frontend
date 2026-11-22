@@ -1,3 +1,4 @@
+import { APP_NAME } from "../constants/brand";
 import React, { useEffect, useState } from "react";
 import {
   StyleSheet,
@@ -243,7 +244,7 @@ export default function AppHeader({
                         type="text"
                         label="Titre"
                         placeholder={
-                          newsTitle || "ex : Message de l'équipe Hyperion"
+                          newsTitle || `ex : Message de l'équipe ${APP_NAME}`
                         }
                         value={newsTitle}
                         onChangeText={setNewsTitle}

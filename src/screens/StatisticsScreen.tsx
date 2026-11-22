@@ -1,3 +1,4 @@
+import { APP_NAME } from "../constants/brand";
 import React, { JSX, useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -77,7 +78,7 @@ export default function StatisticsScreen() {
     <View key={"stats"} style={{ flexDirection: "column", gap: 24 }}>
       <AppText>
         Retrouvez ici le résumé global de votre visibilité sur la plteforme
-        Hyperion Connect.
+        {APP_NAME}.
       </AppText>
       <View style={{ flexDirection: "row", gap: 8 }}>
         {kpis.length > 0 &&
@@ -109,7 +110,7 @@ export default function StatisticsScreen() {
       </View>
       <AppText>
         Retrouvez ici toutes vos offres et vos sponsoring de sportifs conclus
-        avec Hyperion.
+        avec {APP_NAME}.
       </AppText>
       <AppText style={GlobalStyles.h2}>OFFRES</AppText>
       {connectedCompany && (
@@ -274,7 +275,7 @@ export default function StatisticsScreen() {
           >
             <PopUp
               title="Publier une offre"
-              paragraph="Souhaitez-vous prendre contact avec les consultants Hyperion pour publier une nouvelle offre ?"
+              paragraph={`Souhaitez-vous prendre contact avec les consultants ${APP_NAME} pour publier une nouvelle offre ?`}
               onClose={() =>
                 setAskForNewOfferPopUpVisible(!askForNewOfferPopUpVisible)
               }

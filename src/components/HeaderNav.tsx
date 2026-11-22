@@ -1,3 +1,4 @@
+import { APP_NAME_UPPER, NETWORK_LABEL_UPPER } from "../constants/brand";
 import React, { useState } from "react";
 import { useNavigation } from "@react-navigation/native";
 import {
@@ -93,8 +94,8 @@ export default function HeaderNav() {
           />
           <Text style={styles.appTitle}>
             {user?.profileCategory === ProfileCategory.PARTNER
-              ? "HYPERLINK"
-              : "HYPERION"}
+              ? NETWORK_LABEL_UPPER
+              : APP_NAME_UPPER}
           </Text>
         </Pressable>
 

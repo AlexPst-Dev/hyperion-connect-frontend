@@ -1,3 +1,4 @@
+import { APP_NAME_UPPER } from "../constants/brand";
 import React, { useEffect, useRef, useState } from "react";
 import {
   View,
@@ -17,6 +18,9 @@ import GlobalStyles, { Colors } from "../styles/styles";
 import AppButton from "../components/AppButton";
 import { getImageSource } from "../utils/imgSrcHandler";
 import { notify } from "../components/NotificationContainer";
+import env from "@/env";
+
+type DemoAccount = { role: string; label: string; email: string };
 
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
@@ -24,6 +28,26 @@ export default function LoginScreen() {
   const [error, setError] = useState<string | null>(null);
   const navigation = useNavigation();
   const { login, isLoading } = useAuth();
+
+  // Public demo only: the API lists its shared accounts (404 everywhere else).
+  const [demo, setDemo] = useState<{ password: string; accounts: DemoAccount[] } | null>(null);
+  useEffect(() => {
+    fetch(`${env.API_URL}/demo/accounts`)
+      .then((response) => (response.ok ? response.json() : null))
+      .then(setDemo)
+      .catch(() => setDemo(null));
+  }, []);
+
+  const loginAsDemo = async (account: DemoAccount) => {
+    if (!demo) return;
+    setEmail(account.email);
+    setPassword(demo.password);
+    try {
+      await login({ email: account.email, password: demo.password });
+    } catch (error: any) {
+      setError(error.message || "Une erreur est survenue lors de la connexion");
+    }
+  };
 
   const handleLogin = async () => {
     // Validation basique
@@ -91,13 +115,46 @@ export default function LoginScreen() {
             />
             <View style={{ flexDirection: "column" }}>
               <AppText style={[GlobalStyles.h1, { color: "white" }]}>
-                HYPERION
+                {APP_NAME_UPPER}
               </AppText>
               <AppText style={[GlobalStyles.h1, { color: "white" }]}>
                 CONNECT
               </AppText>
             </View>
           </View>
+
+          {demo && (
+            <View
+              style={{
+                backgroundColor: "white",
+                paddingHorizontal: 16,
+                paddingVertical: 24,
+                borderRadius: 16,
+                flexDirection: "column",
+                gap: 16,
+                marginBottom: 16,
+              }}
+            >
+              <View style={{ flexDirection: "column", gap: 8 }}>
+                <AppText style={[GlobalStyles.h2]}>DÉMO</AppText>
+                <AppText>
+                  Données fictives, remises à zéro chaque nuit. Choisissez un
+                  rôle pour entrer directement.
+                </AppText>
+              </View>
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+                {demo.accounts.map((account) => (
+                  <AppButton
+                    key={account.role}
+                    title={account.label}
+                    type="secondary"
+                    onPress={() => loginAsDemo(account)}
+                    disabled={isLoading}
+                  />
+                ))}
+              </View>
+            </View>
+          )}
 
           <View
             style={{

@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "Hyperion Connect",
-    "slug": "hyperion-connect",
+    "name": "SportLink",
+    "slug": "sportlink",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./src/assets/images/icon-512.png",
-    "scheme": "myapp",
+    "scheme": "sportlink",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "permissions": ["READ_EXTERNAL_STORAGE", "WRITE_EXTERNAL_STORAGE"],
@@ -37,7 +37,7 @@
           "type": "image/png"
         }
       ],
-      "name": "Hyperion Connect",
+      "name": "SportLink",
       "build": {
         "babel": {
           "include": ["expo-file-system", "expo-sharing"]

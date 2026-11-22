@@ -1,3 +1,4 @@
+import { NETWORK_LABEL } from "../constants/brand";
 import React, { JSX, useEffect, useState } from "react";
 import {
   KeyboardAvoidingView,
@@ -1215,7 +1216,7 @@ export default function UsersScreen() {
                       />
                       <Input
                         type="checkbox"
-                        label="Adhérent Hyperlink"
+                        label={`Adhérent ${NETWORK_LABEL}`}
                         value={formData.isInHyperlinkNetwork || false}
                         onChange={(v) =>
                           handleInputChange("isInHyperlinkNetwork", v)

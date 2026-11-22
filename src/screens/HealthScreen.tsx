@@ -108,7 +108,7 @@ export default function HealthScreen() {
           e.specificEvent.sessionId,
           token
         );
-        header = `Session : ${completeSession.session.label}`;
+        header = `Session : ${completeSession.label}`;
 
         // Commentaire du sportif
         if (e.specificEvent?.sportsmanComment) {
@@ -119,7 +119,7 @@ export default function HealthScreen() {
         }
         // Commentaire du coach
         if (e.specificEvent?.coachComment) {
-          const coach = completeSession.session.author || null;
+          const coach = completeSession.author || null;
           const coachName = coach
             ? `${coach.lastName?.toUpperCase() ?? ""} ${
                 coach.firstName ?? ""

@@ -1,33 +1,17 @@
-# ---- Build stage ----
-FROM node:20-alpine AS builder
+# ---- Build: Expo web export (Node runs the Expo CLI, Bun installs) ----
+FROM node:22-slim AS build
+COPY --from=oven/bun:1.4 /usr/local/bin/bun /usr/local/bin/bun
 WORKDIR /app
-
-# Copier les fichiers de config d'abord
-COPY package*.json ./
-COPY app.json ./
-
-# Installer les dépendances
-RUN npm install
-
-# Copier tout le reste du projet
+COPY package.json bun.lock ./
+RUN bun install --frozen-lockfile
 COPY . .
+# No EXPO_PUBLIC_API_URL here on purpose: the placeholder is replaced at startup.
+RUN bun x expo export --platform web
 
-# Build Expo Web avec Metro → dossier dist/
-RUN npm run build:web
-
-# ---- Runtime stage ----
-FROM nginx:1.27-alpine AS prod
-WORKDIR /usr/share/nginx/html
-
-# Copier le build web
-COPY --from=builder /app/dist/ ./
-
-# Copier la config Nginx
+# ---- Runtime: static files served by nginx ----
+FROM nginx:1.27-alpine
+COPY --from=build /app/dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf
-
-# Copier le script d'injection d'env
-COPY inject-env.sh /docker-entrypoint.d/00-inject-env.sh
-RUN chmod +x /docker-entrypoint.d/00-inject-env.sh
-
+COPY inject-env.sh /docker-entrypoint.d/40-inject-env.sh
+RUN chmod +x /docker-entrypoint.d/40-inject-env.sh
 EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]

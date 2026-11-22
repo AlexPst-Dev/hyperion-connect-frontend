@@ -8,7 +8,7 @@ import React, {
 } from "react";
 import { AuthContextType, LoggedUser, LoginCredentials } from "../models/auth";
 import { authService } from "../services/api/authService";
-import { ApiError } from "../services/api/client";
+import { ApiError, apiClient } from "../services/api/client";
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -19,6 +19,9 @@ interface AuthProviderProps {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<LoggedUser | null>(null);
   const [token, setToken] = useState<string | null>(null);
+  // Calls that do not pass a token use the signed-in user's one (set during
+  // render, so it is already there when child screens fetch their data).
+  apiClient.setSessionToken(token);
   const [isLoading, setIsLoading] = useState(true);
 
   // Initialisation : vérifier si l'utilisateur est déjà connecté

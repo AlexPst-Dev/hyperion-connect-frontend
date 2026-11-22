@@ -1,3 +1,4 @@
+import { APP_NAME, NETWORK_LABEL } from "../constants/brand";
 import React, { useMemo, useState } from "react";
 import {
   Dimensions,
@@ -130,10 +131,10 @@ export default function PlanningHistoryScreen() {
                   sectionTitle = "Rendez-vous";
                   break;
                 case EventCategory.HYPERION:
-                  sectionTitle = "Événements Hyperion";
+                  sectionTitle = `Événements ${APP_NAME}`;
                   break;
                 case EventCategory.HYPERLINK:
-                  sectionTitle = "Événements Hyperlink";
+                  sectionTitle = `Événements ${NETWORK_LABEL}`;
                   break;
                 default:
                   sectionTitle = "Autres événements";

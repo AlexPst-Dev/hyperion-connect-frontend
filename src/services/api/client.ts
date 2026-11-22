@@ -10,6 +10,19 @@ export class ApiError extends Error {
 class ApiClient {
   private baseURL: string;
   private defaultHeaders: Record<string, string>;
+  // Token of the signed-in user, kept up to date by AuthContext. Used when a
+  // call does not pass its own token: every API route except sign-in and the
+  // news feed requires authentication.
+  private sessionToken: string | null = null;
+
+  setSessionToken(token: string | null) {
+    this.sessionToken = token;
+  }
+
+  private authHeader(token?: string): Record<string, string> {
+    const value = token || this.sessionToken;
+    return value ? { Authorization: `Bearer ${value}` } : {};
+  }
 
   constructor() {
     this.baseURL = ENV.API_URL;
@@ -68,7 +81,7 @@ class ApiClient {
   async get<T>(endpoint: string, token?: string): Promise<T> {
     return this.request<T>(endpoint, {
       method: "GET",
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      headers: this.authHeader(token),
     });
   }
 
@@ -76,7 +89,7 @@ class ApiClient {
     return this.request<T>(endpoint, {
       method: "POST",
       body: data ? JSON.stringify(data) : undefined,
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      headers: this.authHeader(token),
     });
   }
 
@@ -84,7 +97,7 @@ class ApiClient {
     return this.request<T>(endpoint, {
       method: "PUT",
       body: data ? JSON.stringify(data) : undefined,
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      headers: this.authHeader(token),
     });
   }
 
@@ -92,14 +105,14 @@ class ApiClient {
     return this.request<T>(endpoint, {
       method: "PATCH",
       body: data ? JSON.stringify(data) : undefined,
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      headers: this.authHeader(token),
     });
   }
 
   async delete<T>(endpoint: string, token?: string): Promise<T> {
     return this.request<T>(endpoint, {
       method: "DELETE",
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      headers: this.authHeader(token),
     });
   }
 }

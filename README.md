@@ -1,50 +1,64 @@
-# Welcome to your Expo app 👋
+# SportLink — application
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Application web et mobile de SportLink, une plateforme de suivi sportif qui réunit sportifs, coachs, médecins du sport et entreprises partenaires.
 
-## Get started
+L'API, la base de données et le `docker-compose.yml` qui lance l'ensemble sont dans [hyperion-connect-backend](https://github.com/AlexPst-Dev/hyperion-connect-backend). Son README décrit aussi les rôles et le mode démo.
 
-1. Install dependencies
+## Histoire du projet
 
-   ```bash
-   npm install
-   ```
+Le projet a été développé en freelance pour une start-up, sous le nom « Hyperion Connect ». L'application a été livrée, mais la société a fermé avant le lancement public.
 
-2. Start the app
+Le code est publié ici sous le nom SportLink, avec une démo et des données entièrement fictives.
 
-   ```bash
-    npx expo start
-   ```
+## Stack
 
-In the output, you'll find options to open the app in a
+- Expo SDK 53, React Native et TypeScript : une seule base de code pour iOS, Android et le web.
+- React Navigation : une barre d'onglets différente pour chaque rôle.
+- NativeWind (Tailwind) et une feuille de styles partagée.
+- Graphiques de progression, QR codes de vérification, envoi de fichiers.
+- Bun pour les dépendances. Version web servie par nginx dans Docker.
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+## Lancer le projet
 
 ```bash
-npm run reset-project
+bun install
+EXPO_PUBLIC_API_URL=http://localhost:3000/api bunx expo start
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+Ensuite, appuyez sur `w` pour le web, ou scannez le QR code avec Expo Go.
 
-## Learn more
+Sans `EXPO_PUBLIC_API_URL`, l'application vise `http://localhost:3000/api` en développement.
 
-To learn more about developing your project with Expo, look at the following resources:
+### Image Docker (web)
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+```bash
+docker build -t sportlink-web .
+docker run -p 8080:80 -e EXPO_PUBLIC_API_URL=https://api.example.com/api sportlink-web
+```
 
-## Join the community
+L'adresse de l'API est injectée au démarrage du conteneur. La même image sert donc dans tous les environnements.
 
-Join our community of developers creating universal apps.
+## Démo
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+Quand l'API tourne en mode démo, l'écran de connexion affiche un bouton par rôle : on entre sans créer de compte. Les données sont fictives et remises à zéro chaque nuit.
+
+## Organisation du code
+
+```
+src/
+  screens/      écrans, regroupés par parcours
+  components/   composants partagés (boutons, cartes, formulaires, graphiques)
+  navigation/   onglets par rôle et piles de navigation
+  services/     appels à l'API
+  context/      authentification
+  hooks/
+  constants/    nom de l'application et libellés
+  styles/
+```
+
+## Ce que je referais aujourd'hui
+
+- **Écrans plus petits.** Certains écrans dépassent les 3 000 lignes, comme le détail d'un sportif vu par son coach. Je les découperais en composants et en hooks par fonctionnalité.
+- **Gestion des données.** Les appels à l'API sont faits à la main dans chaque écran. TanStack Query apporterait le cache, les rechargements et des états de chargement cohérents.
+- **Navigation.** Certains paramètres d'écran sont des objets, ce qui casse le rechargement d'une page sur le web. Je passerais des identifiants.
+- **Tests.** Ajouter des tests de composants et des parcours end-to-end par rôle.

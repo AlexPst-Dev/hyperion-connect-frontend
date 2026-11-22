@@ -1,3 +1,4 @@
+import { APP_NAME_UPPER } from "../../constants/brand";
 import React, { useRef, useState, useEffect } from "react";
 import {
   View,
@@ -103,7 +104,7 @@ export default function ForgotPasswordScreen() {
             />
             <View style={{ flexDirection: "column" }}>
               <AppText style={[GlobalStyles.h1, { color: "white" }]}>
-                HYPERION
+                {APP_NAME_UPPER}
               </AppText>
               <AppText style={[GlobalStyles.h1, { color: "white" }]}>
                 CONNECT

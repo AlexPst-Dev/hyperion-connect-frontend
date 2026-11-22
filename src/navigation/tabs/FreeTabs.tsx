@@ -1,3 +1,4 @@
+import { APP_NAME } from "../../constants/brand";
 import React from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import HomeScreen from "@/src/screens/HomeScreen";
@@ -54,7 +55,7 @@ export default function FreeTabs() {
         name="Accueil"
         component={HomeScreen}
         options={{
-          title: "Hyperion Connect",
+          title: APP_NAME,
           tabBarLabel: "Accueil",
         }}
       />

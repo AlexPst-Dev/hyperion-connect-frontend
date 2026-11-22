@@ -1,3 +1,4 @@
+import { APP_NAME_UPPER } from "../constants/brand";
 import React, { useState } from "react";
 import {
   View,
@@ -85,7 +86,7 @@ export default function RegisterScreen() {
           />
           <View style={{ flexDirection: "column" }}>
             <AppText style={[GlobalStyles.h1, { color: "white" }]}>
-              HYPERION
+              {APP_NAME_UPPER}
             </AppText>
             <AppText style={[GlobalStyles.h1, { color: "white" }]}>
               CONNECT
@@ -103,7 +104,7 @@ export default function RegisterScreen() {
           }}
         >
           <View style={{ flexDirection: "column", gap: 8 }}>
-            <AppText style={[GlobalStyles.h2]}>REJOIGNEZ HYPERION</AppText>
+            <AppText style={[GlobalStyles.h2]}>REJOIGNEZ {APP_NAME_UPPER}</AppText>
             <AppText>
               Inscrivez-vous et boostez votre performance sportive avec nos
               experts !

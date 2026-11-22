@@ -1,3 +1,4 @@
+import { APP_NAME_UPPER } from "../constants/brand";
 import React, { useEffect, useState } from "react";
 import {
   View,
@@ -104,7 +105,7 @@ export default function MemberCard({ onClose, visible }: Props) {
       <Pressable style={styles.container} onPress={() => {}}>
         <View style={styles.header}>
           <AppText style={{ ...GlobalStyles.h2 }}>
-            MEMBRE HYPERION CONNECT
+            MEMBRE {APP_NAME_UPPER}
           </AppText>
           <Icon
             name="close"

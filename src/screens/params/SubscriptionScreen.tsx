@@ -1,3 +1,4 @@
+import { APP_NAME } from "../../constants/brand";
 import AppText from "@/src/components/AppText";
 import { useAuth } from "@/src/hooks/useAuth";
 import { MonthlyMonitoringEnum, Subscription } from "@/src/models/subscription";
@@ -166,7 +167,7 @@ export default function SubscriptionScreen() {
               <AppText>
                 Vous pouvez demander à changer d'abonnement via le bouton
                 ci-dessous, cette demande sera traitée au plus vite par les
-                consultants Hyperion
+                consultants {APP_NAME}
               </AppText>
               <AppButton
                 type="primary"

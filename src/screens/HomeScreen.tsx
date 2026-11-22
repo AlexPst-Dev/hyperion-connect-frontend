@@ -225,6 +225,8 @@ export default function HomeScreen() {
   useEffect(() => {
     let isMounted = true;
     async function fetchObjectives() {
+      // Coach and medic effects share this state: each only runs for its role.
+      if (user?.profileCategory !== ProfileCategory.COACH) return;
       if (!coachClients || coachClients.length === 0 || !token) {
         if (isMounted) setLastClientsObjectives([]);
         return;
@@ -246,10 +248,11 @@ export default function HomeScreen() {
     return () => {
       isMounted = false;
     };
-  }, [coachClients, token]);
+  }, [coachClients, token, user?.profileCategory]);
   useEffect(() => {
     let isMounted = true;
     async function fetchObjectives() {
+      if (user?.profileCategory !== ProfileCategory.MEDIC) return;
       if (!medicClients || medicClients.length === 0 || !token) {
         if (isMounted) setLastClientsObjectives([]);
         return;
@@ -271,7 +274,7 @@ export default function HomeScreen() {
     return () => {
       isMounted = false;
     };
-  }, [medicClients, token]);
+  }, [medicClients, token, user?.profileCategory]);
 
   if (!user || !token) {
     return (

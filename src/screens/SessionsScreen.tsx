@@ -1,3 +1,4 @@
+import { APP_NAME } from "../constants/brand";
 import React, { JSX, useEffect, useState } from "react";
 import {
   KeyboardAvoidingView,
@@ -1844,7 +1845,7 @@ export default function SessionsScreen() {
             <View style={{ flexDirection: "column", gap: 16 }}>
               <AppText style={GlobalStyles.h3}>Accès restreint</AppText>
               <AppText>
-                Cette page est réservée aux membres Hyperion. Devenez membre
+                Cette page est réservée aux membres {APP_NAME}. Devenez membre
                 pour débloquer tous les avantages !
               </AppText>
             </View>
